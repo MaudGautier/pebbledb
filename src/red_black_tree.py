@@ -10,7 +10,6 @@ class Node:
         self.right = right
 
     def insert(self, value: Value):
-        # TODO: ignoring equal case for now
         if value < self.value:
             left_node = self.left
             if left_node is None:
@@ -23,6 +22,7 @@ class Node:
                 self.right = Node(value=value)
                 return
             right_node.insert(value)
+
 
         # TODO: some rotations needed as we go
 
