@@ -33,16 +33,16 @@ class Node:
             right_node.insert(value)
 
 
-
 class RedBlackTree:
     def __init__(self, root: Node or None = None):
         self.root = root
 
     def insert(self, value: Value):
         node = self.root
+        if node is None:
+            self.root = Node(value=value)
+            return
         node.insert(value)
-
-
 
 
 # ---- Test Utils ----
