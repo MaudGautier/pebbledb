@@ -40,7 +40,8 @@ class RedBlackTree:
     def insert(self, value: Value):
         node = self.root
         if node is None:
-            self.root = Node(value=value)
+            # Scenario 1 - inserting the root should be black
+            self.root = Node(value=value, color=Color.BLACK)
             return
         node.insert(value)
 

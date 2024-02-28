@@ -80,13 +80,13 @@ def test_can_insert_on_empty_tree():
     assert values == expected_values
 
 
-# # RED BLACK TREE - INSERTIONS
-# def test_insert_root_is_black():
-#     # GIVEN
-#     tree = RedBlackTree(root=None)
-#
-#     # WHEN
-#     tree.insert(10)
-#
-#     # THEN
-#     assert tree.root.color == Color.BLACK
+# RED BLACK TREE - INSERTIONS
+def test_insert_root_is_black():
+    # GIVEN
+    tree = RedBlackTree(root=None)
+
+    # WHEN
+    tree.insert(10)
+
+    # THEN
+    assert tree.root.color == Color.BLACK
