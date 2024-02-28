@@ -1,13 +1,37 @@
 from collections import deque
+from enum import Enum
 
 Value = int
 
 
+class Color(str, Enum):
+    RED = "RED"
+    BLACK = "BLACK"
+
+
 class Node:
-    def __init__(self, value: Value, left: "Node" or None = None, right: "Node" or None = None):
+    # TODO: default for insertion is red. Not sure that's what we want as default in the init
+    def __init__(self, value: Value, left: "Node" or None = None, right: "Node" or None = None,
+                 color: Color = Color.RED):
         self.value = value
         self.left = left
         self.right = right
+        self.color = color
+
+    def insert(self, value: Value):
+        if value < self.value:
+            left_node = self.left
+            if left_node is None:
+                self.left = Node(value=value, color=Color.RED)
+                return
+            left_node.insert(value)
+        elif value > self.value:
+            right_node = self.right
+            if right_node is None:
+                self.right = Node(value=value, color=Color.RED)
+                return
+            right_node.insert(value)
+
 
 
 class RedBlackTree:
@@ -16,20 +40,9 @@ class RedBlackTree:
 
     def insert(self, value: Value):
         node = self.root
-        if value < node.value:
-            left_node = node.left
-            if left_node is None:
-                node.left = Node(value=value)
-                return
-            left_node.insert(value)
-        elif value > node.value:
-            right_node = node.right
-            if right_node is None:
-                node.right = Node(value=value)
-                return
-            right_node.insert(value)
+        node.insert(value)
 
-        # TODO: some rotations needed as we go
+
 
 
 # ---- Test Utils ----
