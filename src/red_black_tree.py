@@ -9,24 +9,25 @@ class Node:
         self.left = left
         self.right = right
 
-    def insert(self, node: "Node"):
+    def insert(self, value: Value):
         # TODO: ignoring equal case for now
-        if node.value < self.value:
+        if value < self.value:
             left_node = self.left
             if left_node is None:
-                self.left = node
+                self.left = Node(value=value)
                 return
-            left_node.insert(node)
-        elif node.value > self.value:
+            left_node.insert(value)
+        elif value > self.value:
             right_node = self.right
             if right_node is None:
-                self.right = node
+                self.right = Node(value=value)
                 return
-            right_node.insert(node)
+            right_node.insert(value)
 
         # TODO: some rotations needed as we go
 
 
+# ---- Test Utils ----
 def bfs(root: Node):
     nodes_to_visit = deque()
     nodes_to_visit.append(root)
