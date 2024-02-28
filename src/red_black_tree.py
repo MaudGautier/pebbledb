@@ -9,28 +9,50 @@ class Color(str, Enum):
     BLACK = "BLACK"
 
 
+
+
 class Node:
     # TODO: default for insertion is red. Not sure that's what we want as default in the init
-    def __init__(self, value: Value, left: "Node" or None = None, right: "Node" or None = None,
-                 color: Color = Color.RED):
+    def __init__(self, value: Value,
+                 left: "Node" or None = None,
+                 right: "Node" or None = None,
+                 parent: "Node" or None = None,
+                 color: Color = Color.RED,
+                 ):
         self.value = value
         self.left = left
         self.right = right
         self.color = color
+        self.parent = parent
 
-    def insert(self, value: Value):
+    def insert(self, value: Value) -> "Node":
         if value < self.value:
             left_node = self.left
             if left_node is None:
-                self.left = Node(value=value, color=Color.RED)
-                return
+                self.left = Node(value=value, color=Color.RED, parent=self)
+                return self.left
             left_node.insert(value)
         elif value > self.value:
             right_node = self.right
             if right_node is None:
-                self.right = Node(value=value, color=Color.RED)
-                return
+                self.right = Node(value=value, color=Color.RED, parent=self)
+                return self.right
             right_node.insert(value)
+
+    def get_uncle(self):
+        father = self.parent
+        if father is None:
+            return None
+        grandfather = father.parent
+        if grandfather is None:
+            return None
+        if father is grandfather.left:
+            return grandfather.right
+        if father is grandfather.right:
+            return grandfather.left
+
+        raise ValueError("THIS SHOULD NOT HAPPEN (searching for uncle gets us in a case not implemented)")
+
 
 
 class RedBlackTree:

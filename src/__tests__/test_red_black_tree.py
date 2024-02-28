@@ -90,3 +90,32 @@ def test_insert_root_is_black():
 
     # THEN
     assert tree.root.color == Color.BLACK
+
+
+def test_get_uncle_should_select_the_correct_one():
+    # GIVEN
+    root = Node(value=10)
+    left_node = root.insert(9)
+    right_node = root.insert(11)
+    left_left_node = left_node.insert(8)
+
+    # WHEN
+    uncle = left_left_node.get_uncle()
+
+    # THEN
+    assert uncle is right_node
+    assert uncle is not left_node
+
+def test_get_uncle_should_return_None_if_no_uncle():
+    # GIVEN
+    root = Node(value=10)
+    left_node = root.insert(9)
+    left_left_node = left_node.insert(8)
+
+    # WHEN
+    uncle = left_left_node.get_uncle()
+
+    # THEN
+    assert uncle is None
+
+
