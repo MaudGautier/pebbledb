@@ -9,28 +9,33 @@ class Node:
         self.left = left
         self.right = right
 
+
+class RedBlackTree:
+    def __init__(self, root: Node or None = None):
+        self.root = root
+
     def insert(self, value: Value):
-        if value < self.value:
-            left_node = self.left
+        node = self.root
+        if value < node.value:
+            left_node = node.left
             if left_node is None:
-                self.left = Node(value=value)
+                node.left = Node(value=value)
                 return
             left_node.insert(value)
-        elif value > self.value:
-            right_node = self.right
+        elif value > node.value:
+            right_node = node.right
             if right_node is None:
-                self.right = Node(value=value)
+                node.right = Node(value=value)
                 return
             right_node.insert(value)
-
 
         # TODO: some rotations needed as we go
 
 
 # ---- Test Utils ----
-def bfs(root: Node):
+def bfs(node: Node):
     nodes_to_visit = deque()
-    nodes_to_visit.append(root)
+    nodes_to_visit.append(node)
     nodes_to_display = []
 
     while nodes_to_visit:
