@@ -1,3 +1,5 @@
+import pytest
+
 from src.red_black_tree import RedBlackTree, Color, Node
 
 
@@ -93,8 +95,13 @@ def test_get_uncle():
     # WHEN/THEN
     assert node1.uncle is node5
     assert node3.uncle is node5
-    assert node4.uncle is None
-    assert node2.uncle is None
-    assert node5.uncle is None
-
+    with pytest.raises(ValueError) as error_node4:
+        _ = node4.uncle
+    with pytest.raises(ValueError) as error_node5:
+        _ = node5.uncle
+    with pytest.raises(ValueError) as error_node2:
+        _ = node2.uncle
+    assert repr(error_node4.value) == """ValueError('Searching for the uncle of the root. This should not happen!')"""
+    assert repr(error_node5.value) == """ValueError('Searching for the sibling of the root. This should not happen!')"""
+    assert repr(error_node2.value) == """ValueError('Searching for the sibling of the root. This should not happen!')"""
 
