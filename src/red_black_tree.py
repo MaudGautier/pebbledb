@@ -111,18 +111,20 @@ class RedBlackTree:
         else:
             assert new_node.uncle.color == Color.RED
 
-    def rotate_left(self, x: Node):
-        pass
-        # y = x.right
-        # left = x.left
-        # x_parent = x.parent
-        # # right_left = y.left
-        #
-        # # Rotate
-        # x.right = y.left
-        # x.parent = y
-        # y.left = x
-        # y.parent = x_parent
+    def rotate_left(self, y: Node):
+        x = y.right
+
+        # Rotate on y
+        child_to_move = x.left
+        y.right = child_to_move
+        x.parent = y.parent
+        y.parent = x
+        x.left = y
+        child_to_move.parent = y
+
+        # Replace root
+        if y is self.root:
+            self.root = x
 
     def rotate_right(self, x: Node):
         y = x.left

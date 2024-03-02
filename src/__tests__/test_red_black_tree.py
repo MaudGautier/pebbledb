@@ -55,7 +55,7 @@ def test_insert_node_on_right_right():
     tree.insert(data=11)
 
     # WHEN
-    tree.insert(data=12)
+    tree._bst_insert(node=Node(data=12, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
 
     # THEN
     values = tree.read_data()
@@ -230,7 +230,7 @@ def test_insert_node_left_right_calls_left_rotation_on_parent_and_LL_case():
         rotate_right_mock.assert_called_once_with(grand_parent)
 
 
-def test_right_rotation():
+def test_rotate_right():
     # -------- ORIGINAL --------
     #     X
     #    / \
@@ -287,3 +287,58 @@ def test_right_rotation():
     assert tree.root is node_Y
 
 
+def test_rotate_left():
+    # -------- ORIGINAL --------
+    #   Y
+    #  / \
+    # 7   X
+    #    / \
+    #   9   11
+    #
+    # --------  RESULT  --------
+    #     X
+    #    / \
+    #   Y   11
+    #  / \
+    # 7   9
+
+    # GIVEN
+    tree = RedBlackTree()
+    node_X = Node(data=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_Y = Node(data=8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    tree.root = node_Y
+    node_7 = Node(data=7, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_9 = Node(data=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_11 = Node(data=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+
+    tree._bst_insert(node=node_X)
+    tree._bst_insert(node=node_7)
+    tree._bst_insert(node=node_9)
+    tree._bst_insert(node=node_11)
+
+    # WHEN
+    tree.rotate_left(node_Y)
+
+    # THEN
+    # - first node
+    assert node_Y.left is node_7
+    assert node_Y.right is node_9
+    assert node_Y.parent is node_X
+    # - second node
+    assert node_7.left is RedBlackTree.NIL_LEAF
+    assert node_7.right is RedBlackTree.NIL_LEAF
+    assert node_7.parent is node_Y
+    # - third node
+    assert node_X.left is node_Y
+    assert node_X.right is node_11
+    assert node_X.parent is None
+    # - fourth node
+    assert node_9.left is RedBlackTree.NIL_LEAF
+    assert node_9.right is RedBlackTree.NIL_LEAF
+    assert node_9.parent is node_Y
+    # - fifth node
+    assert node_11.left is RedBlackTree.NIL_LEAF
+    assert node_11.right is RedBlackTree.NIL_LEAF
+    assert node_11.parent is node_X
+    # root
+    assert tree.root is node_X
