@@ -1,5 +1,6 @@
 from collections import deque
 from enum import Enum
+from typing import Optional
 
 Data = int
 
@@ -13,14 +14,30 @@ class Node:
     def __init__(self,
                  data: Data or None,
                  color: Color = Color.RED,
-                 left: "Node" or None = None,
-                 right: "Node" or None = None,
+                 left: Optional["Node"] = None,
+                 right: Optional["Node"] = None,
                  ):
         self.data = data
         self.left = left
         self.right = right
         self.color = color
-        self.parent = None
+        self.parent: Optional["Node"] = None
+
+    @property
+    def uncle(self):
+        parent = self.parent
+        if parent is None:
+            raise ValueError("Searching for the uncle of the root. This should not happen!")
+
+        grand_parent = parent.parent
+        if grand_parent is None:
+            raise ValueError("Searching for the sibling of the root. This should not happen!")
+
+        if parent is grand_parent.left:
+            return grand_parent.right
+
+        assert parent is grand_parent.right
+        return grand_parent.left
 
 
 class RedBlackTree:
