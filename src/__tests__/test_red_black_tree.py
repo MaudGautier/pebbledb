@@ -44,6 +44,66 @@ def test_insert_node_on_right():
     assert values == expected_values
 
 
+def test_insert_node_on_right_right():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+    tree.insert(data=11)
+
+    # WHEN
+    tree.insert(data=12)
+
+    # THEN
+    values = tree.read_data()
+    expected_values = [10, None, 11, None, 12, None, None]
+    assert values == expected_values
+
+
+def test_insert_node_on_right_left():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+    tree.insert(data=12)
+
+    # WHEN
+    tree.insert(data=11)
+
+    # THEN
+    values = tree.read_data()
+    expected_values = [10, None, 12, 11, None, None, None]
+    assert values == expected_values
+
+
+def test_insert_node_on_left_left():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+    tree.insert(data=9)
+
+    # WHEN
+    tree.insert(data=8)
+
+    # THEN
+    values = tree.read_data()
+    expected_values = [10, 9, None, 8, None, None, None]
+    assert values == expected_values
+
+
+def test_insert_node_on_left_right():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+    tree.insert(data=8)
+
+    # WHEN
+    tree.insert(data=9)
+
+    # THEN
+    values = tree.read_data()
+    expected_values = [10, 8, None, None, 9, None, None]
+    assert values == expected_values
+
+
 def test_inserted_root_is_black():
     # GIVEN
     tree = RedBlackTree()
