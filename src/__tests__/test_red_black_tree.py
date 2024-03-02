@@ -51,3 +51,18 @@ def test_inserted_root_is_black():
 
     # THEN
     assert tree.root.color == Color.BLACK
+
+
+def test_node_is_red_when_inserted():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+
+    # WHEN
+    tree.insert(data=11)
+    tree.insert(data=9)
+
+    # THEN
+    assert tree.root.color == Color.BLACK
+    assert tree.root.left.color == Color.RED
+    assert tree.root.right.color == Color.RED
