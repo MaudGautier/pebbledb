@@ -13,3 +13,30 @@ def test_insert_root():
     expected_values = [10, None, None]
     assert values == expected_values
 
+
+def test_insert_node_on_left():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+
+    # WHEN
+    tree.insert(data=9)
+
+    # THEN
+    values = tree.read_data()
+    expected_values = [10, 9, None, None, None]
+    assert values == expected_values
+
+
+def test_insert_node_on_right():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+
+    # WHEN
+    tree.insert(data=11)
+
+    # THEN
+    values = tree.read_data()
+    expected_values = [10, None, 11, None, None]
+    assert values == expected_values

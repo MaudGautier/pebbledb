@@ -10,7 +10,6 @@ class Color(str, Enum):
 
 
 class Node:
-
     def __init__(self,
                  data: Data or None,
                  color: Color = Color.RED,
@@ -27,14 +26,34 @@ class Node:
 class RedBlackTree:
     NIL_LEAF = Node(data=None, color=Color.BLACK)
 
-    def __init__(self, root: Node or None = None):
-        self.root = root
+    def __init__(self):
+        self.root = self.NIL_LEAF
 
     def insert(self, data: Data):
-        if self.root is None:
-            self.root = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
+        node_to_insert = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
+
+        # Find position
+        parent = None
+        current = self.root
+        while current is not self.NIL_LEAF:
+            parent = current
+            if current.data < node_to_insert.data:
+                current = current.right
+            elif current.data > node_to_insert.data:
+                current = current.left
+            elif current.data == node_to_insert.data:
+                raise NotImplementedError()
+
+        # Replace
+        node_to_insert.parent = parent
+        if parent is None:
+            self.root = node_to_insert
+        elif parent.data < node_to_insert.data:
+            parent.right = node_to_insert
         else:
-            raise NotImplementedError()
+            parent.left = node_to_insert
+
+        return node_to_insert
 
     # ---- UTILS FOR TESTS -----
     def read_data(self):
