@@ -1,7 +1,7 @@
 from collections import deque
 from enum import Enum
 
-Value = int
+Data = int
 
 
 class Color(str, Enum):
@@ -9,89 +9,54 @@ class Color(str, Enum):
     BLACK = "BLACK"
 
 
-
-
 class Node:
-    # TODO: default for insertion is red. Not sure that's what we want as default in the init
-    def __init__(self, value: Value,
+
+    def __init__(self,
+                 data: Data or None,
+                 color: Color = Color.RED,
                  left: "Node" or None = None,
                  right: "Node" or None = None,
-                 parent: "Node" or None = None,
-                 color: Color = Color.RED,
                  ):
-        self.value = value
+        self.data = data
         self.left = left
         self.right = right
         self.color = color
-        self.parent = parent
-
-    def insert(self, value: Value) -> "Node":
-        if value < self.value:
-            left_node = self.left
-            if left_node is None:
-                self.left = Node(value=value, color=Color.RED, parent=self)
-                return self.left
-            left_node.insert(value)
-        elif value > self.value:
-            right_node = self.right
-            if right_node is None:
-                self.right = Node(value=value, color=Color.RED, parent=self)
-                return self.right
-            right_node.insert(value)
-
-    def get_uncle(self):
-        father = self.parent
-        if father is None:
-            return None
-        grandfather = father.parent
-        if grandfather is None:
-            return None
-        if father is grandfather.left:
-            return grandfather.right
-        if father is grandfather.right:
-            return grandfather.left
-
-        raise ValueError("THIS SHOULD NOT HAPPEN (searching for uncle gets us in a case not implemented)")
-
+        self.parent = None
 
 
 class RedBlackTree:
+    NIL_LEAF = Node(data=None, color=Color.BLACK)
+
     def __init__(self, root: Node or None = None):
         self.root = root
 
-    def insert(self, value: Value):
-        node = self.root
-        if node is None:
-            # Scenario 1 - inserting the root should be black
-            self.root = Node(value=value, color=Color.BLACK)
-            return
-        node.insert(value)
+    def insert(self, data: Data):
+        if self.root is None:
+            self.root = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
+        else:
+            raise NotImplementedError()
 
+    # ---- UTILS FOR TESTS -----
+    def read_data(self):
+        nodes = self.bfs()
+        return [node.data for node in nodes]
 
-# ---- Test Utils ----
-def bfs(node: Node):
-    nodes_to_visit = deque()
-    nodes_to_visit.append(node)
-    nodes_to_display = []
+    def bfs(self):
+        nodes_to_visit = deque()
+        nodes_to_visit.append(self.root)
+        nodes_to_display = []
 
-    while nodes_to_visit:
-        current = nodes_to_visit.popleft()
+        while nodes_to_visit:
+            current = nodes_to_visit.popleft()
 
-        nodes_to_display.append(current)
+            nodes_to_display.append(current)
 
-        if current is None:
-            continue
+            if current is self.NIL_LEAF:
+                continue
 
-        left = current.left
-        right = current.right
-        nodes_to_visit.append(left)
-        nodes_to_visit.append(right)
+            left = current.left
+            right = current.right
+            nodes_to_visit.append(left)
+            nodes_to_visit.append(right)
 
-    return nodes_to_display
-
-
-def extract_values_from_list_of_nodes(nodes: list[Node or None]) -> list[int or None]:
-    values = []
-    for node in nodes:
-        values.append(node.value if node is not None else None)
-    return values
+        return nodes_to_display
