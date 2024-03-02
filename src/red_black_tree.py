@@ -29,31 +29,33 @@ class RedBlackTree:
     def __init__(self):
         self.root = self.NIL_LEAF
 
-    def insert(self, data: Data):
-        node_to_insert = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
-
-        # Find position
+    def _bst_insert(self, node: Node):
+        # Find insert position (find node's parent)
         parent = None
         current = self.root
         while current is not self.NIL_LEAF:
             parent = current
-            if current.data < node_to_insert.data:
+            if current.data < node.data:
                 current = current.right
-            elif current.data > node_to_insert.data:
+            elif current.data > node.data:
                 current = current.left
-            elif current.data == node_to_insert.data:
+            elif current.data == node.data:
                 raise NotImplementedError()
 
-        # Replace
-        node_to_insert.parent = parent
+        # Insert node
+        node.parent = parent
         if parent is None:
-            self.root = node_to_insert
-        elif parent.data < node_to_insert.data:
-            parent.right = node_to_insert
+            self.root = node
+        elif parent.data < node.data:
+            parent.right = node
         else:
-            parent.left = node_to_insert
+            parent.left = node
 
-        return node_to_insert
+        return node
+
+    def insert(self, data: Data):
+        node_to_insert = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
+        return self._bst_insert(node=node_to_insert)
 
     # ---- UTILS FOR TESTS -----
     def read_data(self):
