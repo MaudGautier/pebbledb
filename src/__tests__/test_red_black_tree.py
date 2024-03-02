@@ -1,4 +1,4 @@
-from src.red_black_tree import RedBlackTree
+from src.red_black_tree import RedBlackTree, Color
 
 
 def test_insert_root():
@@ -40,3 +40,14 @@ def test_insert_node_on_right():
     values = tree.read_data()
     expected_values = [10, None, 11, None, None]
     assert values == expected_values
+
+
+def test_inserted_root_is_black():
+    # GIVEN
+    tree = RedBlackTree()
+
+    # WHEN
+    tree.insert(data=10)
+
+    # THEN
+    assert tree.root.color == Color.BLACK

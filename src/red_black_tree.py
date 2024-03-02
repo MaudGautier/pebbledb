@@ -29,7 +29,7 @@ class RedBlackTree:
     def __init__(self):
         self.root = self.NIL_LEAF
 
-    def _bst_insert(self, node: Node):
+    def _bst_insert(self, node: Node) -> None:
         # Find insert position (find node's parent)
         parent = None
         current = self.root
@@ -51,11 +51,13 @@ class RedBlackTree:
         else:
             parent.left = node
 
-        return node
-
     def insert(self, data: Data):
-        node_to_insert = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
-        return self._bst_insert(node=node_to_insert)
+        new_node = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
+        self._bst_insert(node=new_node)
+
+        # If root: Recolor to black
+        if self.root is new_node:
+            new_node.color = Color.BLACK
 
     # ---- UTILS FOR TESTS -----
     def read_data(self):
