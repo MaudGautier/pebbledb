@@ -70,7 +70,7 @@ def test_insert_node_on_right_left():
     tree.insert(data=12)
 
     # WHEN
-    tree.insert(data=11)
+    tree._bst_insert(node=Node(data=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
 
     # THEN
     values = tree.read_data()
@@ -85,7 +85,7 @@ def test_insert_node_on_left_left():
     tree.insert(data=9)
 
     # WHEN
-    tree.insert(data=8)
+    tree._bst_insert(node=Node(data=8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
 
     # THEN
     values = tree.read_data()
@@ -100,7 +100,7 @@ def test_insert_node_on_left_right():
     tree.insert(data=8)
 
     # WHEN
-    tree.insert(data=9)
+    tree._bst_insert(node=Node(data=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
 
     # THEN
     values = tree.read_data()
@@ -228,3 +228,62 @@ def test_insert_node_left_right_calls_left_rotation_on_parent_and_LL_case():
         rotate_left_mock = cast(MagicMock, tree.rotate_left)
         rotate_left_mock.assert_called_once_with(parent)
         rotate_right_mock.assert_called_once_with(grand_parent)
+
+
+def test_right_rotation():
+    # -------- ORIGINAL --------
+    #     X
+    #    / \
+    #   Y   11
+    #  / \
+    # 7   9
+    #
+    # --------  RESULT  --------
+    #   Y
+    #  / \
+    # 7   X
+    #    / \
+    #   9   11
+
+    # GIVEN
+    tree = RedBlackTree()
+    node_X = Node(data=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    tree.root = node_X
+    node_Y = Node(data=8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_7 = Node(data=7, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_9 = Node(data=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_11 = Node(data=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+
+    tree._bst_insert(node=node_Y)
+    tree._bst_insert(node=node_7)
+    tree._bst_insert(node=node_9)
+    tree._bst_insert(node=node_11)
+
+    # WHEN
+    tree.rotate_right(node_X)
+
+    # THEN
+    # - first node
+    assert node_Y.left is node_7
+    assert node_Y.right is node_X
+    assert node_Y.parent is None
+    # - second node
+    assert node_7.left is RedBlackTree.NIL_LEAF
+    assert node_7.right is RedBlackTree.NIL_LEAF
+    assert node_7.parent is node_Y
+    # - third node
+    assert node_X.left is node_9
+    assert node_X.right is node_11
+    assert node_X.parent is node_Y
+    # - fourth node
+    assert node_9.left is RedBlackTree.NIL_LEAF
+    assert node_9.right is RedBlackTree.NIL_LEAF
+    assert node_9.parent is node_X
+    # - fifth node
+    assert node_11.left is RedBlackTree.NIL_LEAF
+    assert node_11.right is RedBlackTree.NIL_LEAF
+    assert node_11.parent is node_X
+    # root
+    assert tree.root is node_Y
+
+

@@ -113,11 +113,31 @@ class RedBlackTree:
 
     def rotate_left(self, x: Node):
         pass
-
+        # y = x.right
+        # left = x.left
+        # x_parent = x.parent
+        # # right_left = y.left
+        #
+        # # Rotate
+        # x.right = y.left
+        # x.parent = y
+        # y.left = x
+        # y.parent = x_parent
 
     def rotate_right(self, x: Node):
-        pass
+        y = x.left
 
+        # Rotate on x
+        child_to_move = y.right
+        x.left = child_to_move
+        y.parent = x.parent
+        x.parent = y
+        y.right = x
+        child_to_move.parent = x
+
+        # Replace root
+        if x is self.root:
+            self.root = y
 
     # ---- UTILS FOR TESTS -----
     def read_data(self):
