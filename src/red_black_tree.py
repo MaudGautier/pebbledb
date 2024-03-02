@@ -51,13 +51,19 @@ class RedBlackTree:
         else:
             parent.left = node
 
-    def insert(self, data: Data):
+    def insert(self, data: Data) -> None:
         new_node = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
         self._bst_insert(node=new_node)
 
         # If root: Recolor to black
         if self.root is new_node:
             new_node.color = Color.BLACK
+            return
+
+        # If parent is black => nothing to do
+        if new_node.parent.color == Color.BLACK:
+            return
+
 
     # ---- UTILS FOR TESTS -----
     def read_data(self):

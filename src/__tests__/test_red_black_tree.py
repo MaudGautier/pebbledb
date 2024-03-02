@@ -66,3 +66,5 @@ def test_node_is_red_when_inserted():
     assert tree.root.color == Color.BLACK
     assert tree.root.left.color == Color.RED
     assert tree.root.right.color == Color.RED
+
+    
