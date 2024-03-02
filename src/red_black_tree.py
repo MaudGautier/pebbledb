@@ -27,11 +27,11 @@ class Node:
     def uncle(self):
         parent = self.parent
         if parent is None:
-            raise ValueError("Searching for the uncle of the root. This should not happen!")
+            return None
 
         grand_parent = parent.parent
         if grand_parent is None:
-            raise ValueError("Searching for the sibling of the root. This should not happen!")
+            return None
 
         if parent is grand_parent.left:
             return grand_parent.right
