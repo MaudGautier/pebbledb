@@ -29,15 +29,23 @@ class Node:
         if parent is None:
             raise ValueError("Searching for the uncle of the root. This should not happen!")
 
-        grand_parent = parent.parent
+        grand_parent = self.grand_parent
         if grand_parent is None:
-            raise ValueError("Searching for the sibling of the root. This should not happen!")
+            raise ValueError("Searching for the uncle of the root's child. This should not happen!")
 
         if parent is grand_parent.left:
             return grand_parent.right
 
         assert parent is grand_parent.right
         return grand_parent.left
+
+    @property
+    def grand_parent(self):
+        parent = self.parent
+        if parent is None:
+            raise ValueError("Parent does not exist. This should not happen!")
+
+        return parent.parent
 
 
 class RedBlackTree:
@@ -80,6 +88,35 @@ class RedBlackTree:
         # If parent is black => nothing to do
         if new_node.parent.color == Color.BLACK:
             return
+
+        # If parent is red => check for uncle's color
+        assert new_node.parent.color == Color.RED
+        if new_node.uncle.color == Color.BLACK:
+            # Four possible cases to handle:
+            if new_node is new_node.grand_parent.left.left:
+                print("CASE LL")
+                self.rotate_right(new_node.grand_parent)
+            elif new_node is new_node.grand_parent.left.right:
+                print("CASE LR")
+                self.rotate_left(new_node.parent)
+                self.rotate_right(new_node.grand_parent)
+            elif new_node is new_node.grand_parent.right.left:
+                print("CASE RL")
+                self.rotate_right(new_node.parent)
+                self.rotate_left(new_node.grand_parent)
+            elif new_node is new_node.grand_parent.right.right:
+                print("CASE RR")
+                self.rotate_left(new_node.grand_parent)
+
+        else:
+            assert new_node.uncle.color == Color.RED
+
+    def rotate_left(self, x: Node):
+        pass
+
+
+    def rotate_right(self, x: Node):
+        pass
 
 
     # ---- UTILS FOR TESTS -----
