@@ -79,7 +79,6 @@ class RedBlackTree:
     def insert(self, data: Data) -> None:
         new_node = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
         self._bst_insert(node=new_node)
-
         self._fix_insert(new_node=new_node)
 
     def _fix_insert(self, new_node: Node):
@@ -99,7 +98,6 @@ class RedBlackTree:
         parent = new_node.parent
         assert new_node.parent.color == Color.RED
         if new_node.uncle.color == Color.BLACK:
-
             # Four possible cases to handle:
             if new_node is grand_parent.left.left:
                 # CASE LL

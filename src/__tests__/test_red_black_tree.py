@@ -455,6 +455,7 @@ def test_rotate_left():
     # root
     assert tree.root is node_Y
 
+
 def test_test_rotate_left_2():
     # -------- ORIGINAL --------
     #       10
@@ -511,6 +512,7 @@ def test_test_rotate_left_2():
     assert node_9.parent is node_10
     # root
     assert tree.root is node_10
+
 
 def test_rotate_left_triangle():
     # -------- ORIGINAL --------
@@ -691,3 +693,169 @@ def test_uncle_is_red_should_recolor():
         # THEN
         mocked_recolor.assert_called_once_with(tree.root)
 
+
+# NB: All 'test_complex' examples checked with this visualisation app:
+# https://www.cs.usfca.edu/~galles/visualization/RedBlack.html
+def test_complex_insertion_1():
+    # --------  RESULT  --------
+    #            21(B)
+    #           /    \
+    #         3(B)   32(B)
+    #        /
+    #     15(R)
+
+    # GIVEN
+    tree = RedBlackTree()
+
+    # WHEN
+    tree.insert(data=3)
+    tree.insert(data=21)
+    tree.insert(data=32)
+    tree.insert(data=15)
+
+    # THEN
+    assert tree.root.data == 21
+    assert tree.root.color == Color.BLACK
+    assert tree.root.left.data == 3
+    assert tree.root.left.color == Color.BLACK
+    assert tree.root.left.right.data == 15
+    assert tree.root.left.right.color == Color.RED
+    assert tree.root.right.data == 32
+    assert tree.root.right.color == Color.BLACK
+
+
+def test_complex_insertion_2():
+    # --------  RESULT  --------
+    #            10(B)
+    #           /    \
+    #         9(B)   11(B)
+    #        /
+    #     7(R)
+
+    # GIVEN
+    tree = RedBlackTree()
+
+    # WHEN
+    tree.insert(data=10)
+    tree.insert(data=11)
+    tree.insert(data=9)
+    tree.insert(data=7)
+
+    # THEN
+    assert tree.root.data == 10
+    assert tree.root.color == Color.BLACK
+    assert tree.root.left.data == 9
+    assert tree.root.left.color == Color.BLACK
+    assert tree.root.left.left.data == 7
+    assert tree.root.left.left.color == Color.RED
+    assert tree.root.right.data == 11
+    assert tree.root.right.color == Color.BLACK
+
+
+def test_complex_insertion_3():
+    # --------  RESULT  --------
+    #            10(B)
+    #           /    \
+    #         7(B)   11(B)
+    #        /  \
+    #     5(R)  9(B)
+
+    # GIVEN
+    tree = RedBlackTree()
+
+    # WHEN
+    tree.insert(data=10)
+    tree.insert(data=11)
+    tree.insert(data=9)
+    tree.insert(data=7)
+    tree.insert(data=5)
+
+    # THEN
+    assert tree.root.data == 10
+    assert tree.root.color == Color.BLACK
+    assert tree.root.left.data == 7
+    assert tree.root.left.color == Color.BLACK
+    assert tree.root.left.left.data == 5
+    assert tree.root.left.left.color == Color.RED
+    assert tree.root.left.right.data == 9
+    assert tree.root.left.right.color == Color.RED
+    assert tree.root.right.data == 11
+    assert tree.root.right.color == Color.BLACK
+
+
+def test_complex_insertion_4():
+    # --------  RESULT  --------
+    #            10(B)
+    #           /    \
+    #         7(R)   11(B)
+    #        /  \
+    #     5(B)  9(B)
+    #     /
+    #   4(R)
+
+    # GIVEN
+    tree = RedBlackTree()
+
+    # WHEN
+    tree.insert(data=10)
+    tree.insert(data=11)
+    tree.insert(data=9)
+    tree.insert(data=7)
+    tree.insert(data=5)
+    tree.insert(data=4)
+
+    # THEN
+    assert tree.root.data == 10
+    assert tree.root.color == Color.BLACK
+    assert tree.root.left.data == 7
+    assert tree.root.left.color == Color.RED
+    assert tree.root.left.left.data == 5
+    assert tree.root.left.left.color == Color.BLACK
+    assert tree.root.left.left.left.data == 4
+    assert tree.root.left.left.left.color == Color.RED
+    assert tree.root.left.right.data == 9
+    assert tree.root.left.right.color == Color.BLACK
+    assert tree.root.right.data == 11
+    assert tree.root.right.color == Color.BLACK
+
+
+def test_complex_insertion_5():
+    # --------  RESULT  --------
+    #            7(B)
+    #           /    \
+    #         4(R)   10(R)
+    #        /  \     /   \
+    #     2(B) 5(B)  9(B) 11(B)
+    #     /
+    #   1(R)
+
+    # GIVEN
+    tree = RedBlackTree()
+
+    # WHEN
+    tree.insert(data=10)
+    tree.insert(data=11)
+    tree.insert(data=9)
+    tree.insert(data=7)
+    tree.insert(data=5)
+    tree.insert(data=4)
+    tree.insert(data=2)
+    tree.insert(data=1)
+
+    # THEN
+    assert tree.root.data == 7
+    assert tree.root.color == Color.BLACK
+    assert tree.root.left.data == 4
+    assert tree.root.left.color == Color.RED
+    assert tree.root.left.left.data == 2
+    assert tree.root.left.left.color == Color.BLACK
+    assert tree.root.left.left.left.data == 1
+    assert tree.root.left.left.left.color == Color.RED
+    assert tree.root.left.right.data == 5
+    assert tree.root.left.right.color == Color.BLACK
+    assert tree.root.right.data == 10
+    assert tree.root.right.color == Color.RED
+    assert tree.root.right.left.data == 9
+    assert tree.root.right.left.color == Color.BLACK
+    assert tree.root.right.right.data == 11
+    assert tree.root.right.right.color == Color.BLACK
