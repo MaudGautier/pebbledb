@@ -381,3 +381,33 @@ def test_insert_node_right_right_renders_correct_colors():
     assert left.color == Color.RED
     assert right.data == 12
     assert right.color == Color.RED
+
+
+def test_insert_node_left_left_renders_correct_colors():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+    tree.insert(data=9)
+    root = tree.root
+    left = root.left
+    right = root.right
+    assert root.data == 10
+    assert root.color == Color.BLACK
+    assert left.data == 9
+    assert left.color == Color.RED
+    assert right is RedBlackTree.NIL_LEAF
+
+    # WHEN
+    tree.insert(data=8)
+
+    # THEN
+    root = tree.root
+    left = root.left
+    right = root.right
+    assert root.data == 9
+    assert root.color == Color.BLACK
+    assert right.data == 10
+    assert right.color == Color.RED
+    assert left.data == 8
+    assert left.color == Color.RED
+
