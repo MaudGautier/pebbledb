@@ -561,3 +561,20 @@ def test_insert_node_left_right_renders_correct_colors():
     assert left.color == Color.RED
     assert right.data == 10
     assert right.color == Color.RED
+
+
+def test_uncle_is_red_should_recolor():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+    tree.insert(data=11)
+    tree.insert(data=9)
+
+    # WHEN/THEN
+    with mock.patch.object(tree, '_recolor', wraps=tree._recolor) as mocked_recolor:
+        # WHEN
+        tree.insert(data=7)
+
+        # THEN
+        mocked_recolor.assert_called_once_with(tree.root)
+

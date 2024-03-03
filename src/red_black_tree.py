@@ -80,6 +80,11 @@ class RedBlackTree:
         new_node = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
         self._bst_insert(node=new_node)
 
+        self._fix_insert(new_node=new_node)
+
+    def _fix_insert(self, new_node: Node):
+        """Check if should rebalance, if so: do it"""
+
         # If root: Recolor to black
         if self.root is new_node:
             new_node.color = Color.BLACK
@@ -117,7 +122,8 @@ class RedBlackTree:
 
         else:
             assert new_node.uncle.color == Color.RED
-            raise NotImplementedError()
+            self._recolor(grand_parent)
+            self._fix_insert(grand_parent)
 
     def rotate_left(self, x: Node):
         y = x.right
@@ -132,7 +138,6 @@ class RedBlackTree:
         child_to_move.parent = x
         if parent is not None:
             parent.left = y
-
 
         # Replace root
         if x is self.root:
@@ -161,6 +166,12 @@ class RedBlackTree:
         color1 = node1.color
         node1.color = node2.color
         node2.color = color1
+
+    def _recolor(self, grandparent: Node):
+        grandparent.right.color = Color.BLACK
+        grandparent.left.color = Color.BLACK
+        if grandparent is not self.root:
+            grandparent.color = Color.RED
 
     # ---- UTILS FOR TESTS -----
     def read_data(self):
