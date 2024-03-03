@@ -123,12 +123,16 @@ class RedBlackTree:
         y = x.right
 
         # Rotate on x
+        parent = x.parent
         child_to_move = y.left
         x.right = child_to_move
-        y.parent = x.parent
+        y.parent = parent
         x.parent = y
         y.left = x
         child_to_move.parent = x
+        if parent is not None:
+            parent.left = y
+
 
         # Replace root
         if x is self.root:
@@ -138,12 +142,15 @@ class RedBlackTree:
         y = x.left
 
         # Rotate on x
+        parent = x.parent
         child_to_move = y.right
         x.left = child_to_move
-        y.parent = x.parent
+        y.parent = parent
         x.parent = y
         y.right = x
         child_to_move.parent = x
+        if parent is not None:
+            parent.right = y
 
         # Replace root
         if x is self.root:

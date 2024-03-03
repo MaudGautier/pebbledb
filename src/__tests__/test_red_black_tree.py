@@ -295,6 +295,51 @@ def test_rotate_right():
     assert tree.root is node_Y
 
 
+def test_rotate_right_triangle():
+    # -------- ORIGINAL --------
+    #     10
+    #      \
+    #       12 (X)
+    #      /
+    #     11
+    #
+    # --------  RESULT  --------
+    #   10
+    #    \
+    #     11
+    #      \
+    #       12 (X)
+
+    # GIVEN
+    tree = RedBlackTree()
+    node_10 = Node(data=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    tree.root = node_10
+    node_12 = Node(data=12, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_11 = Node(data=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+
+    tree._bst_insert(node=node_12)
+    tree._bst_insert(node=node_11)
+
+    # WHEN
+    tree.rotate_right(node_12)
+
+    # THEN
+    # - first node
+    assert node_10.left is RedBlackTree.NIL_LEAF
+    assert node_10.right is node_11
+    assert node_10.parent is None
+    # - second node
+    assert node_11.left is RedBlackTree.NIL_LEAF
+    assert node_11.right is node_12
+    assert node_11.parent is node_10
+    # - third node
+    assert node_12.left is RedBlackTree.NIL_LEAF
+    assert node_12.right is RedBlackTree.NIL_LEAF
+    assert node_12.parent is node_11
+    # root
+    assert tree.root is node_10
+
+
 def test_rotate_left():
     # -------- ORIGINAL --------
     #   X
@@ -354,6 +399,54 @@ def test_rotate_left():
     assert tree.root is node_Y
 
 
+def test_rotate_left_triangle():
+    # -------- ORIGINAL --------
+    #     10
+    #    /
+    #   8 (X)
+    #    \
+    #     9 (Y)
+    #
+    # --------  RESULT  --------
+    #      10
+    #     /
+    #    9 (Y)
+    #   /
+    #  8 (X)
+    #
+
+    # GIVEN
+    tree = RedBlackTree()
+    node_10 = Node(data=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    tree.root = node_10
+    node_8 = Node(data=8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_9 = Node(data=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+
+    tree._bst_insert(node=node_8)
+    tree._bst_insert(node=node_9)
+
+    # WHEN
+    print(tree.read_data())
+    tree.rotate_left(node_8)
+    print(tree.read_data())
+
+    # THEN
+    # - first node
+    assert node_10.left is node_9
+    assert node_10.right is RedBlackTree.NIL_LEAF
+    assert node_10.parent is None
+    # - second node
+    assert node_9.left is node_8
+    assert node_9.right is RedBlackTree.NIL_LEAF
+    assert node_9.parent is node_10
+    # - third node
+    assert node_8.left is RedBlackTree.NIL_LEAF
+    assert node_8.right is RedBlackTree.NIL_LEAF
+    assert node_8.parent is node_9
+    # root
+    assert tree.root is node_10
+
+
 def test_insert_node_right_right_renders_correct_colors():
     # GIVEN
     tree = RedBlackTree()
@@ -411,3 +504,60 @@ def test_insert_node_left_left_renders_correct_colors():
     assert left.data == 8
     assert left.color == Color.RED
 
+
+def test_insert_node_right_left_renders_correct_colors():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+    tree.insert(data=12)
+    root = tree.root
+    left = root.left
+    right = root.right
+    assert root.data == 10
+    assert root.color == Color.BLACK
+    assert right.data == 12
+    assert right.color == Color.RED
+    assert left is RedBlackTree.NIL_LEAF
+
+    # WHEN
+    tree.insert(data=11)
+
+    # THEN
+    root = tree.root
+    left = root.left
+    right = root.right
+    assert root.data == 11
+    assert root.color == Color.BLACK
+    assert left.data == 10
+    assert left.color == Color.RED
+    assert right.data == 12
+    assert right.color == Color.RED
+
+
+def test_insert_node_left_right_renders_correct_colors():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+    tree.insert(data=8)
+    root = tree.root
+    left = root.left
+    right = root.right
+    assert root.data == 10
+    assert root.color == Color.BLACK
+    assert right is RedBlackTree.NIL_LEAF
+    assert left.data == 8
+    assert left.color == Color.RED
+
+    # WHEN
+    tree.insert(data=9)
+
+    # THEN
+    root = tree.root
+    left = root.left
+    right = root.right
+    assert root.data == 9
+    assert root.color == Color.BLACK
+    assert left.data == 8
+    assert left.color == Color.RED
+    assert right.data == 10
+    assert right.color == Color.RED
