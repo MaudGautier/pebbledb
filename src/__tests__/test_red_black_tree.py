@@ -295,6 +295,63 @@ def test_rotate_right():
     assert tree.root is node_Y
 
 
+def test_test_rotate_right_2():
+    # -------- ORIGINAL --------
+    #       10
+    #      /  \
+    #    9(X)  11
+    #    /
+    #   7(Y)
+    #  /
+    # 5
+    #
+    # --------  RESULT  --------
+    #       10
+    #      /  \
+    #    7(Y)  11
+    #    / \
+    #   5   9(X)
+    # GIVEN
+    tree = RedBlackTree()
+    node_10 = Node(data=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_11 = Node(data=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_9 = Node(data=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_7 = Node(data=7, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_5 = Node(data=5, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    tree._bst_insert(node=node_10)
+    tree._bst_insert(node=node_11)
+    tree._bst_insert(node=node_9)
+    tree._bst_insert(node=node_7)
+    tree._bst_insert(node=node_5)
+
+    # WHEN
+    tree.rotate_right(node_9)
+
+    # THEN
+    # - first node
+    assert node_10.left is node_7
+    assert node_10.right is node_11
+    assert node_10.parent is None
+    # - second node
+    assert node_7.left is node_5
+    assert node_7.right is node_9
+    assert node_7.parent is node_10
+    # - third node
+    assert node_11.left is RedBlackTree.NIL_LEAF
+    assert node_11.right is RedBlackTree.NIL_LEAF
+    assert node_11.parent is node_10
+    # - fourth node
+    assert node_5.left is RedBlackTree.NIL_LEAF
+    assert node_5.right is RedBlackTree.NIL_LEAF
+    assert node_5.parent is node_7
+    # - fifth node
+    assert node_9.left is RedBlackTree.NIL_LEAF
+    assert node_9.right is RedBlackTree.NIL_LEAF
+    assert node_9.parent is node_7
+    # root
+    assert tree.root is node_10
+
+
 def test_rotate_right_triangle():
     # -------- ORIGINAL --------
     #     10
@@ -398,6 +455,62 @@ def test_rotate_left():
     # root
     assert tree.root is node_Y
 
+def test_test_rotate_left_2():
+    # -------- ORIGINAL --------
+    #       10
+    #      /  \
+    #     9  11(X)
+    #           \
+    #           12(Y)
+    #             \
+    #              13
+    #
+    # --------  RESULT  --------
+    #       10
+    #      /  \
+    #     9    12(Y)
+    #         /  \
+    #      11(X)  13
+
+    # GIVEN
+    tree = RedBlackTree()
+    node_10 = Node(data=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_11 = Node(data=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_9 = Node(data=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_12 = Node(data=12, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_13 = Node(data=13, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    tree._bst_insert(node=node_10)
+    tree._bst_insert(node=node_11)
+    tree._bst_insert(node=node_9)
+    tree._bst_insert(node=node_12)
+    tree._bst_insert(node=node_13)
+
+    # WHEN
+    tree.rotate_left(node_11)
+
+    # THEN
+    # - first node
+    assert node_10.left is node_9
+    assert node_10.right is node_12
+    assert node_10.parent is None
+    # - second node
+    assert node_12.left is node_11
+    assert node_12.right is node_13
+    assert node_12.parent is node_10
+    # - third node
+    assert node_11.left is RedBlackTree.NIL_LEAF
+    assert node_11.right is RedBlackTree.NIL_LEAF
+    assert node_11.parent is node_12
+    # - fourth node
+    assert node_13.left is RedBlackTree.NIL_LEAF
+    assert node_13.right is RedBlackTree.NIL_LEAF
+    assert node_13.parent is node_12
+    # - fifth node
+    assert node_9.left is RedBlackTree.NIL_LEAF
+    assert node_9.right is RedBlackTree.NIL_LEAF
+    assert node_9.parent is node_10
+    # root
+    assert tree.root is node_10
 
 def test_rotate_left_triangle():
     # -------- ORIGINAL --------

@@ -137,7 +137,10 @@ class RedBlackTree:
         y.left = x
         child_to_move.parent = x
         if parent is not None:
-            parent.left = y
+            if parent.right is x:
+                parent.right = y
+            elif parent.left is x:
+                parent.left = y
 
         # Replace root
         if x is self.root:
@@ -155,7 +158,10 @@ class RedBlackTree:
         y.right = x
         child_to_move.parent = x
         if parent is not None:
-            parent.right = y
+            if parent.right is x:
+                parent.right = y
+            elif parent.left is x:
+                parent.left = y
 
         # Replace root
         if x is self.root:
