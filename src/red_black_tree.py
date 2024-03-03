@@ -90,26 +90,34 @@ class RedBlackTree:
             return
 
         # If parent is red => check for uncle's color
+        grand_parent = new_node.grand_parent
+        parent = new_node.parent
         assert new_node.parent.color == Color.RED
         if new_node.uncle.color == Color.BLACK:
+
             # Four possible cases to handle:
-            if new_node is new_node.grand_parent.left.left:
-                print("CASE LL")
-                self.rotate_right(new_node.grand_parent)
-            elif new_node is new_node.grand_parent.left.right:
-                print("CASE LR")
-                self.rotate_left(new_node.parent)
-                self.rotate_right(new_node.grand_parent)
-            elif new_node is new_node.grand_parent.right.left:
-                print("CASE RL")
-                self.rotate_right(new_node.parent)
-                self.rotate_left(new_node.grand_parent)
-            elif new_node is new_node.grand_parent.right.right:
-                print("CASE RR")
-                self.rotate_left(new_node.grand_parent)
+            if new_node is grand_parent.left.left:
+                # CASE LL
+                self.rotate_right(grand_parent)
+                self.swap_colors(node1=grand_parent, node2=parent)
+            elif new_node is grand_parent.left.right:
+                # CASE LR
+                self.rotate_left(parent)
+                self.rotate_right(grand_parent)
+                self.swap_colors(node1=grand_parent, node2=new_node)
+            elif new_node is grand_parent.right.left:
+                # CASE RL
+                self.rotate_right(parent)
+                self.rotate_left(grand_parent)
+                self.swap_colors(node1=grand_parent, node2=new_node)
+            elif new_node is grand_parent.right.right:
+                # CASE RR
+                self.rotate_left(grand_parent)
+                self.swap_colors(node1=grand_parent, node2=parent)
 
         else:
             assert new_node.uncle.color == Color.RED
+            raise NotImplementedError()
 
     def rotate_left(self, x: Node):
         y = x.right
@@ -140,6 +148,12 @@ class RedBlackTree:
         # Replace root
         if x is self.root:
             self.root = y
+
+    @staticmethod
+    def swap_colors(node1: Node, node2: Node):
+        color1 = node1.color
+        node1.color = node2.color
+        node2.color = color1
 
     # ---- UTILS FOR TESTS -----
     def read_data(self):

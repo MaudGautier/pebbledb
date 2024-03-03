@@ -176,11 +176,13 @@ def test_insert_node_right_right_calls_left_rotation_on_grand_parent():
     tree.insert(data=10)
     tree.insert(data=11)
     grand_parent = tree.root
+    parent = grand_parent.right
 
     # WHEN/THEN
-    with mock.patch.object(tree, 'rotate_left', wraps=tree.rotate_left) as mocked_rotate_left:
+    with mock.patch.multiple(RedBlackTree, rotate_left=MagicMock(), swap_colors=MagicMock()):
         tree.insert(data=12)
-        mocked_rotate_left.assert_called_once_with(grand_parent)
+        cast(MagicMock, tree.rotate_left).assert_called_once_with(grand_parent)
+        cast(MagicMock, tree.swap_colors).assert_called_once_with(node1=grand_parent, node2=parent)
 
 
 def test_insert_node_left_left_calls_right_rotation_on_grand_parent():
@@ -189,15 +191,17 @@ def test_insert_node_left_left_calls_right_rotation_on_grand_parent():
     tree.insert(data=10)
     tree.insert(data=9)
     grand_parent = tree.root
+    parent = grand_parent.left
 
     # WHEN/THEN
-    with mock.patch.object(tree, 'rotate_right', wraps=tree.rotate_right) as mocked_rotate_right:
+    with mock.patch.multiple(RedBlackTree, rotate_right=MagicMock(), swap_colors=MagicMock()):
         tree.insert(data=8)
-        mocked_rotate_right.assert_called_once_with(grand_parent)
+        cast(MagicMock, tree.rotate_right).assert_called_once_with(grand_parent)
+        cast(MagicMock, tree.swap_colors).assert_called_once_with(node1=grand_parent, node2=parent)
 
 
 def test_insert_node_right_left_calls_right_rotation_on_parent_and_RR_case():
-    with mock.patch.multiple(RedBlackTree, rotate_left=MagicMock(), rotate_right=MagicMock()):
+    with mock.patch.multiple(RedBlackTree, rotate_left=MagicMock(), rotate_right=MagicMock(), swap_colors=MagicMock()):
         # GIVEN
         tree = RedBlackTree()
         tree.insert(data=10)
@@ -207,14 +211,16 @@ def test_insert_node_right_left_calls_right_rotation_on_parent_and_RR_case():
 
         # WHEN/THEN
         tree.insert(data=11)
+        new_node = parent.left
         rotate_right_mock = cast(MagicMock, tree.rotate_right)
         rotate_left_mock = cast(MagicMock, tree.rotate_left)
         rotate_right_mock.assert_called_once_with(parent)
         rotate_left_mock.assert_called_once_with(grand_parent)
+        cast(MagicMock, tree.swap_colors).assert_called_once_with(node1=grand_parent, node2=new_node)
 
 
 def test_insert_node_left_right_calls_left_rotation_on_parent_and_LL_case():
-    with mock.patch.multiple(RedBlackTree, rotate_left=MagicMock(), rotate_right=MagicMock()):
+    with mock.patch.multiple(RedBlackTree, rotate_left=MagicMock(), rotate_right=MagicMock(), swap_colors=MagicMock()):
         # GIVEN
         tree = RedBlackTree()
         tree.insert(data=10)
@@ -228,6 +234,8 @@ def test_insert_node_left_right_calls_left_rotation_on_parent_and_LL_case():
         rotate_left_mock = cast(MagicMock, tree.rotate_left)
         rotate_left_mock.assert_called_once_with(parent)
         rotate_right_mock.assert_called_once_with(grand_parent)
+        new_node = parent.right
+        cast(MagicMock, tree.swap_colors).assert_called_once_with(node1=grand_parent, node2=new_node)
 
 
 def test_rotate_right():
@@ -328,6 +336,7 @@ def test_rotate_left():
     assert node_7.left is RedBlackTree.NIL_LEAF
     assert node_7.right is RedBlackTree.NIL_LEAF
     assert node_7.parent is node_X
+    assert node_7.grand_parent is node_Y
     # - third node
     assert node_Y.left is node_X
     assert node_Y.right is node_11
@@ -336,9 +345,39 @@ def test_rotate_left():
     assert node_9.left is RedBlackTree.NIL_LEAF
     assert node_9.right is RedBlackTree.NIL_LEAF
     assert node_9.parent is node_X
+    assert node_9.grand_parent is node_Y
     # - fifth node
     assert node_11.left is RedBlackTree.NIL_LEAF
     assert node_11.right is RedBlackTree.NIL_LEAF
     assert node_11.parent is node_Y
     # root
-    assert tree.root is node_X
+    assert tree.root is node_Y
+
+
+def test_insert_node_right_right_renders_correct_colors():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(data=10)
+    tree.insert(data=11)
+    root = tree.root
+    left = root.left
+    right = root.right
+    assert root.data == 10
+    assert root.color == Color.BLACK
+    assert right.data == 11
+    assert right.color == Color.RED
+    assert left is RedBlackTree.NIL_LEAF
+
+    # WHEN
+    tree.insert(data=12)
+
+    # THEN
+    root = tree.root
+    left = root.left
+    right = root.right
+    assert root.data == 11
+    assert root.color == Color.BLACK
+    assert left.data == 10
+    assert left.color == Color.RED
+    assert right.data == 12
+    assert right.color == Color.RED
