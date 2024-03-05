@@ -2,7 +2,7 @@ from collections import deque
 from enum import Enum
 from typing import Optional
 
-Data = int
+from src.record import Record
 
 
 class Color(str, Enum):
@@ -11,13 +11,17 @@ class Color(str, Enum):
 
 
 class Node:
+    Data = int or str
+
     def __init__(self,
                  data: Data or None,
+                 record: Optional[Record] = None,
                  color: Color = Color.RED,
                  left: Optional["Node"] = None,
                  right: Optional["Node"] = None,
                  ):
         self.data = data
+        self.record = record
         self.left = left
         self.right = right
         self.color = color
@@ -76,7 +80,7 @@ class RedBlackTree:
         else:
             parent.left = node
 
-    def insert(self, data: Data) -> None:
+    def insert(self, data: Node.Data) -> None:
         new_node = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
         self._bst_insert(node=new_node)
         self._fix_insert(new_node=new_node)
