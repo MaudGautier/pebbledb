@@ -8,7 +8,7 @@ class LsmStorage:
         self.immutable_mem_tables: list[MemTable] = []
 
     def put(self, key: Record.Key, value: Record.Value):
-        self.mem_table.put(key=key, record=Record(key=key, value=value))
+        self.mem_table.put(record=Record(key=key, value=value))
         # TODO: check size of memtable here and freeze it if above threshold
 
     def get(self, key: Record.Key) -> Record.Value:
