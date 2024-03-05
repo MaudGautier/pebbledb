@@ -11,5 +11,5 @@ class LsmStorage:
         self.mem_table.put(key=key, record=Record(key=key, value=value))
         # TODO: check size of memtable here and freeze it if above threshold
 
-    def get(self, key: Record.Key):
-        pass
+    def get(self, key: Record.Key) -> Record.Value:
+        return self.mem_table.get(key=key).value

@@ -16,5 +16,6 @@ class MemTable:
         # choice is to compute the _approximate size_.
         self.approximate_size += record.size
 
-    def get(self, key: Record.Key):
-        pass
+    def get(self, key: Record.Key) -> Record:
+        encoded_record = self.map.get(key=key)
+        return Record.from_bytes(encoded_record)
