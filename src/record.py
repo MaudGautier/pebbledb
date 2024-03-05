@@ -38,6 +38,10 @@ class Record:
     def encoded_value_size(self) -> bytes:
         return self.encode_integer(self.value_size)
 
+    @property
+    def size(self) -> int:
+        return len(self.to_bytes())
+
     def to_bytes(self) -> bytes:
         encoded_key_size = self.encoded_key_size
         encoded_key = self.encoded_key
