@@ -206,3 +206,16 @@ class RedBlackTree:
             nodes_to_visit.append(right)
 
         return nodes_to_display
+
+    def get(self, key: Node.Key):
+        node = self.root
+
+        while node is not self.NIL_LEAF:
+            if node.key == key:
+                return node.data
+            elif node.key < key:
+                node = node.right
+            elif node.key > key:
+                node = node.left
+
+        return None

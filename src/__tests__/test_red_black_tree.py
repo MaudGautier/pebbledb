@@ -860,6 +860,7 @@ def test_complex_insertion_5():
     assert tree.root.right.right.key == 11
     assert tree.root.right.right.color == Color.BLACK
 
+
 def test_can_extract_data():
     # GIVEN
     tree = RedBlackTree()
@@ -874,3 +875,15 @@ def test_can_extract_data():
     assert tree.root.right.key == "key2"
     assert tree.root.right.data == b'key2+value2'
 
+
+def test_can_get_data_upon_request():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(key="key", data=b'key+value')
+    tree.insert(key="key2", data=b'key2+value2')
+    tree.insert(key="key3", data=b'key3+value3')
+
+    # WHEN/THEN
+    assert tree.get(key="key") == b'key+value'
+    assert tree.get(key="key2") == b'key2+value2'
+    assert tree.get(key="key3") == b'key3+value3'
