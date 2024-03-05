@@ -11,17 +11,18 @@ class Color(str, Enum):
 
 
 class Node:
-    Data = int or str
+    Key = int or str
+    Data = bytes
 
     def __init__(self,
-                 data: Data or None,
-                 record: Optional[Record] = None,
+                 key: Key or None,
+                 data: Optional[Data] = None,
                  color: Color = Color.RED,
                  left: Optional["Node"] = None,
                  right: Optional["Node"] = None,
                  ):
+        self.key = key
         self.data = data
-        self.record = record
         self.left = left
         self.right = right
         self.color = color
@@ -53,7 +54,7 @@ class Node:
 
 
 class RedBlackTree:
-    NIL_LEAF = Node(data=None, color=Color.BLACK)
+    NIL_LEAF = Node(key=None, color=Color.BLACK)
 
     def __init__(self):
         self.root = self.NIL_LEAF
@@ -64,24 +65,24 @@ class RedBlackTree:
         current = self.root
         while current is not self.NIL_LEAF:
             parent = current
-            if current.data < node.data:
+            if current.key < node.key:
                 current = current.right
-            elif current.data > node.data:
+            elif current.key > node.key:
                 current = current.left
-            elif current.data == node.data:
+            elif current.key == node.key:
                 raise NotImplementedError()
 
         # Insert node
         node.parent = parent
         if parent is None:
             self.root = node
-        elif parent.data < node.data:
+        elif parent.key < node.key:
             parent.right = node
         else:
             parent.left = node
 
-    def insert(self, data: Node.Data) -> None:
-        new_node = Node(data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
+    def insert(self, key: Node.Key, data: Optional[Node.Data] = None) -> None:
+        new_node = Node(key=key, data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
         self._bst_insert(node=new_node)
         self._fix_insert(new_node=new_node)
 
@@ -184,7 +185,7 @@ class RedBlackTree:
     # ---- UTILS FOR TESTS -----
     def read_data(self):
         nodes = self.bfs()
-        return [node.data for node in nodes]
+        return [node.key for node in nodes]
 
     def bfs(self):
         nodes_to_visit = deque()
