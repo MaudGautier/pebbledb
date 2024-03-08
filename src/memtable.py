@@ -1,3 +1,5 @@
+from typing import Optional
+
 from src.record import Record
 from src.red_black_tree import RedBlackTree
 
@@ -17,7 +19,9 @@ class MemTable:
         # choice is to compute the _approximate size_.
         self.approximate_size += record.size
 
-    def get(self, key: Record.Key) -> Record.Value:
+    def get(self, key: Record.Key) -> Optional[Record.Value]:
         encoded_record = self.map.get(key=key)
+        if encoded_record is None:
+            return None
         decoded_record = Record.from_bytes(encoded_record)
         return decoded_record.value
