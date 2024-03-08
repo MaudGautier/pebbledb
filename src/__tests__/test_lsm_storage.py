@@ -21,21 +21,21 @@ def test_try_freeze():
     store = LsmStorage(max_sstable_size=50)
 
     # WHEN/THEN
-    with mock.patch.object(store, '_force_freeze_memtable', wraps=store._force_freeze_memtable) as mocked_freeze:
+    with mock.patch.object(store, '_freeze_memtable', wraps=store._freeze_memtable) as mocked_freeze:
         # WHEN
         store._try_freeze()
 
         # THEN
         mocked_freeze.assert_not_called()
 
-    with mock.patch.object(store, '_force_freeze_memtable', wraps=store._force_freeze_memtable) as mocked_freeze:
+    with mock.patch.object(store, '_freeze_memtable', wraps=store._freeze_memtable) as mocked_freeze:
         # WHEN
         store.put(key="a_short_key", value=b'a_short_value')
 
         # THEN
         mocked_freeze.assert_not_called()
 
-    with mock.patch.object(store, '_force_freeze_memtable', wraps=store._force_freeze_memtable) as mocked_freeze:
+    with mock.patch.object(store, '_freeze_memtable', wraps=store._freeze_memtable) as mocked_freeze:
         # WHEN
         store.put(key="a_veeeeeeryyyyyyy_loooong_key", value=b'a_veeeeeeryyyyyyy_loooong_value')
 
