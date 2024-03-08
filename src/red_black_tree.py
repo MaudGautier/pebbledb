@@ -1,7 +1,9 @@
+import copy
 from collections import deque
 from enum import Enum
 from typing import Optional
 
+from src.locks import Mutex
 from src.record import Record
 
 
@@ -27,6 +29,23 @@ class Node:
         self.right = right
         self.color = color
         self.parent: Optional["Node"] = None
+        self.lock = Mutex()
+
+    def __deepcopy__(self, memo):
+        # Copy self's class to new_obj without __init__ using __new__
+        new_obj = self.__class__.__new__(self.__class__)
+        # Add new_obj to memo to support cyclic structures
+        memo[id(self)] = new_obj
+
+        # Manually copy attributes except for lock
+        for k, v in self.__dict__.items():
+            if k != 'lock':
+                setattr(new_obj, k, copy.deepcopy(v, memo))
+
+        # Create a new Mutex for the new object's lock
+        new_obj.lock = Mutex()
+
+        return new_obj
 
     @property
     def uncle(self):
