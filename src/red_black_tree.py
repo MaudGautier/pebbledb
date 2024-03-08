@@ -83,22 +83,25 @@ class RedBlackTree:
         parent = None
         current = self.root
         while current is not self.NIL_LEAF:
-            parent = current
-            if current.key < node.key:
-                current = current.right
-            elif current.key > node.key:
-                current = current.left
-            elif current.key == node.key:
-                raise NotImplementedError()
+            with current.lock:
+                parent = current
+                if current.key < node.key:
+                    current = current.right
+                elif current.key > node.key:
+                    current = current.left
+                elif current.key == node.key:
+                    raise NotImplementedError()
 
         # Insert node
         node.parent = parent
         if parent is None:
             self.root = node
         elif parent.key < node.key:
-            parent.right = node
+            with parent.lock:
+                parent.right = node
         else:
-            parent.left = node
+            with parent.lock:
+                parent.left = node
 
     def insert(self, key: Node.Key, data: Optional[Node.Data] = None) -> None:
         new_node = Node(key=key, data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
@@ -110,7 +113,8 @@ class RedBlackTree:
 
         # If root: Recolor to black
         if self.root is new_node:
-            new_node.color = Color.BLACK
+            with self.root.lock:
+                new_node.color = Color.BLACK
             return
 
         # If parent is black => nothing to do
@@ -153,20 +157,22 @@ class RedBlackTree:
         # Rotate on x
         parent = x.parent
         child_to_move = y.left
-        x.right = child_to_move
-        y.parent = parent
-        x.parent = y
-        y.left = x
-        child_to_move.parent = x
-        if parent is not None:
-            if parent.right is x:
-                parent.right = y
-            elif parent.left is x:
-                parent.left = y
+        with x.lock and y.lock and child_to_move.lock:
+            x.right = child_to_move
+            y.parent = parent
+            x.parent = y
+            y.left = x
+            child_to_move.parent = x
+            if parent is not None:
+                with parent.lock:
+                    if parent.right is x:
+                        parent.right = y
+                    elif parent.left is x:
+                        parent.left = y
 
-        # Replace root
-        if x is self.root:
-            self.root = y
+            # Replace root
+            if x is self.root:
+                self.root = y
 
     def rotate_right(self, x: Node):
         y = x.left
@@ -174,32 +180,36 @@ class RedBlackTree:
         # Rotate on x
         parent = x.parent
         child_to_move = y.right
-        x.left = child_to_move
-        y.parent = parent
-        x.parent = y
-        y.right = x
-        child_to_move.parent = x
-        if parent is not None:
-            if parent.right is x:
-                parent.right = y
-            elif parent.left is x:
-                parent.left = y
+        with x.lock and y.lock and child_to_move.lock:
+            x.left = child_to_move
+            y.parent = parent
+            x.parent = y
+            y.right = x
+            child_to_move.parent = x
+            if parent is not None:
+                with parent.lock:
+                    if parent.right is x:
+                        parent.right = y
+                    elif parent.left is x:
+                        parent.left = y
 
-        # Replace root
-        if x is self.root:
-            self.root = y
+            # Replace root
+            if x is self.root:
+                self.root = y
 
     @staticmethod
     def swap_colors(node1: Node, node2: Node):
-        color1 = node1.color
-        node1.color = node2.color
-        node2.color = color1
+        with node1.lock and node2.lock:
+            color1 = node1.color
+            node1.color = node2.color
+            node2.color = color1
 
     def _recolor(self, grandparent: Node):
-        grandparent.right.color = Color.BLACK
-        grandparent.left.color = Color.BLACK
-        if grandparent is not self.root:
-            grandparent.color = Color.RED
+        with grandparent.lock:
+            grandparent.right.color = Color.BLACK
+            grandparent.left.color = Color.BLACK
+            if grandparent is not self.root:
+                grandparent.color = Color.RED
 
     # ---- UTILS FOR TESTS -----
     def read_data(self):

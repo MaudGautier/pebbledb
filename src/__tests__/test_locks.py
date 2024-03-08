@@ -1,8 +1,6 @@
 import threading
 import time
 
-import pytest
-
 from src.locks import ReadWriteLock
 
 

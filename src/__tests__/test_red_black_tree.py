@@ -1,3 +1,5 @@
+import threading
+import time
 from typing import cast
 from unittest.mock import MagicMock
 
@@ -885,3 +887,35 @@ def test_can_get_data_upon_request():
     assert tree.get(key="key") == b'key+value'
     assert tree.get(key="key2") == b'key2+value2'
     assert tree.get(key="key3") == b'key3+value3'
+
+
+def test_concurrent_insertions_are_serialized():
+    timestamps = []
+
+    def record(id, fn):
+        nonlocal timestamps
+        start_time = time.time()
+        fn()
+        end_time = time.time()
+        timestamps.append((id, start_time, end_time))
+
+    # GIVEN
+    tree = RedBlackTree()
+    writers = [
+        threading.Thread(target=lambda i=i: record(id=i, fn=lambda: tree.insert(key=str(i), data=str(i).encode())))
+        for i in range(1000)]
+
+    # WHEN
+    # Start the threads
+    for writer in writers:
+        writer.start()
+
+    # Wait for them to complete
+    for writer in writers:
+        writer.join()
+
+    # THEN
+    timestamps.sort(key=lambda x: x[1])
+    for i in range(len(timestamps) - 1):
+        assert timestamps[i][2] < timestamps[i + 1][1]
+        assert tree.get(key=str(i)) == str(i).encode()
