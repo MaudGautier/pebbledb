@@ -68,9 +68,9 @@ class LsmStorage:
 
         
     def put(self, key: Record.Key, value: Record.Value):
-        self.memtable.put(record=Record(key=key, value=value))
+        self.memtable.put(key=key, value=value)
         self._try_freeze()
 
     def get(self, key: Record.Key) -> Record.Value:
-        return self.memtable.get(key=key).value
+        return self.memtable.get(key=key)
 

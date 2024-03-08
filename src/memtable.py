@@ -8,7 +8,8 @@ class MemTable:
         self.map = RedBlackTree()
         self.approximate_size: int = 0
 
-    def put(self, record: Record):
+    def put(self, key: Record.Key, value: Record.Value):
+        record = Record(key=key, value=value)
         self.map.insert(key=record.key, data=record.to_bytes())
         # Recomputing the approximate size of the mem table by adding the size of the record
         # This size is only approximate because, if a key is re-written or deleted, then the computed size will be
@@ -16,6 +17,7 @@ class MemTable:
         # choice is to compute the _approximate size_.
         self.approximate_size += record.size
 
-    def get(self, key: Record.Key) -> Record:
+    def get(self, key: Record.Key) -> Record.Value:
         encoded_record = self.map.get(key=key)
-        return Record.from_bytes(encoded_record)
+        decoded_record = Record.from_bytes(encoded_record)
+        return decoded_record.value
