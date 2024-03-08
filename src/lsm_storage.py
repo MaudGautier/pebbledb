@@ -73,9 +73,8 @@ class LsmStorage:
     def _freeze_memtable(self):
         with self._state_lock.write():
             new_memtable = self._create_memtable()
-            old_memtable = deepcopy(self.memtable)
+            self.immutable_memtables.insert(0, self.memtable)
             self.memtable = new_memtable
-            self.immutable_memtables.insert(0, old_memtable)
 
     def put(self, key: Record.Key, value: Record.Value):
         self.memtable.put(key=key, value=value)
