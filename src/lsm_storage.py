@@ -1,3 +1,6 @@
+from collections import deque
+from copy import deepcopy
+
 from src.locks import ReadWriteLock, Mutex
 from src.memtable import MemTable
 from src.record import Record
@@ -5,11 +8,15 @@ from src.record import Record
 
 class LsmStorage:
     def __init__(self, max_sstable_size: int = 1000):
-        self.memtable = MemTable()
-        self.immutable_memtables: list[MemTable] = []
+        self.memtable = self._create_memtable()
+        # Immutable memtables are stored in a linked list because they will always be parsed from most recent to oldest.
+        self.immutable_memtables: deque[MemTable] = deque()
         self._state_lock = ReadWriteLock()
         self._freeze_lock = Mutex()
         self._max_sstable_size = max_sstable_size
+
+    def _create_memtable(self):
+        return MemTable()
 
     def _try_freeze(self):
         """Checks if the memtable should be frozen or not.
@@ -64,9 +71,12 @@ class LsmStorage:
                     self._freeze_memtable()
 
     def _freeze_memtable(self):
-        pass
+        with self._state_lock.write():
+            new_memtable = self._create_memtable()
+            old_memtable = deepcopy(self.memtable)
+            self.memtable = new_memtable
+            self.immutable_memtables.insert(0, old_memtable)
 
-        
     def put(self, key: Record.Key, value: Record.Value):
         self.memtable.put(key=key, value=value)
         self._try_freeze()

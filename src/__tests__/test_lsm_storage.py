@@ -41,3 +41,29 @@ def test_try_freeze():
 
         # THEN
         mocked_freeze.assert_called_once()
+
+
+def test_freeze_memtable():
+    # GIVEN
+    store = LsmStorage(max_sstable_size=1000)
+    store.put(key="key1", value=b'value1')
+    store.put(key="key2", value=b'value2')
+    store.put(key="key3", value=b'value3')
+    assert len(store.immutable_memtables) == 0
+    assert store.memtable.get("key1") == b'value1'
+    assert store.memtable.get("key2") == b'value2'
+    assert store.memtable.get("key3") == b'value3'
+
+    # WHEN
+    store._freeze_memtable()
+
+    # THEN
+    assert len(store.immutable_memtables) == 1
+    assert store.memtable.get("key1") is None
+    assert store.memtable.get("key2") is None
+    assert store.memtable.get("key3") is None
+    assert store.immutable_memtables[0].get("key1") == b'value1'
+    assert store.immutable_memtables[0].get("key2") == b'value2'
+    assert store.immutable_memtables[0].get("key3") == b'value3'
+
+

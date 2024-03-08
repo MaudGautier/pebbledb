@@ -541,9 +541,7 @@ def test_rotate_left_triangle():
     tree._bst_insert(node=node_9)
 
     # WHEN
-    print(tree.read_data())
     tree.rotate_left(node_8)
-    print(tree.read_data())
 
     # THEN
     # - first node
