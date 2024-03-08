@@ -78,7 +78,7 @@ class RedBlackTree:
     def __init__(self):
         self.root = self.NIL_LEAF
 
-    def _bst_insert(self, node: Node) -> None:
+    def _bst_insert(self, node: Node) -> "Node":
         # Find insert position (find node's parent)
         parent = None
         current = self.root
@@ -90,7 +90,8 @@ class RedBlackTree:
                 elif current.key > node.key:
                     current = current.left
                 elif current.key == node.key:
-                    raise NotImplementedError()
+                    current.data = node.data
+                    return current
 
         # Insert node
         node.parent = parent
@@ -103,10 +104,12 @@ class RedBlackTree:
             with parent.lock:
                 parent.left = node
 
+        return node
+
     def insert(self, key: Node.Key, data: Optional[Node.Data] = None) -> None:
         new_node = Node(key=key, data=data, left=self.NIL_LEAF, right=self.NIL_LEAF)
-        self._bst_insert(node=new_node)
-        self._fix_insert(new_node=new_node)
+        inserted_node = self._bst_insert(node=new_node)
+        self._fix_insert(new_node=inserted_node)
 
     def _fix_insert(self, new_node: Node):
         """Check if should rebalance, if so: do it"""

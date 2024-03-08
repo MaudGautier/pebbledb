@@ -919,3 +919,18 @@ def test_concurrent_insertions_are_serialized():
     for i in range(len(timestamps) - 1):
         assert timestamps[i][2] < timestamps[i + 1][1]
         assert tree.get(key=str(i)) == str(i).encode()
+
+
+def test_replace_existing_key():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(key="key", data=b'old_data')
+    tree.insert(key="1", data=b"1")
+    tree.insert(key="2", data=b"2")
+
+    # WHEN
+    tree.insert(key="key", data=b'new_data')
+
+    # THEN
+    print(tree.read_data())
+    assert tree.get(key="key") == b'new_data'
