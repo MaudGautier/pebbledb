@@ -67,3 +67,31 @@ def test_freeze_memtable():
     assert store.immutable_memtables[0].get("key3") == b'value3'
 
 
+def test_retrieve_value_from_old_memtable():
+    # GIVEN
+    store = LsmStorage(max_sstable_size=30)
+    store.put(key="key1", value=b'value1')
+    store.put(key="key2", value=b'value2')
+    store.put(key="key3", value=b'value3')
+    store.put(key="key4", value=b'value4')
+    store.put(key="key5", value=b'value5')
+    store.put(key="key6", value=b'value6')
+    assert len(store.immutable_memtables) == 3
+
+    # WHEN
+    value1 = store.get(key="key1")
+    value2 = store.get(key="key2")
+    value3 = store.get(key="key3")
+    value4 = store.get(key="key4")
+    value5 = store.get(key="key5")
+    value6 = store.get(key="key6")
+    value7 = store.get(key="key7")
+
+    # THEN
+    assert value2 == b'value2'
+    assert value1 == b'value1'
+    assert value3 == b'value3'
+    assert value4 == b'value4'
+    assert value5 == b'value5'
+    assert value6 == b'value6'
+    assert value7 is None

@@ -1,5 +1,6 @@
 from collections import deque
 from copy import deepcopy
+from typing import Optional
 
 from src.locks import ReadWriteLock, Mutex
 from src.memtable import MemTable
@@ -80,6 +81,15 @@ class LsmStorage:
         self.memtable.put(key=key, value=value)
         self._try_freeze()
 
-    def get(self, key: Record.Key) -> Record.Value:
-        return self.memtable.get(key=key)
+    def get(self, key: Record.Key) -> Optional[Record.Value]:
+        value = self.memtable.get(key=key)
 
+        if value is not None:
+            return value
+
+        for memtable in self.immutable_memtables:
+            value = memtable.get(key=key)
+            if value is not None:
+                return value
+
+        return None
