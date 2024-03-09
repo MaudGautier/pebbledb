@@ -16,7 +16,8 @@ class LsmStorage:
         self._freeze_lock = Mutex()
         self._max_sstable_size = max_sstable_size
 
-    def _create_memtable(self):
+    @staticmethod
+    def _create_memtable():
         return MemTable()
 
     def _try_freeze(self):
