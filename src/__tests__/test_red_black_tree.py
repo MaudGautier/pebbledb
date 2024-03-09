@@ -966,28 +966,28 @@ def test_iterate():
     # Boundary below
     expected_keys = [0, 2, 3, 4]
     i = 0
-    for data in tree.scan(start_key=-1, end_key=4):
+    for data in tree.scan(lower=-1, upper=4):
         assert data.key == expected_keys[i]
         i += 1
 
     # Boundary inside
     expected_keys = [2, 3, 4, 5, 8, 12, 25, 27]
     i = 0
-    for data in tree.scan(start_key=1, end_key=29):
+    for data in tree.scan(lower=1, upper=29):
         assert data.key == expected_keys[i]
         i += 1
 
     # Boundary above
     expected_keys = [45, 50]
     i = 0
-    for data in tree.scan(start_key=43, end_key=70):
+    for data in tree.scan(lower=43, upper=70):
         assert data.key == expected_keys[i]
         i += 1
 
     # Outside above
     with pytest.raises(StopIteration):
-        tree.scan(start_key=53, end_key=70).__next__()
+        tree.scan(lower=53, upper=70).__next__()
 
     # Outside below
     with pytest.raises(StopIteration):
-        tree.scan(start_key=-12, end_key=-2).__next__()
+        tree.scan(lower=-12, upper=-2).__next__()

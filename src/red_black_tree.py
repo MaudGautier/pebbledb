@@ -53,13 +53,19 @@ class Node:
 
         return parent.parent
 
-    def in_order_traversal(self, start_key: Key, end_key: Key) -> Iterator["Node"]:
+    def in_order_traversal(self, lower: Key, upper: Key) -> Iterator["Node"]:
+        # Optimization: stop traversing as soon as we reach a node bigger than the upper bound
+        if self.key > upper:
+            return
+        # Optimization: stop traversing as soon as we reach a node smaller than the lower bound
+        if self.key < lower:
+            return
         if self.left is not RedBlackTree.NIL_LEAF:
-            yield from self.left.in_order_traversal(start_key=start_key, end_key=end_key)
-        if start_key <= self.key <= end_key:
+            yield from self.left.in_order_traversal(lower=lower, upper=upper)
+        if lower <= self.key <= upper:
             yield self
         if self.right is not RedBlackTree.NIL_LEAF:
-            yield from self.right.in_order_traversal(start_key=start_key, end_key=end_key)
+            yield from self.right.in_order_traversal(lower=lower, upper=upper)
 
 
 class RedBlackTree:
@@ -84,9 +90,9 @@ class RedBlackTree:
 
         return candidate
 
-    def scan(self, start_key: Node.Key, end_key: Node.Key) -> Iterator[Node]:
+    def scan(self, lower: Node.Key, upper: Node.Key) -> Iterator[Node]:
         node = self.root
-        yield from node.in_order_traversal(start_key=start_key, end_key=end_key)
+        yield from node.in_order_traversal(lower=lower, upper=upper)
 
     def _bst_insert(self, node: Node) -> Node:
         # Find insert position (find node's parent)
