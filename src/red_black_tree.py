@@ -90,9 +90,12 @@ class RedBlackTree:
 
         return candidate
 
-    def scan(self, lower: Node.Key, upper: Node.Key) -> Iterator[Node]:
-        node = self.root
-        yield from node.in_order_traversal(lower=lower, upper=upper)
+    def scan(self, lower: Node.Key, upper: Node.Key) -> Iterator[Node.Data]:
+        if self.root is None:
+            return
+
+        for node in self.root.in_order_traversal(lower=lower, upper=upper):
+            yield node.data
 
     def _bst_insert(self, node: Node) -> Node:
         # Find insert position (find node's parent)

@@ -960,28 +960,28 @@ def test_iterate():
     tree = RedBlackTree()
     all_keys = [0, 2, 3, 4, 5, 8, 12, 25, 27, 30, 45, 50]
     for key in all_keys:
-        tree.insert(key=key, data=b'')
+        tree.insert(key=key, data=str(key).encode(encoding="utf-8"))
 
     # WHEN/THEN
     # Boundary below
     expected_keys = [0, 2, 3, 4]
     i = 0
     for data in tree.scan(lower=-1, upper=4):
-        assert data.key == expected_keys[i]
+        assert data == str(expected_keys[i]).encode(encoding="utf-8")
         i += 1
 
     # Boundary inside
     expected_keys = [2, 3, 4, 5, 8, 12, 25, 27]
     i = 0
     for data in tree.scan(lower=1, upper=29):
-        assert data.key == expected_keys[i]
+        assert data == str(expected_keys[i]).encode(encoding="utf-8")
         i += 1
 
     # Boundary above
     expected_keys = [45, 50]
     i = 0
     for data in tree.scan(lower=43, upper=70):
-        assert data.key == expected_keys[i]
+        assert data == str(expected_keys[i]).encode(encoding="utf-8")
         i += 1
 
     # Outside above
