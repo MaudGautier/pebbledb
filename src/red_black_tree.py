@@ -60,7 +60,23 @@ class RedBlackTree:
     def __init__(self):
         self.root = self.NIL_LEAF
 
-    def _bst_insert(self, node: Node) -> "Node":
+    def _get_lower_bound_node(self, key: Node.Key) -> Node:
+        node = self.root
+        # Find start node
+        candidate = self.NIL_LEAF
+        while node is not self.NIL_LEAF:
+            if node.key == key:
+                return node
+            elif node.key < key:
+                node = node.right
+            elif node.key > key:
+                if candidate is self.NIL_LEAF or candidate.key > node.key:
+                    candidate = node
+                node = node.left
+
+        return candidate
+
+    def _bst_insert(self, node: Node) -> Node:
         # Find insert position (find node's parent)
         parent = None
         current = self.root
@@ -93,7 +109,7 @@ class RedBlackTree:
         inserted_node = self._bst_insert(node=new_node)
         self._fix_insert(new_node=inserted_node)
 
-    def _fix_insert(self, new_node: Node):
+    def _fix_insert(self, new_node: Node) -> None:
         """Check if should rebalance, if so: do it"""
 
         # If root: Recolor to black
@@ -136,7 +152,7 @@ class RedBlackTree:
             self._recolor(grand_parent)
             self._fix_insert(grand_parent)
 
-    def rotate_left(self, x: Node):
+    def rotate_left(self, x: Node) -> None:
         y = x.right
 
         # Rotate on x
@@ -159,7 +175,7 @@ class RedBlackTree:
             if x is self.root:
                 self.root = y
 
-    def rotate_right(self, x: Node):
+    def rotate_right(self, x: Node) -> None:
         y = x.left
 
         # Rotate on x
@@ -183,13 +199,13 @@ class RedBlackTree:
                 self.root = y
 
     @staticmethod
-    def swap_colors(node1: Node, node2: Node):
+    def swap_colors(node1: Node, node2: Node) -> None:
         with node1.lock and node2.lock:
             color1 = node1.color
             node1.color = node2.color
             node2.color = color1
 
-    def _recolor(self, grandparent: Node):
+    def _recolor(self, grandparent: Node) -> None:
         with grandparent.lock:
             grandparent.right.color = Color.BLACK
             grandparent.left.color = Color.BLACK
@@ -197,11 +213,11 @@ class RedBlackTree:
                 grandparent.color = Color.RED
 
     # ---- UTILS FOR TESTS -----
-    def read_data(self):
+    def read_data(self) -> list[Node.Key]:
         nodes = self.bfs()
         return [node.key for node in nodes]
 
-    def bfs(self):
+    def bfs(self) -> list[Node]:
         nodes_to_visit = deque()
         nodes_to_visit.append(self.root)
         nodes_to_display = []
@@ -221,7 +237,7 @@ class RedBlackTree:
 
         return nodes_to_display
 
-    def get(self, key: Node.Key):
+    def get(self, key: Node.Key) -> Optional[Node.Data]:
         node = self.root
 
         while node is not self.NIL_LEAF:

@@ -932,5 +932,27 @@ def test_replace_existing_key():
     tree.insert(key="key", data=b'new_data')
 
     # THEN
-    print(tree.read_data())
     assert tree.get(key="key") == b'new_data'
+
+
+def test_find_start_node():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(key=0, data=b'0')
+    tree.insert(key=2, data=b'2')
+    tree.insert(key=3, data=b'3')
+    tree.insert(key=5, data=b'5')
+    tree.insert(key=10, data=b'10')
+
+    # WHEN
+    assert tree._get_lower_bound_node(key=-2).key == 0
+    assert tree._get_lower_bound_node(key=0).key == 0
+    assert tree._get_lower_bound_node(key=1).key == 2
+    assert tree._get_lower_bound_node(key=3).key == 3
+    assert tree._get_lower_bound_node(key=4).key == 5
+    assert tree._get_lower_bound_node(key=5).key == 5
+    assert tree._get_lower_bound_node(key=8).key == 10
+    assert tree._get_lower_bound_node(key=12).key is None
+
+
+
