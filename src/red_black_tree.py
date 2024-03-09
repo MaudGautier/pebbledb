@@ -1,6 +1,6 @@
 from collections import deque
 from enum import Enum
-from typing import Optional
+from typing import Optional, Iterator
 
 from src.locks import Mutex
 
@@ -53,6 +53,14 @@ class Node:
 
         return parent.parent
 
+    def in_order_traversal(self, start_key: Key, end_key: Key) -> Iterator["Node"]:
+        if self.left is not RedBlackTree.NIL_LEAF:
+            yield from self.left.in_order_traversal(start_key=start_key, end_key=end_key)
+        if start_key <= self.key <= end_key:
+            yield self
+        if self.right is not RedBlackTree.NIL_LEAF:
+            yield from self.right.in_order_traversal(start_key=start_key, end_key=end_key)
+
 
 class RedBlackTree:
     NIL_LEAF = Node(key=None, color=Color.BLACK)
@@ -75,6 +83,10 @@ class RedBlackTree:
                 node = node.left
 
         return candidate
+
+    def scan(self, start_key: Node.Key, end_key: Node.Key) -> Iterator[Node]:
+        node = self.root
+        yield from node.in_order_traversal(start_key=start_key, end_key=end_key)
 
     def _bst_insert(self, node: Node) -> Node:
         # Find insert position (find node's parent)

@@ -955,4 +955,39 @@ def test_find_start_node():
     assert tree._get_lower_bound_node(key=12).key is None
 
 
+def test_iterate():
+    # GIVEN
+    tree = RedBlackTree()
+    all_keys = [0, 2, 3, 4, 5, 8, 12, 25, 27, 30, 45, 50]
+    for key in all_keys:
+        tree.insert(key=key, data=b'')
 
+    # WHEN/THEN
+    # Boundary below
+    expected_keys = [0, 2, 3, 4]
+    i = 0
+    for data in tree.scan(start_key=-1, end_key=4):
+        assert data.key == expected_keys[i]
+        i += 1
+
+    # Boundary inside
+    expected_keys = [2, 3, 4, 5, 8, 12, 25, 27]
+    i = 0
+    for data in tree.scan(start_key=1, end_key=29):
+        assert data.key == expected_keys[i]
+        i += 1
+
+    # Boundary above
+    expected_keys = [45, 50]
+    i = 0
+    for data in tree.scan(start_key=43, end_key=70):
+        assert data.key == expected_keys[i]
+        i += 1
+
+    # Outside above
+    with pytest.raises(StopIteration):
+        tree.scan(start_key=53, end_key=70).__next__()
+
+    # Outside below
+    with pytest.raises(StopIteration):
+        tree.scan(start_key=-12, end_key=-2).__next__()
