@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Iterator
 
 from src.record import Record
 from src.red_black_tree import RedBlackTree
@@ -9,6 +9,13 @@ class MemTable:
         self.id: int = 0
         self.map = RedBlackTree()
         self.approximate_size: int = 0
+
+    def scan(self, lower: Record.Key, upper: Record.Key) -> Iterator[Record.Value]:
+        for encoded_record in self.map.scan(lower=lower, upper=upper):
+            if encoded_record is None:
+                return
+            decoded_record = Record.from_bytes(encoded_record)
+            yield decoded_record.value
 
     def put(self, key: Record.Key, value: Record.Value):
         record = Record(key=key, value=value)
