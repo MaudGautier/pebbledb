@@ -179,7 +179,7 @@ class RedBlackTree:
         # Rotate on x
         parent = x.parent
         child_to_move = y.left
-        with x.lock and y.lock and child_to_move.lock:
+        with x.lock, y.lock, child_to_move.lock:
             x.right = child_to_move
             y.parent = parent
             x.parent = y
@@ -202,7 +202,7 @@ class RedBlackTree:
         # Rotate on x
         parent = x.parent
         child_to_move = y.right
-        with x.lock and y.lock and child_to_move.lock:
+        with x.lock, y.lock, child_to_move.lock:
             x.left = child_to_move
             y.parent = parent
             x.parent = y
