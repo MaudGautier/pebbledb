@@ -130,11 +130,12 @@ def test_concurrent_read_and_write_locks():
     for reader in readers2:
         reader.join()
 
-    # Ensure that all readers are done before writer starts
+    # Ensure that all readers 1 are done before writer starts
     for i in range(len(timestamps_readers1) - 1):
         assert timestamps_readers1[i][2] <= timestamp_writer[0][1]
+    # Ensure that all readers 2 start once writer is finished
     for i in range(len(timestamps_readers2) - 1):
-        assert timestamps_readers2[i][2] <= timestamp_writer[0][1]
+        assert timestamp_writer[0][2] <= timestamps_readers2[i][1]
 
 
 def test_concurrent_read_and_write_locks_2():

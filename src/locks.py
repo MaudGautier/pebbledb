@@ -14,27 +14,36 @@ class ReadWriteLock:
     """
 
     def __init__(self):
-        self.read_lock = threading.Lock()
-        self.write_lock = threading.Lock()
+        self.lock = threading.Lock()
         self.readers = 0
+        self.writers = 0
+        self.write_requests = 0
+        self.condition = threading.Condition(self.lock)
 
     @contextmanager
     def read(self):
-        with self.read_lock:
+        with self.condition:
+            while self.writers > 0 or self.write_requests > 0:
+                self.condition.wait()
             self.readers += 1
-            if self.readers == 1:
-                self.write_lock.acquire()
         yield
-        with self.read_lock:
+        with self.condition:
             self.readers -= 1
             if self.readers == 0:
-                self.write_lock.release()
+                self.condition.notify_all()
 
     @contextmanager
     def write(self):
-        self.write_lock.acquire()
+        with self.condition:
+            self.write_requests += 1
+            while self.readers > 0 or self.writers > 0:
+                self.condition.wait()
+            self.write_requests -= 1
+            self.writers += 1
         yield
-        self.write_lock.release()
+        with self.condition:
+            self.writers -= 1
+            self.condition.notify_all()
 
 
 class Mutex:
