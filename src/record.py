@@ -22,6 +22,9 @@ class Record:
     def __repr__(self):
         return f"{self.key}: {self.value}"
 
+    def __lt__(self, other: "Record"):
+        return self.key < other.key
+
     @property
     def encoded_key(self) -> bytes:
         return bytes(self.key, encoding=self.ENCODING)
