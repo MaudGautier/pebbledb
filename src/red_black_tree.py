@@ -246,8 +246,10 @@ class RedBlackTree:
                 grandparent.color = Color.RED
 
     # ---- UTILS FOR TESTS -----
-    def read_data(self) -> list[Node.Key]:
+    def read_data(self, with_value: bool = False) -> list[Node.Key]:
         nodes = self.bfs()
+        if with_value:
+            return [(node.key, node.data) for node in nodes]
         return [node.key for node in nodes]
 
     def bfs(self) -> list[Node]:
