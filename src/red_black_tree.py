@@ -174,6 +174,12 @@ class RedBlackTree:
             self._fix_insert(grand_parent)
 
     def rotate_left(self, x: Node) -> None:
+        #       Y                                   X
+        #      / \          Left-rotate 'X'        / \
+        #     a   X       =================>      Y   c
+        #        / \                             / \
+        #       b   c                           a   b
+
         y = x.right
 
         # Rotate on x
@@ -197,6 +203,12 @@ class RedBlackTree:
                 self.root = y
 
     def rotate_right(self, x: Node) -> None:
+        #         Y                                   X
+        #        / \        Right-rotate 'X'         / \
+        #       X   c      =================>       a   Y
+        #      / \                                     / \
+        #     a   b                                   b   c
+
         y = x.left
 
         # Rotate on x
