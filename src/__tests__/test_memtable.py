@@ -1,4 +1,5 @@
 from src.memtable import MemTable
+from src.record import Record
 
 
 def test_can_put_and_retrieve():
@@ -31,10 +32,12 @@ def test_scan():
     for key in ["1", "4", "6", "9"]:
         memtable.put(key=key, value=key.encode(encoding="utf-8"))
 
-    # WHEN/THEN
-    print(memtable.map.read_data())
-    expected_keys = ["1", "4"]
-    i = 0
-    for item in memtable.scan(lower="0", upper="5"):
-        assert item == expected_keys[i].encode(encoding="utf-8")
-        i += 1
+    # WHEN
+    scanned_records = list(memtable.scan(lower="0", upper="5"))
+
+    # THEN
+    expected_records = [
+        Record(key="1", value="1".encode(encoding="utf-8")),
+        Record(key="4", value="4".encode(encoding="utf-8"))
+    ]
+    assert scanned_records == expected_records
