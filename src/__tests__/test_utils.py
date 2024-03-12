@@ -45,3 +45,17 @@ def test_merge_iterators_with_identical_values():
         Record(key="5", value="E2")
     ]
     assert list(merged_iterator) == expected_items
+
+
+def test_merge_iterators_when_one_empty():
+    # GIVEN
+    iterator_with_one_item = (i for i in range(1))
+    empty_iterator = (i for i in range(0) if i % 2 == 1)
+
+    # WHEN
+    merged_iterator = merge_iterators([empty_iterator, iterator_with_one_item])
+
+    # THEN
+    expected_values = [0]
+    assert list(merged_iterator) == expected_values
+

@@ -16,6 +16,8 @@ def merge_iterators(iterators: list[Iterator[Any]]) -> Iterator[Any]:
     heap = []
     for i, iterator in enumerate(iterators):
         next_value = get_next(iterator=iterator)
+        if next_value is has_no_value:
+            continue
         heappush(heap, (next_value, i))
 
     while len(heap):
