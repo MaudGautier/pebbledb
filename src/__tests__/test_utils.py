@@ -19,15 +19,15 @@ def test_merge_iterators_with_identical_values():
     """If two iterators have the same key, it should select the value from the first iterator and ignore others"""
     # GIVEN
     iterator1_items = [
-        ("1", "A1"),
-        ("2", "B1"),
-        ("4", "D1")
+        ("A", "A1"),
+        ("B", "B1"),
+        ("D", "D1")
     ]
     iterator2_items = [
-        ("1", "A2"),
-        ("3", "C2"),
-        ("4", "D2"),
-        ("5", "E2"),
+        ("A", "A2"),
+        ("C", "C2"),
+        ("D", "D2"),
+        ("E", "E2"),
     ]
     iterator1 = (Record(key=item[0], value=item[1]) for item in iterator1_items)
     iterator2 = (Record(key=item[0], value=item[1]) for item in iterator2_items)
@@ -38,11 +38,11 @@ def test_merge_iterators_with_identical_values():
 
     # THEN
     expected_items = [
-        Record(key="1", value="A1"),
-        Record(key="2", value="B1"),
-        Record(key="3", value="C2"),
-        Record(key="4", value="D1"),
-        Record(key="5", value="E2")
+        Record(key="A", value="A1"),
+        Record(key="B", value="B1"),
+        Record(key="C", value="C2"),
+        Record(key="D", value="D1"),
+        Record(key="E", value="E2")
     ]
     assert list(merged_iterator) == expected_items
 
