@@ -4,7 +4,7 @@ from typing import Optional, Iterator
 from src.locks import ReadWriteLock, Mutex
 from src.memtable import MemTable
 from src.record import Record
-from src.utils import merge_iterators
+from src.utils import merge_iterators, filter_duplicate_keys
 
 
 class LsmStorage:
@@ -101,4 +101,5 @@ class LsmStorage:
                                          self.immutable_memtables]
 
         merged = merge_iterators([active_memtable_iterator] + immutable_memtables_iterators)
-        yield from merged
+        filtered = filter_duplicate_keys(merged)
+        yield from filtered

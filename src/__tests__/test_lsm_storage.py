@@ -4,6 +4,8 @@ from src.lsm_storage import LsmStorage
 from src.__fixtures__.store import (
     store_with_multiple_immutable_memtables,
     store_with_multiple_immutable_memtables_records,
+    store_with_duplicated_keys,
+    store_with_duplicated_keys_records
 )
 from src.record import Record
 
@@ -101,4 +103,29 @@ def test_scan(store_with_multiple_immutable_memtables,
     # THEN
     expected_records = [Record(key=key, value=value) for key, value in store_with_multiple_immutable_memtables_records
                         if "key1" <= key <= "key4"]
+    assert records == expected_records
+
+
+def test_scan_when_duplicates(
+        store_with_duplicated_keys,
+        store_with_duplicated_keys_records):
+    """Tests that the most recent value is selected for each key in the range"""
+    # GIVEN
+    store = store_with_duplicated_keys
+
+    # WHEN
+    records = list(store.scan(lower="key1", upper="key3"))
+
+    # THEN
+    expected_records = []
+    seen_keys = set()
+    for key, value in store_with_duplicated_keys_records[::-1]:
+        if key in seen_keys:
+            continue
+        if not ("key1" <= key <= "key3"):
+            continue
+        seen_keys.add(key)
+        expected_records.append(Record(key=key, value=value))
+
+    expected_records.sort()
     assert records == expected_records

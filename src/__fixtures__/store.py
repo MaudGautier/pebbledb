@@ -24,3 +24,28 @@ def store_with_multiple_immutable_memtables(store_with_multiple_immutable_memtab
     assert len(store.immutable_memtables) == 3
 
     return store
+
+
+@pytest.fixture
+def store_with_duplicated_keys_records():
+    return [
+        ("key1", b'value1A'),
+        ("key2", b'value2A'),
+        ("key3", b'value3'),
+        ("key1", b'value1B'),
+        ("key1", b'value1C'),
+        ("key2", b'value2B'),
+        ("key1", b'value1D'),
+        ("key4", b'value4A'),
+    ]
+
+
+@pytest.fixture
+def store_with_duplicated_keys(store_with_duplicated_keys_records):
+    store = LsmStorage(max_sstable_size=30)
+    for record in store_with_duplicated_keys_records:
+        store.put(key=record[0], value=record[1])
+
+    assert len(store.immutable_memtables) == 4
+
+    return store
