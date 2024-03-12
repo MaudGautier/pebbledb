@@ -58,4 +58,3 @@ def test_merge_iterators_when_one_empty():
     # THEN
     expected_values = [0]
     assert list(merged_iterator) == expected_values
-

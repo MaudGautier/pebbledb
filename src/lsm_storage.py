@@ -1,10 +1,10 @@
 from collections import deque
-from copy import deepcopy
-from typing import Optional
+from typing import Optional, Iterator
 
 from src.locks import ReadWriteLock, Mutex
 from src.memtable import MemTable
 from src.record import Record
+from src.utils import merge_iterators
 
 
 class LsmStorage:
@@ -94,3 +94,11 @@ class LsmStorage:
                 return value
 
         return None
+
+    def scan(self, lower: Record.Key, upper: Record.Key) -> Iterator[Record]:
+        active_memtable_iterator = self.memtable.scan(lower=lower, upper=upper)
+        immutable_memtables_iterators = [memtable.scan(lower=lower, upper=upper) for memtable in
+                                         self.immutable_memtables]
+
+        merged = merge_iterators([active_memtable_iterator] + immutable_memtables_iterators)
+        yield from merged

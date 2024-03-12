@@ -1,8 +1,11 @@
 from unittest import mock
 
 from src.lsm_storage import LsmStorage
-from src.__fixtures__.store import store_with_multiple_immutable_memtables, \
-    store_with_multiple_immutable_memtables_records
+from src.__fixtures__.store import (
+    store_with_multiple_immutable_memtables,
+    store_with_multiple_immutable_memtables_records,
+)
+from src.record import Record
 
 
 def test_can_read_a_value_inserted():
@@ -85,3 +88,17 @@ def test_retrieve_value_from_old_memtable(
     expected_values = [record[1] for record in store_with_multiple_immutable_memtables_records]
     assert values == expected_values
     assert value_for_missing_key is None
+
+
+def test_scan(store_with_multiple_immutable_memtables,
+              store_with_multiple_immutable_memtables_records):
+    # GIVEN
+    store = store_with_multiple_immutable_memtables
+
+    # WHEN
+    records = list(store.scan(lower="key1", upper="key4"))
+
+    # THEN
+    expected_records = [Record(key=key, value=value) for key, value in store_with_multiple_immutable_memtables_records
+                        if "key1" <= key <= "key4"]
+    assert records == expected_records
