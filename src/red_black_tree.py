@@ -91,7 +91,7 @@ class RedBlackTree:
         return candidate
 
     def scan(self, lower: Node.Key, upper: Node.Key) -> Iterator[Node.Data]:
-        if self.root is None:
+        if self.root is self.NIL_LEAF:
             return
 
         for node in self.root.in_order_traversal(lower=lower, upper=upper):

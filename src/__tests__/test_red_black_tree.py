@@ -991,3 +991,16 @@ def test_iterate():
     # Outside below
     with pytest.raises(StopIteration):
         tree.scan(lower=-12, upper=-2).__next__()
+
+
+def test_iterate_on_empty_tree_raises_stop_iteration_signal():
+    # GIVEN
+    tree = RedBlackTree()
+    assert tree.root is tree.NIL_LEAF
+
+    # WHEN
+    scanned = tree.scan(lower=1, upper=3)
+
+    # THEN
+    with pytest.raises(StopIteration):
+        next(scanned)
