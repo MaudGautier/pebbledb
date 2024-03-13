@@ -5,28 +5,28 @@ from src.record import Record
 
 
 def merge_iterators(iterators: list[Iterator[Any]]) -> Iterator[Any]:
-    has_no_value = object()
+    no_item = object()
+    heap = []
 
     def get_next(iterator: Iterator[Any]):
         try:
             return next(iterator)
         except StopIteration:
-            return has_no_value
+            return no_item
 
-    heap = []
-    for i, iterator in enumerate(iterators):
-        next_value = get_next(iterator=iterator)
-        if next_value is has_no_value:
-            continue
-        heappush(heap, (next_value, i))
+    def try_push_iterator(iterator_index: int):
+        next_item = get_next(iterator=iterators[iterator_index])
+        if next_item is no_item:
+            return
+        heappush(heap, (next_item, iterator_index))
+
+    for i in range(len(iterators)):
+        try_push_iterator(i)
 
     while len(heap):
-        value, idx = heappop(heap)
+        value, i = heappop(heap)
         yield value
-        next_value = get_next(iterator=iterators[idx])
-        if next_value is has_no_value:
-            continue
-        heappush(heap, (next_value, idx))
+        try_push_iterator(i)
 
 
 def filter_duplicate_keys(iterator: Iterator[Record]) -> Iterator[Record]:
