@@ -32,7 +32,7 @@ def merge_iterators(iterators: list[Iterator[Any]]) -> Iterator[Any]:
 def filter_duplicate_keys(iterator: Iterator[Record]) -> Iterator[Record]:
     previous_item = None
     for item in iterator:
-        if previous_item is not None and item.key == previous_item.key:
+        if previous_item is not None and item.is_duplicate(previous_item):
             continue
         yield item
         previous_item = item

@@ -25,6 +25,10 @@ class Record:
     def __lt__(self, other: "Record"):
         return self.key < other.key
 
+    def is_duplicate(self, other: "Record"):
+        return self.key == other.key
+
+
     @property
     def encoded_key(self) -> bytes:
         return bytes(self.key, encoding=self.ENCODING)
