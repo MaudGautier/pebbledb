@@ -17,17 +17,22 @@ class Record:
         self.value_size = len(self.value)
 
     def __eq__(self, other) -> bool:
+        if not isinstance(other, Record):
+            return NotImplemented
         return self.key == other.key and self.value == other.value
 
     def __repr__(self):
         return f"{self.key}: {self.value}"
 
     def __lt__(self, other: "Record"):
+        if not isinstance(other, Record):
+            return NotImplemented
         return self.key < other.key
 
     def is_duplicate(self, other: "Record"):
+        if not isinstance(other, Record):
+            return TypeError(f"Expected Record, got {type(other).__name__}")
         return self.key == other.key
-
 
     @property
     def encoded_key(self) -> bytes:
