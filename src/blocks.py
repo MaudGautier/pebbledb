@@ -29,28 +29,26 @@ class Block:
 
 
 class BlockBuilder:
-    # target_size is the size of a page. In my arm64 M2 mac, it is 65536 bytes (obtained with `stat -f %k`)
-    block_target_size = 65536
-
-    def __init__(self):
+    def __init__(self, target_size: int = 65536):
+        # target_size is the size of a page. In my arm64 M2 mac, it is 65536 bytes (obtained with `stat -f %k`)
+        self.target_size = target_size
         self.offsets = []
-        self.data_buffer = bytearray(self.block_target_size)  # []  # BUFFER bytearray(self.target_size)
-
-    @property
-    def current_offset(self) -> int:
-        return self.offsets[-1] if len(self.offsets) > 0 else 0
+        self.data_buffer = bytearray(self.target_size)
+        self.data_length = 0
 
     def add(self, key: Record.Key, value: Record.Value) -> bool:
         encoded_record = Record(key=key, value=value).to_bytes()
         size = len(encoded_record)
 
-        new_offset = self.current_offset + size
+        current_offset = self.data_length
+        new_offset = current_offset + size
 
-        if new_offset > self.block_target_size:
+        if new_offset > self.target_size:
             return False
 
-        self.offsets.append(new_offset)
-        self.data_buffer[self.current_offset:new_offset] = encoded_record
+        self.offsets.append(current_offset)
+        self.data_buffer[current_offset:new_offset] = encoded_record
+        self.data_length += size
 
         return True
 
