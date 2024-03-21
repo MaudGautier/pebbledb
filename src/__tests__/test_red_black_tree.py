@@ -1004,3 +1004,18 @@ def test_iterate_on_empty_tree_raises_stop_iteration_signal():
     # THEN
     with pytest.raises(StopIteration):
         next(scanned)
+
+
+def test_in_order_traversal_gets_all_nodes():
+    # GIVEN
+    tree = RedBlackTree()
+    all_keys = [27, 0, 2, 30, 45, 3, 12, 25, 4, 5, 8, 50]
+    for key in all_keys:
+        tree.insert(key=key, data=str(key).encode(encoding="utf-8"))
+
+    # WHEN
+    items = [item for item in tree]
+
+    # THEN
+    expected_items = [str(i).encode(encoding="utf-8") for i in sorted(all_keys)]
+    assert items == expected_items

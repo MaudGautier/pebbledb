@@ -53,7 +53,7 @@ class Node:
 
         return parent.parent
 
-    def in_order_traversal(self, lower: Key, upper: Key) -> Iterator["Node"]:
+    def bounded_in_order_traversal(self, lower: Key, upper: Key) -> Iterator["Node"]:
         # Optimization: stop traversing as soon as we reach a node bigger than the upper bound
         if self.key > upper:
             return
@@ -61,11 +61,18 @@ class Node:
         if self.key < lower:
             return
         if self.left is not RedBlackTree.NIL_LEAF:
-            yield from self.left.in_order_traversal(lower=lower, upper=upper)
+            yield from self.left.bounded_in_order_traversal(lower=lower, upper=upper)
         if lower <= self.key <= upper:
             yield self
         if self.right is not RedBlackTree.NIL_LEAF:
-            yield from self.right.in_order_traversal(lower=lower, upper=upper)
+            yield from self.right.bounded_in_order_traversal(lower=lower, upper=upper)
+
+    def in_order_traversal(self):
+        if self.left is not RedBlackTree.NIL_LEAF:
+            yield from self.left.in_order_traversal()
+        yield self
+        if self.right is not RedBlackTree.NIL_LEAF:
+            yield from self.right.in_order_traversal()
 
 
 class RedBlackTree:
@@ -94,7 +101,11 @@ class RedBlackTree:
         if self.root is self.NIL_LEAF:
             return
 
-        for node in self.root.in_order_traversal(lower=lower, upper=upper):
+        for node in self.root.bounded_in_order_traversal(lower=lower, upper=upper):
+            yield node.data
+
+    def __iter__(self) -> Iterator[Node.Data]:
+        for node in self.root.in_order_traversal():
             yield node.data
 
     def _bst_insert(self, node: Node) -> Node:
