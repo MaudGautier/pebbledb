@@ -1,7 +1,7 @@
 from src.blocks import BlockBuilder
 
 
-def test_can_build_a_block():
+def test_block_builder_buffer_and_offsets():
     # GIVEN
     block_builder = BlockBuilder(target_size=100)
 
@@ -22,3 +22,18 @@ def test_can_build_a_block():
         b'\x04\x00\x00\x00key4\x06\x00\x00\x00value4',
     ]
     assert block_builder.data_buffer[:4 * record_size] == b''.join(expected_data_chunks)
+
+
+def test_block_builder_returns_false_when_too_big():
+    # GIVEN
+    block_builder = BlockBuilder(target_size=20)
+
+    # WHEN
+    add_key1_return = block_builder.add(key="key1", value=b'value1')
+    add_key2_return = block_builder.add(key="key2", value=b'value2')
+
+    # THEN
+    assert add_key1_return is True
+    assert add_key2_return is False
+    assert block_builder.offsets == [0]
+    assert block_builder.data_buffer == b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x00\x00'
