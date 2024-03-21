@@ -1,5 +1,4 @@
 import struct
-from typing import Optional
 
 from src.record import Record
 
@@ -12,6 +11,10 @@ class Block:
     @property
     def number_records(self) -> int:
         return len(self.offsets)
+
+    @property
+    def size(self):
+        return len(self.to_bytes())
 
     def to_bytes(self) -> bytes:
         offset_bytes = struct.pack("H" * len(self.offsets), *self.offsets)
