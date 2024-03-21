@@ -5,7 +5,7 @@ from src.record import Record
 
 
 class Block:
-    def __init__(self, data: bytes, offsets: Optional[list[int]]):
+    def __init__(self, data: bytes, offsets: list[int]):
         self.data = data
         self.offsets = offsets
 
@@ -22,7 +22,7 @@ class Block:
     @classmethod
     def from_bytes(cls, data: bytes) -> "Block":
         nb_records = struct.unpack("H", data[-2:])[0]
-        offsets = struct.unpack("H" * nb_records, data[- nb_records * 2 - 2:-2])[0]
+        offsets = list(struct.unpack("H" * nb_records, data[- nb_records * 2 - 2:-2]))
         encoded_records = data[0:- nb_records * 2 - 2]
 
         return cls(data=encoded_records, offsets=offsets)

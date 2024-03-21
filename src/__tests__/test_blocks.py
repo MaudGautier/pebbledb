@@ -1,4 +1,4 @@
-from src.blocks import BlockBuilder
+from src.blocks import BlockBuilder, Block
 
 
 def test_block_builder_buffer_and_offsets():
@@ -37,3 +37,37 @@ def test_block_builder_returns_false_when_too_big():
     assert add_key2_return is False
     assert block_builder.offsets == [0]
     assert block_builder.data_buffer == b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x00\x00'
+
+
+def test_encode_block():
+    # GIVEN
+    data = b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x04\x00\x00\x00key2\x06\x00\x00\x00value2'
+    block = Block(data=data, offsets=[0, 18])
+    assert block.number_records == 2
+
+    # WHEN
+    encoded_block = block.to_bytes()
+
+    # THEN
+    encoded_0 = b'\x00\x00'
+    encoded_18 = b'\x12\x00'
+    encoded_2 = b'\x02\x00'
+    expected_encoded_offsets = encoded_0 + encoded_18
+    expected_encoded_nb_elements = encoded_2
+    assert encoded_block == data + expected_encoded_offsets + expected_encoded_nb_elements
+
+
+def test_decode_block():
+    # GIVEN
+    data = b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x04\x00\x00\x00key2\x06\x00\x00\x00value2'
+    offsets = [0, 18]
+    block = Block(data=data, offsets=offsets)
+
+    # WHEN
+    encoded_block = block.to_bytes()
+    decoded_block = Block.from_bytes(encoded_block)
+
+    # THEN
+    assert decoded_block.number_records == 2
+    assert decoded_block.data == data
+    assert decoded_block.offsets == [0, 18]
