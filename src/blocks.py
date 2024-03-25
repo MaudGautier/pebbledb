@@ -7,6 +7,17 @@ INT_H_SIZE = 2
 
 
 class Block:
+    """This class handles encoding and decoding of Data Blocks.
+
+    Each Data Block has the following format:
+    +--------------------+-----------------------------+-------+
+    |       Records      |             Meta            | Extra |
+    +--------------------+-----------------------------+-------+
+    | R1 | R2 | ... | Rn | offset_R1 | ... | offset_Rn | nb_R  |
+    +--------------------+-----------------------------+-------+
+    (R = Record)
+    """
+
     def __init__(self, data: bytes, offsets: list[int]):
         self.data = data
         self.offsets = offsets
