@@ -1,6 +1,9 @@
 import struct
+from typing import Optional
 
 from src.record import Record
+
+INT_H_SIZE = 2
 
 
 class Block:
@@ -24,15 +27,26 @@ class Block:
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "Block":
-        nb_records = struct.unpack("H", data[-2:])[0]
-        offsets = list(struct.unpack("H" * nb_records, data[- nb_records * 2 - 2:-2]))
-        encoded_records = data[0:- nb_records * 2 - 2]
+        # Decode number of records
+        nb_records_offset = len(data) - INT_H_SIZE
+        nb_records = struct.unpack("H", data[nb_records_offset:])[0]
+
+        if nb_records * INT_H_SIZE + INT_H_SIZE > len(data):
+            raise ValueError("Data length does not match number of records indicated.")
+
+        # Decode offsets
+        offsets_start = nb_records_offset - (nb_records * INT_H_SIZE)
+        offsets_format = "H" * nb_records
+        offsets = list(struct.unpack(offsets_format, data[offsets_start:nb_records_offset]))
+
+        # Decode records
+        encoded_records = data[0:offsets_start]
 
         return cls(data=encoded_records, offsets=offsets)
 
 
 class BlockBuilder:
-    def __init__(self, target_size: int = 65536):
+    def __init__(self, target_size: Optional[int] = 65_536):
         # target_size is the size of a page. In my arm64 M2 mac, it is 65536 bytes (obtained with `stat -f %k`)
         self.target_size = target_size
         self.offsets = []
