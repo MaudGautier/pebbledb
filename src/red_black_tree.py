@@ -53,26 +53,20 @@ class Node:
 
         return parent.parent
 
-    def bounded_in_order_traversal(self, lower: Key, upper: Key) -> Iterator["Node"]:
+    def in_order_traversal(self, lower: Optional[Key] = None, upper: Optional[Key] = None):
+        if self is RedBlackTree.NIL_LEAF:
+            return
+
         # Optimization: stop traversing as soon as we reach a node bigger than the upper bound
-        if self.key > upper:
+        if upper is not None and self.key > upper:
             return
         # Optimization: stop traversing as soon as we reach a node smaller than the lower bound
-        if self.key < lower:
+        if lower is not None and self.key < lower:
             return
-        if self.left is not RedBlackTree.NIL_LEAF:
-            yield from self.left.bounded_in_order_traversal(lower=lower, upper=upper)
-        if lower <= self.key <= upper:
-            yield self
-        if self.right is not RedBlackTree.NIL_LEAF:
-            yield from self.right.bounded_in_order_traversal(lower=lower, upper=upper)
 
-    def in_order_traversal(self):
-        if self.left is not RedBlackTree.NIL_LEAF:
-            yield from self.left.in_order_traversal()
+        yield from self.left.in_order_traversal(lower=lower, upper=upper)
         yield self
-        if self.right is not RedBlackTree.NIL_LEAF:
-            yield from self.right.in_order_traversal()
+        yield from self.right.in_order_traversal(lower=lower, upper=upper)
 
 
 class RedBlackTree:
@@ -98,10 +92,7 @@ class RedBlackTree:
         return candidate
 
     def scan(self, lower: Node.Key, upper: Node.Key) -> Iterator[Node.Data]:
-        if self.root is self.NIL_LEAF:
-            return
-
-        for node in self.root.bounded_in_order_traversal(lower=lower, upper=upper):
+        for node in self.root.in_order_traversal(lower=lower, upper=upper):
             yield node.data
 
     def __iter__(self) -> Iterator[Node.Data]:
