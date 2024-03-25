@@ -81,5 +81,5 @@ class BlockBuilder:
         return True
 
     def create_block(self) -> Block:
-        return Block(data=bytes(self.data_buffer), offsets=self.offsets)
-
+        # Truncating the data to self.data_length because all bytes after this are empty
+        return Block(data=bytes(self.data_buffer[:self.data_length]), offsets=self.offsets)
