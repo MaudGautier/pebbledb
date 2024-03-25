@@ -1,20 +1,30 @@
+import os
+import time
 from collections import deque
 from typing import Optional, Iterator
 
 from src.locks import ReadWriteLock, Mutex
 from src.memtable import MemTable
 from src.record import Record
+from src.sstable import SSTableBuilder
 from src.utils import merge_iterators, filter_duplicate_keys
 
 
 class LsmStorage:
-    def __init__(self, max_sstable_size: int = 1000):
+    def __init__(self,
+                 max_sstable_size: Optional[int] = 262_144_000,
+                 block_size: Optional[int] = 65_536,
+                 directory: Optional[str] = "."):
         self.memtable = self._create_memtable()
         # Immutable memtables are stored in a linked list because they will always be parsed from most recent to oldest.
         self.immutable_memtables: deque[MemTable] = deque()
         self._state_lock = ReadWriteLock()
         self._freeze_lock = Mutex()
         self._max_sstable_size = max_sstable_size
+        self._block_size = block_size
+        self.ss_tables_paths = []
+        self.directory = directory
+        self.create_directory()
 
     @staticmethod
     def _create_memtable():
@@ -103,3 +113,22 @@ class LsmStorage:
         merged = merge_iterators([active_memtable_iterator] + immutable_memtables_iterators)
         filtered = filter_duplicate_keys(merged)
         yield from filtered
+
+    def flush_next_immutable_memtable(self) -> None:
+        sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
+        path = self.compute_path()
+        memtable_to_flush = self.immutable_memtables.pop()  # Pop oldest one
+        for record in memtable_to_flush:
+            sstable_builder.add(key=record.key, value=record.value)
+
+        sstable = sstable_builder.build()
+        sstable.write(path)
+        self.ss_tables_paths.append(path)
+
+    def compute_path(self):
+        timestamp_in_us = time.time() * 1_000_000
+        return f"{self.directory}/{timestamp_in_us}.sst"
+
+    def create_directory(self):
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)

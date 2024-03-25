@@ -8,6 +8,7 @@ from src.__fixtures__.store import (
     store_with_duplicated_keys_records
 )
 from src.record import Record
+from src.sstable import SSTable
 
 
 def test_can_read_a_value_inserted():
@@ -129,3 +130,16 @@ def test_scan_when_duplicates(
 
     expected_records.sort()
     assert records == expected_records
+
+
+def test_flush_next_immutable_memtable(store_with_multiple_immutable_memtables):
+    # GIVEN
+    store = store_with_multiple_immutable_memtables
+
+    # WHEN
+    store.flush_next_immutable_memtable()
+
+    # THEN
+    assert len(store.ss_tables_paths) == 1  # One SSTable has been added
+
+    # TODO: when iterator on sstable done, check that we have both key1 and key2 in there (or new test)
