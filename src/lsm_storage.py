@@ -6,7 +6,7 @@ from typing import Optional, Iterator
 from src.locks import ReadWriteLock, Mutex
 from src.memtable import MemTable
 from src.record import Record
-from src.sstable import SSTableBuilder
+from src.sstable import SSTableBuilder, SSTable
 from src.utils import merge_iterators, filter_duplicate_keys
 
 

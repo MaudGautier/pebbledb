@@ -67,6 +67,7 @@ class SSTableBuilder:
         self.data_block_offsets = []
         self.block_builder = BlockBuilder(target_size=block_size)
         self.current_buffer_position = 0
+        self.meta_blocks = []
 
     def add(self, key: Record.Key, value: Record.Value):
         """Adds a key-value pair to the SSTable.
@@ -78,7 +79,6 @@ class SSTableBuilder:
 
         # Nothing to do if the record was added to the block
         if was_added:
-            # TODO: later: will need to get the info of the last key and keep it (useful for search in the SStable)
             return
 
         # Otherwise, finalize block
@@ -93,6 +93,12 @@ class SSTableBuilder:
     def finish_block(self) -> Block:
         # Add current buffer position to list of block offsets
         self.data_block_offsets.append(self.current_buffer_position)
+
+        # Add meta block
+        meta_block = MetaBlock(first_key=self.block_builder.first_key,
+                               last_key=self.block_builder.last_key,
+                               offset=self.current_buffer_position)
+        self.meta_blocks.append(meta_block)
 
         # Create block
         block = self.block_builder.create_block()
@@ -110,4 +116,5 @@ class SSTableBuilder:
 
     def build(self):
         self.finish_block()
-        return SSTable(data=bytes(self.data_buffer[:self.current_buffer_position]), offsets=self.data_block_offsets)
+        return SSTable(data=bytes(self.data_buffer[:self.current_buffer_position]),
+                       meta_blocks=self.meta_blocks)
