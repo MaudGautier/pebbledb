@@ -88,3 +88,35 @@ class BlockBuilder:
     def create_block(self) -> Block:
         # Truncating the data to self.data_length because all bytes after this are empty
         return Block(data=bytes(self.data_buffer[:self.data_length]), offsets=self.offsets)
+
+
+class MetaBlock:
+    ENCODING = "utf-8"
+
+    def __init__(self, first_key: Record.Key, last_key: Record.Key, offset: int):
+        self.first_key = first_key
+        self.last_key = last_key
+        self.offset = offset
+
+    @property
+    def size(self) -> int:
+        return len(self.to_bytes())
+
+    def to_bytes(self) -> bytes:
+        encoded_first_key_size = struct.pack("H", len(self.first_key))
+        encoded_first_key = bytes(self.first_key, encoding=self.ENCODING)
+        encoded_last_key_size = struct.pack("H", len(self.last_key))
+        encoded_last_key = bytes(self.last_key, encoding=self.ENCODING)
+        encoded_offset = struct.pack("i", self.offset)
+
+        return encoded_first_key_size + encoded_first_key + encoded_last_key_size + encoded_last_key + encoded_offset
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> "MetaBlock":
+        first_key_size = struct.unpack("H", data[0:2])[0]
+        first_key = data[2:2 + first_key_size].decode(encoding=cls.ENCODING)
+        last_key_size = struct.unpack("H", data[2 + first_key_size:2 + first_key_size + 2])[0]
+        last_key = data[2 + first_key_size + 2:2 + first_key_size + 2 + last_key_size].decode(encoding=cls.ENCODING)
+        offset = struct.unpack("i", data[-4:])[0]
+
+        return cls(first_key=first_key, last_key=last_key, offset=offset)
