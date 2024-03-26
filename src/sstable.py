@@ -89,17 +89,24 @@ class SSTableBuilder:
 
         # Create a new block
         self.block_builder = BlockBuilder(target_size=self.sstable_size)
-        self.data_block_offsets.append(self.current_buffer_position)
 
         # Add record to the new block
         self.block_builder.add(key=key, value=value)
 
     def finish_block(self) -> Block:
+        # Add current buffer position to list of block offsets
+        self.data_block_offsets.append(self.current_buffer_position)
+
+        # Create block
         block = self.block_builder.create_block()
         encoded_block = block.to_bytes()
+
+        # Add new encoded block to buffer
         start = self.current_buffer_position
         end = self.current_buffer_position + block.size
         self.data_buffer[start:end] = encoded_block
+
+        # Update buffer position
         self.current_buffer_position += block.size
 
         return block
