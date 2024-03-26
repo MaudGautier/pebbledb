@@ -135,11 +135,15 @@ def test_scan_when_duplicates(
 def test_flush_next_immutable_memtable(store_with_multiple_immutable_memtables):
     # GIVEN
     store = store_with_multiple_immutable_memtables
+    nb_memtables = len(store.immutable_memtables)
 
     # WHEN
     store.flush_next_immutable_memtable()
 
     # THEN
     assert len(store.ss_tables_paths) == 1  # One SSTable has been added
+    assert len(store.immutable_memtables) == nb_memtables - 1  # One memtable has been removed
 
     # TODO: when iterator on sstable done, check that we have both key1 and key2 in there (or new test)
+
+# TODO: add test to ensure that no freezing while flushing

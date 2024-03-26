@@ -115,15 +115,23 @@ class LsmStorage:
         yield from filtered
 
     def flush_next_immutable_memtable(self) -> None:
-        sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
-        path = self.compute_path()
-        memtable_to_flush = self.immutable_memtables.pop()  # Pop oldest one
-        for record in memtable_to_flush:
-            sstable_builder.add(key=record.key, value=record.value)
+        with self._freeze_lock:
+            # Read the oldest memtable
+            with self._state_lock.read():
+                memtable_to_flush = self.immutable_memtables[-1]
 
-        sstable = sstable_builder.build()
-        sstable.write(path)
-        self.ss_tables_paths.append(path)
+            # Flush it to SSTable
+            path = self.compute_path()
+            sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
+            for record in memtable_to_flush:
+                sstable_builder.add(key=record.key, value=record.value)
+            sstable = sstable_builder.build()
+            sstable.write(path)
+
+            # Update state to remove oldest memtable and add new SSTable
+            with self._state_lock.write():
+                self.immutable_memtables.pop()
+                self.ss_tables_paths.append(path)
 
     def compute_path(self):
         timestamp_in_us = time.time() * 1_000_000
