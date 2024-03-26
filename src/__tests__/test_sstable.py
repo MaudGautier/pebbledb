@@ -1,4 +1,4 @@
-from src.blocks import Block
+from src.blocks import Block, MetaBlock
 from src.sstable import SSTableBuilder, SSTable
 
 
@@ -52,31 +52,35 @@ def test_encode_sstable():
     block2 = Block(data=data2, offsets=[0])
     encoded_block2 = block2.to_bytes()
     data = encoded_block1 + encoded_block2
-    sstable = SSTable(data=data, offsets=[0, 42])
+    meta_block1 = MetaBlock(first_key="key1", last_key="key2", offset=0)
+    meta_block2 = MetaBlock(first_key="key3", last_key="key3", offset=42)  # 42 = 18*2 + 2*2 + 2
+    sstable = SSTable(data=data, meta_blocks=[meta_block1, meta_block2])
 
     # WHEN
     encoded_sstable = sstable.to_bytes()
 
     # THEN
-    encoded_0 = b'\x00\x00\x00\x00'
-    encoded_42 = b'*\x00\x00\x00'
-    expected_encoded_offsets = encoded_0 + encoded_42
-    encoded_2 = b'\x02\x00\x00\x00'
-    expected_encoded_nb_elements = encoded_2
-    assert encoded_sstable == data + expected_encoded_offsets + expected_encoded_nb_elements
+    encoded_meta_block1 = meta_block1.to_bytes()
+    encoded_meta_block2 = meta_block2.to_bytes()
+    encoded_meta_blocks = b''.join([encoded_meta_block1, encoded_meta_block2])
+    encoded_64 = b'@\x00\x00\x00'  # 42 + 18 + 2 + 2
+    encoded_meta_block_offset = encoded_64
+    assert encoded_sstable == data + encoded_meta_blocks + encoded_meta_block_offset
 
 
 def test_decode_sstable():
     # GIVEN
-    data = b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x04\x00\x00\x00key2\x06\x00\x00\x00value2\x00\x00\x12\x00\x02\x00\x04\x00\x00\x00key3\x06\x00\x00\x00value3\x00\x00\x01\x00\x00\x00\x00\x00*\x00\x00\x00\x02\x00\x00\x00'
-    offsets = [0, 42]
-    sstable = SSTable(data=data, offsets=offsets)
+    encoded_data = b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x04\x00\x00\x00key2\x06\x00\x00\x00value2\x00\x00\x12\x00\x02\x00\x04\x00\x00\x00key3\x06\x00\x00\x00value3\x00\x00\x01\x00'
+    encoded_meta_block1 = b'\x04\x00key1\x04\x00key2*\x00\x00\x00'
+    encoded_meta_block2 = b'\x04\x00key3\x04\x00key3*\x00\x00\x00'
+    encoded_meta_blocks = encoded_meta_block1 + encoded_meta_block2
+    encoded_96 = b'@\x00\x00\x00'  # 96 = ????
+    data = encoded_data + encoded_meta_blocks + encoded_96
 
     # WHEN
-    encoded_sstable = sstable.to_bytes()
-    decoded_sstable = SSTable.from_bytes(encoded_sstable)
+    decoded_sstable = SSTable.from_bytes(data)
 
     # THEN
-    assert decoded_sstable.number_data_blocks == 2
-    assert decoded_sstable.data == data
-    assert decoded_sstable.offsets == [0, 42]
+    assert decoded_sstable.data == encoded_data
+    actual_encoded_meta_blocks = b''.join([meta_block.to_bytes() for meta_block in decoded_sstable.meta_blocks])
+    assert encoded_meta_blocks == actual_encoded_meta_blocks

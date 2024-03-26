@@ -1,7 +1,7 @@
 import struct
 from typing import Optional
 
-from src.blocks import BlockBuilder, Block
+from src.blocks import BlockBuilder, Block, MetaBlock
 from src.record import Record
 
 INT_i_SIZE = 4
@@ -11,21 +11,17 @@ class SSTable:
     """This class handles encoding and decoding of SSTables.
 
     Each SSTable has the following format:
-    +-----------------------+-------------------------------+-------+
-    |         Blocks        |              Meta             | Extra |
-    +-----------------------+-------------------------------+-------+
-    | DB1 | DB2 | ... | DBn | offset_DB1 | ... | offset_DBn | nb_DB |
-    +-----------------------+-------------------------------+-------+
+    +-----------------------+---------------------------+-------+
+    |         Blocks        |            Meta           | Extra |
+    +-----------------------+---------------------------+-------+
+    | DB1 | DB2 | ... | DBn | meta_DB1 | ... | meta_DBn | nb_DB |
+    +-----------------------+---------------------------+-------+
     (DB = Data Block)
     """
 
-    def __init__(self, data: bytes, offsets: list[int]):
+    def __init__(self, data: bytes, meta_blocks: list[MetaBlock]):
         self.data = data
-        self.offsets = offsets
-
-    @property
-    def number_data_blocks(self) -> int:
-        return len(self.offsets)
+        self.meta_blocks = meta_blocks
 
     def write(self, path):
         with open(path, "wb") as f:
@@ -33,29 +29,30 @@ class SSTable:
             f.write(encoded_sstable)
 
     def to_bytes(self) -> bytes:
-        encoded_offsets = struct.pack("i" * self.number_data_blocks, *self.offsets)
-        encoded_nb_data_blocks = struct.pack("i", self.number_data_blocks)
+        encoded_meta_blocks = b''.join([meta_block.to_bytes() for meta_block in self.meta_blocks])
+        encoded_meta_block_offset = struct.pack("i", len(self.data))
 
-        return self.data + encoded_offsets + encoded_nb_data_blocks
+        return self.data + encoded_meta_blocks + encoded_meta_block_offset
 
     @classmethod
     def from_bytes(cls, data) -> "SSTable":
         # Decode number of data blocks
-        nb_data_blocks_offset = len(data) - INT_i_SIZE
-        nb_data_blocks = struct.unpack("i", data[nb_data_blocks_offset:])[0]
+        meta_block_offset_start = len(
+            data) - INT_i_SIZE  # TODO: rename: c'est la position de l'endroit où on dit où est l'offset
+        meta_block_offset = struct.unpack("i", data[meta_block_offset_start:])[0]
 
-        if nb_data_blocks * INT_i_SIZE + INT_i_SIZE > len(data):
-            raise ValueError("Data length does not match number of data blocks indicated.")
-
-        # Decode offsets
-        offsets_start = nb_data_blocks_offset - (nb_data_blocks * INT_i_SIZE)
-        offsets_format = "i" * nb_data_blocks
-        offsets = list(struct.unpack(offsets_format, data[offsets_start:nb_data_blocks_offset]))
+        # Decode meta blocks
+        encoded_meta_blocks = data[meta_block_offset: meta_block_offset_start]
+        meta_blocks = []
+        while len(encoded_meta_blocks) > 0:
+            meta_block = MetaBlock.from_bytes(data=encoded_meta_blocks)
+            meta_blocks.append(meta_block)
+            encoded_meta_blocks = encoded_meta_blocks[meta_block.size:]
 
         # Decode data blocks
-        encoded_data_blocks = data[0:offsets_start]
+        encoded_data_blocks = data[0:meta_block_offset]
 
-        return cls(data=encoded_data_blocks, offsets=offsets)
+        return cls(data=encoded_data_blocks, meta_blocks=meta_blocks)
 
 
 class SSTableBuilder:
