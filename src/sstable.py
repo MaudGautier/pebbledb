@@ -63,6 +63,7 @@ class SSTableBuilder:
     def __init__(self, sstable_size: Optional[int] = 262_144_000, block_size: Optional[int] = 65_536):
         # The usual target size of an SSTable is 256MB
         self.sstable_size = sstable_size
+        self.block_size = block_size
         self.data_buffer = bytearray(self.sstable_size)
         self.data_block_offsets = []
         self.block_builder = DataBlockBuilder(target_size=block_size)
@@ -85,7 +86,7 @@ class SSTableBuilder:
         self.finish_block()
 
         # Create a new block
-        self.block_builder = DataBlockBuilder(target_size=self.sstable_size)
+        self.block_builder = DataBlockBuilder(target_size=self.block_size)
 
         # Add record to the new block
         self.block_builder.add(key=key, value=value)
