@@ -1,4 +1,5 @@
 from src.blocks import DataBlockBuilder, DataBlock, MetaBlock
+from src.record import Record
 
 
 def test_block_builder_buffer_and_offsets():
@@ -122,3 +123,31 @@ def test_iterate_on_data_block():
         b'\x04\x00\x00\x00key4\x06\x00\x00\x00value4',
     ]
     assert iterated_items == expected_items
+
+
+def test_get_record():
+    # GIVEN
+    block_builder = DataBlockBuilder(target_size=100)
+    kv_pairs = [
+        ("key1", b'value1'),
+        ("key2", b'value2'),
+        ("key3", b'value3'),
+        ("key4", b'value4'),
+    ]
+    for key, value in kv_pairs:
+        block_builder.add(key=key, value=value)
+    block = block_builder.create_block()
+
+    # WHEN
+    record_key1 = block.get("key1")
+    record_key2 = block.get("key2")
+    record_key3 = block.get("key3")
+    record_key4 = block.get("key4")
+    record_missing_key = block.get("missing_key")
+
+    # THEN
+    assert record_key1 == Record(key=kv_pairs[0][0], value=kv_pairs[0][1])
+    assert record_key2 == Record(key=kv_pairs[1][0], value=kv_pairs[1][1])
+    assert record_key3 == Record(key=kv_pairs[2][0], value=kv_pairs[2][1])
+    assert record_key4 == Record(key=kv_pairs[3][0], value=kv_pairs[3][1])
+    assert record_missing_key is None

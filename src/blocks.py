@@ -62,6 +62,13 @@ class DataBlock:
 
         return cls(data=encoded_records, offsets=offsets)
 
+    def get(self, key: Record.Key) -> Optional[Record]:
+        for encoded_record in self:
+            # TODO: not great that we have to decode -> maybe add an iterator class ?
+            record = Record.from_bytes(data=encoded_record)
+            if record.key == key:
+                return record
+        return None
 
 
 class DataBlockBuilder:
