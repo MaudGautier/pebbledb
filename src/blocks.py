@@ -1,5 +1,5 @@
 import struct
-from typing import Optional
+from typing import Optional, Iterator
 
 from src.record import Record
 
@@ -21,6 +21,13 @@ class DataBlock:
     def __init__(self, data: bytes, offsets: list[int]):
         self.data = data
         self.offsets = offsets
+
+    def __iter__(self) -> Iterator[bytes]:
+        starts = self.offsets
+        ends = self.offsets[1:] + [len(self.data)]
+        for start, end in zip(starts, ends):
+            encoded_record = self.data[start:end]
+            yield encoded_record
 
     @property
     def number_records(self) -> int:
