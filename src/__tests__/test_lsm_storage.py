@@ -146,4 +146,21 @@ def test_flush_next_immutable_memtable(store_with_multiple_immutable_memtables):
 
     # TODO: when iterator on sstable done, check that we have both key1 and key2 in there (or new test)
 
+
 # TODO: add test to ensure that no freezing while flushing
+
+
+def test_get_value_from_store(store_with_multiple_immutable_memtables):
+    # GIVEN
+    store = store_with_multiple_immutable_memtables
+    store.flush_next_immutable_memtable()
+
+    # WHEN/THEN
+    # From SSTable
+    assert store.get(key="key1") == b'value1'
+    assert store.get(key="key2") == b'value2'
+    # From memTables
+    assert store.get(key="key3") == b'value3'
+    assert store.get(key="key4") == b'value4'
+    assert store.get(key="key5") == b'value5'
+    assert store.get(key="key6") == b'value6'

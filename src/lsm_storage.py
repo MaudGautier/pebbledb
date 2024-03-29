@@ -103,6 +103,12 @@ class LsmStorage:
             if value is not None:
                 return value
 
+        for sstable_path in self.ss_tables_paths:
+            sstable = SSTable.from_file(file_path=sstable_path)
+            value = sstable.get(key=key)
+            if value is not None:
+                return value
+
         return None
 
     def scan(self, lower: Record.Key, upper: Record.Key) -> Iterator[Record]:
