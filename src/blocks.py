@@ -92,6 +92,20 @@ class DataBlockBuilder:
 
 
 class MetaBlock:
+    """This class handles encoding and decoding of Meta Blocks.
+    Each Meta Block maps to one Data Block (one-to-one relationship) and describes its content
+    (by recording the first and last keys within the data block).
+
+    Each Meta Block has the following format:
+
+    +---------+--------------+---------+--------------+---------+
+    | FK_size |      FK      | LK_size |      LK      | offset  |
+    +---------+--------------+---------+--------------+---------+
+    | 16 bits | FK_size bits | 16 bits | LK_size bits | 32 bits |
+    +---------+--------------+---------+--------------+---------+
+    (FK = First Key, LK = Last Key, offset = start position of the data block)
+    """
+
     ENCODING = "utf-8"
 
     def __init__(self, first_key: Record.Key, last_key: Record.Key, offset: int):

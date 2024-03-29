@@ -1,4 +1,4 @@
-from src.blocks import DataBlockBuilder, DataBlock
+from src.blocks import DataBlockBuilder, DataBlock, MetaBlock
 
 
 def test_block_builder_buffer_and_offsets():
@@ -71,3 +71,32 @@ def test_decode_data_block():
     assert decoded_block.number_records == 2
     assert decoded_block.data == data
     assert decoded_block.offsets == [0, 18]
+
+
+def test_encode_meta_block():
+    # GIVEN
+    block = MetaBlock(first_key="first_key", last_key="last_key", offset=100)
+
+    # WHEN
+    encoded_block = block.to_bytes()
+
+    # THEN
+    first_key_size = b'\t\x00'  # encoded 14
+    encoded_first_key = b'first_key'
+    last_key_size = b'\x08\x00'  # encoded 13
+    encoded_last_key = b'last_key'
+    encoded_offset = b'd\x00\x00\x00'  # encoded 100
+    assert encoded_block == first_key_size + encoded_first_key + last_key_size + encoded_last_key + encoded_offset
+
+
+def test_decode_meta_block():
+    # GIVEN
+    encoded_meta_block = b'\t\x00first_key\x08\x00last_keyd\x00\x00\x00'
+
+    # WHEN
+    decoded_block = MetaBlock.from_bytes(encoded_meta_block)
+
+    # THEN
+    assert decoded_block.first_key == "first_key"
+    assert decoded_block.last_key == "last_key"
+    assert decoded_block.offset == 100
