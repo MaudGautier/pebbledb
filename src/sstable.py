@@ -54,6 +54,49 @@ class SSTable:
 
         return cls(data=encoded_data_blocks, meta_blocks=meta_blocks)
 
+    @classmethod
+    def from_file(cls, file_path) -> "SSTable":
+        with open(file_path, "rb") as f:
+            data = f.read()
+        return cls.from_bytes(data=data)
+
+    def find_block_id(self, key: Record.Key) -> Optional[int]:
+        for i, meta_block in enumerate(self.meta_blocks):
+            if meta_block.last_key < key:
+                continue
+            if meta_block.first_key <= key <= meta_block.last_key:
+                return i
+            if key <= meta_block.first_key:
+                return None
+
+        return None
+        # TODO later: Optimisation:
+        # # Perform binary search in meta blocks to find in which block the key is likely to be
+        # first_key = self.meta_blocks[0].first_key
+        # last_key = self.meta_blocks[-1].last_key
+
+    def read_data_block(self, block_id: int) -> DataBlock:
+        start = self.meta_blocks[block_id].offset
+        end = self.meta_blocks[block_id + 1].offset \
+            if block_id + 1 < len(self.meta_blocks) \
+            else len(self.data)
+        encoded_block = self.data[start:end]
+        return DataBlock.from_bytes(data=encoded_block)
+
+    # TODO: Probably return the record and move the decoding up in the LSM Storage part
+    def get(self, key: Record.Key) -> Optional[Record.Value]:
+        # logique:
+        # 1. trouve le bon block (lire meta blocks => lequel) => offset du datablock
+        # 2. dans block: trouve la clé: binary search sur les clés offsets
+        block_id = self.find_block_id(key=key)
+        if block_id is None:
+            return None
+
+        block = self.read_data_block(block_id=block_id)
+        record = block.get(key=key)
+
+        return record.value if record is not None else None
+
 
 class SSTableBuilder:
     """This class handles the creation of SSTables.

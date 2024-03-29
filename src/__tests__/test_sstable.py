@@ -1,5 +1,7 @@
 from src.blocks import DataBlock, MetaBlock
+from src.record import Record
 from src.sstable import SSTableBuilder, SSTable
+from src.__fixtures__.sstable import sstable_four_blocks
 
 
 def test_add_record_to_current_block():
@@ -84,3 +86,44 @@ def test_decode_sstable():
     assert decoded_sstable.data == encoded_data
     actual_encoded_meta_blocks = b''.join([meta_block.to_bytes() for meta_block in decoded_sstable.meta_blocks])
     assert encoded_meta_blocks == actual_encoded_meta_blocks
+
+
+def test_find_block_of_key(sstable_four_blocks):
+    # GIVEN
+    sstable = sstable_four_blocks
+
+    # WHEN/THEN
+    assert sstable.find_block_id("ddd") == 0
+    assert sstable.find_block_id("eee") == 1
+    assert sstable.find_block_id("jj") == 2
+    assert sstable.find_block_id("ooo") == 3
+    assert sstable.find_block_id("a") is None
+    assert sstable.find_block_id("iiii") == 2
+    assert sstable.find_block_id("zzz") is None
+
+
+def test_read_data_block(sstable_four_blocks):
+    # GIVEN
+    sstable = sstable_four_blocks
+
+    # WHEN
+    data_block = sstable.read_data_block(block_id=1)
+
+    # THEN
+    assert data_block.number_records == 4
+    assert data_block.data == b'\x03\x00\x00\x00eee\x17\x00\x00\x00some_long_value_for_eee\x03\x00\x00\x00fff\x17\x00\x00\x00some_long_value_for_fff\x03\x00\x00\x00ggg\x17\x00\x00\x00some_long_value_for_ggg\x03\x00\x00\x00hhh\x17\x00\x00\x00some_long_value_for_hhh'
+    assert data_block.offsets == [0, 34, 68, 102]
+
+
+def test_get_key(sstable_four_blocks):
+    # GIVEN
+    sstable = sstable_four_blocks
+
+    # WHEN/THEN
+    assert sstable.get("ddd") == b'some_long_value_for_ddd'
+    assert sstable.get("eee") == b'some_long_value_for_eee'
+    assert sstable.get("jj") is None
+    assert sstable.get("ooo") == b'some_long_value_for_ooo'
+    assert sstable.get("a") is None
+    assert sstable.get("iiii") is None
+    assert sstable.get("zzz") is None
