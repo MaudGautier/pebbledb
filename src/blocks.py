@@ -6,7 +6,7 @@ from src.record import Record
 INT_H_SIZE = 2
 
 
-class Block:
+class DataBlock:
     """This class handles encoding and decoding of Data Blocks.
 
     Each Data Block has the following format:
@@ -37,7 +37,7 @@ class Block:
         return self.data + offset_bytes + number_records
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> "Block":
+    def from_bytes(cls, data: bytes) -> "DataBlock":
         # Decode number of records
         nb_records_offset = len(data) - INT_H_SIZE
         nb_records = struct.unpack("H", data[nb_records_offset:])[0]
@@ -56,7 +56,8 @@ class Block:
         return cls(data=encoded_records, offsets=offsets)
 
 
-class BlockBuilder:
+
+class DataBlockBuilder:
     def __init__(self, target_size: Optional[int] = 65_536):
         # target_size is the size of a page. In my arm64 M2 mac, it is 65536 bytes (obtained with `stat -f %k`)
         self.target_size = target_size
@@ -85,9 +86,9 @@ class BlockBuilder:
 
         return True
 
-    def create_block(self) -> Block:
+    def create_block(self) -> DataBlock:
         # Truncating the data to self.data_length because all bytes after this are empty
-        return Block(data=bytes(self.data_buffer[:self.data_length]), offsets=self.offsets)
+        return DataBlock(data=bytes(self.data_buffer[:self.data_length]), offsets=self.offsets)
 
 
 class MetaBlock:

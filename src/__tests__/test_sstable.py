@@ -1,4 +1,4 @@
-from src.blocks import Block, MetaBlock
+from src.blocks import DataBlock, MetaBlock
 from src.sstable import SSTableBuilder, SSTable
 
 
@@ -46,10 +46,10 @@ def test_adding_record_to_new_block_updates_buffer():
 def test_encode_sstable():
     # GIVEN
     data1 = b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x04\x00\x00\x00key2\x06\x00\x00\x00value2'
-    block1 = Block(data=data1, offsets=[0, 18])
+    block1 = DataBlock(data=data1, offsets=[0, 18])
     encoded_block1 = block1.to_bytes()
     data2 = b'\x04\x00\x00\x00key3\x06\x00\x00\x00value3'
-    block2 = Block(data=data2, offsets=[0])
+    block2 = DataBlock(data=data2, offsets=[0])
     encoded_block2 = block2.to_bytes()
     data = encoded_block1 + encoded_block2
     meta_block1 = MetaBlock(first_key="key1", last_key="key2", offset=0)

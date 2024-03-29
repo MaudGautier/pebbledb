@@ -1,7 +1,7 @@
 import struct
 from typing import Optional
 
-from src.blocks import BlockBuilder, Block, MetaBlock
+from src.blocks import DataBlockBuilder, DataBlock, MetaBlock
 from src.record import Record
 
 INT_i_SIZE = 4
@@ -65,7 +65,7 @@ class SSTableBuilder:
         self.sstable_size = sstable_size
         self.data_buffer = bytearray(self.sstable_size)
         self.data_block_offsets = []
-        self.block_builder = BlockBuilder(target_size=block_size)
+        self.block_builder = DataBlockBuilder(target_size=block_size)
         self.current_buffer_position = 0
         self.meta_blocks = []
 
@@ -85,12 +85,12 @@ class SSTableBuilder:
         self.finish_block()
 
         # Create a new block
-        self.block_builder = BlockBuilder(target_size=self.sstable_size)
+        self.block_builder = DataBlockBuilder(target_size=self.sstable_size)
 
         # Add record to the new block
         self.block_builder.add(key=key, value=value)
 
-    def finish_block(self) -> Block:
+    def finish_block(self) -> DataBlock:
         # Add current buffer position to list of block offsets
         self.data_block_offsets.append(self.current_buffer_position)
 

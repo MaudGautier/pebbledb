@@ -1,9 +1,9 @@
-from src.blocks import BlockBuilder, Block
+from src.blocks import DataBlockBuilder, DataBlock
 
 
 def test_block_builder_buffer_and_offsets():
     # GIVEN
-    block_builder = BlockBuilder(target_size=100)
+    block_builder = DataBlockBuilder(target_size=100)
 
     # WHEN
     block_builder.add(key="key1", value=b'value1')
@@ -26,7 +26,7 @@ def test_block_builder_buffer_and_offsets():
 
 def test_block_builder_returns_false_when_too_big():
     # GIVEN
-    block_builder = BlockBuilder(target_size=20)
+    block_builder = DataBlockBuilder(target_size=20)
 
     # WHEN
     add_key1_return = block_builder.add(key="key1", value=b'value1')
@@ -39,10 +39,10 @@ def test_block_builder_returns_false_when_too_big():
     assert block_builder.data_buffer == b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x00\x00'
 
 
-def test_encode_block():
+def test_encode_data_block():
     # GIVEN
     data = b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x04\x00\x00\x00key2\x06\x00\x00\x00value2'
-    block = Block(data=data, offsets=[0, 18])
+    block = DataBlock(data=data, offsets=[0, 18])
     assert block.number_records == 2
 
     # WHEN
@@ -57,15 +57,15 @@ def test_encode_block():
     assert encoded_block == data + expected_encoded_offsets + expected_encoded_nb_elements
 
 
-def test_decode_block():
+def test_decode_data_block():
     # GIVEN
     data = b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x04\x00\x00\x00key2\x06\x00\x00\x00value2'
     offsets = [0, 18]
-    block = Block(data=data, offsets=offsets)
+    block = DataBlock(data=data, offsets=offsets)
 
     # WHEN
     encoded_block = block.to_bytes()
-    decoded_block = Block.from_bytes(encoded_block)
+    decoded_block = DataBlock.from_bytes(encoded_block)
 
     # THEN
     assert decoded_block.number_records == 2
