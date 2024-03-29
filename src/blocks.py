@@ -146,6 +146,7 @@ class MetaBlock:
         first_key = data[2:2 + first_key_size].decode(encoding=cls.ENCODING)
         last_key_size = struct.unpack("H", data[2 + first_key_size:2 + first_key_size + 2])[0]
         last_key = data[2 + first_key_size + 2:2 + first_key_size + 2 + last_key_size].decode(encoding=cls.ENCODING)
-        offset = struct.unpack("i", data[-4:])[0]
+        offset = struct.unpack("i", data[2 + first_key_size + 2 + last_key_size:
+                                         2 + first_key_size + 2 + last_key_size + 4])[0]
 
         return cls(first_key=first_key, last_key=last_key, offset=offset)
