@@ -22,7 +22,7 @@ class LsmStorage:
         self._freeze_lock = Mutex()
         self._max_sstable_size = max_sstable_size
         self._block_size = block_size
-        self.ss_tables_paths = []
+        self.ss_tables = []
         self.directory = directory
         self.create_directory()
 
@@ -103,8 +103,7 @@ class LsmStorage:
             if value is not None:
                 return value
 
-        for sstable_path in self.ss_tables_paths:
-            sstable = SSTable.from_file(file_path=sstable_path)
+        for sstable in self.ss_tables:
             value = sstable.get(key=key)
             if value is not None:
                 return value
@@ -131,13 +130,12 @@ class LsmStorage:
             sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
             for record in memtable_to_flush:
                 sstable_builder.add(key=record.key, value=record.value)
-            sstable = sstable_builder.build()
-            sstable.write(path)
+            sstable = sstable_builder.build(path=path)
 
             # Update state to remove oldest memtable and add new SSTable
             with self._state_lock.write():
                 self.immutable_memtables.pop()
-                self.ss_tables_paths.append(path)
+                self.ss_tables.append(sstable)
 
     def compute_path(self):
         timestamp_in_us = time.time() * 1_000_000

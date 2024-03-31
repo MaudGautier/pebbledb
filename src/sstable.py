@@ -1,5 +1,5 @@
 import struct
-from typing import Optional
+from typing import Optional, Iterator
 
 from src.blocks import DataBlockBuilder, DataBlock, MetaBlock
 from src.record import Record
@@ -7,7 +7,22 @@ from src.record import Record
 INT_i_SIZE = 4
 
 
-class SSTable:
+class SSTableFile:
+    def __init__(self, path: str, data: bytes):
+        self.path = path
+        self._write(data=data)
+
+    def _write(self, data: bytes):
+        with open(self.path, "wb") as f:
+            f.write(data)
+
+    def read(self, start: int, end: int) -> bytes:
+        with open(self.path, "rb") as f:
+            f.seek(start)
+            return f.read(end - start)
+
+
+class SSTableEncoding:
     """This class handles encoding and decoding of SSTables.
 
     Each SSTable has the following format:
@@ -20,8 +35,8 @@ class SSTable:
     """
 
     def __init__(self, data: bytes, meta_blocks: list[MetaBlock]):
-        self.data = data
         self.meta_blocks = meta_blocks
+        self.data = data
 
     def write(self, path):
         with open(path, "wb") as f:
@@ -35,10 +50,9 @@ class SSTable:
         return self.data + encoded_meta_blocks + encoded_meta_block_offset
 
     @classmethod
-    def from_bytes(cls, data) -> "SSTable":
+    def from_bytes(cls, data) -> "SSTableEncoding":
         # Decode number of data blocks
-        meta_block_offset_start = len(
-            data) - INT_i_SIZE  # TODO: rename: c'est la position de l'endroit où on dit où est l'offset
+        meta_block_offset_start = len(data) - INT_i_SIZE
         meta_block_offset = struct.unpack("i", data[meta_block_offset_start:])[0]
 
         # Decode meta blocks
@@ -54,11 +68,20 @@ class SSTable:
 
         return cls(data=encoded_data_blocks, meta_blocks=meta_blocks)
 
-    @classmethod
-    def from_file(cls, file_path) -> "SSTable":
-        with open(file_path, "rb") as f:
-            data = f.read()
-        return cls.from_bytes(data=data)
+
+class SSTable:
+    def __init__(self, meta_blocks: list[MetaBlock], meta_block_offset: int, file: SSTableFile):
+        self.file = file
+        self.meta_blocks = meta_blocks
+        self.meta_block_offset = meta_block_offset
+        # self.bloom = BloomFilter(bits_size=8*1_000_000, nb_hash_functions=5)
+
+    def __iter__(self) -> Iterator[Record]:
+        for block_id in range(len(self.meta_blocks)):
+            data_block = self.read_data_block(block_id=block_id)
+            for encoded_record in data_block:
+                record = Record.from_bytes(data=encoded_record)
+                yield record
 
     def find_block_id(self, key: Record.Key) -> Optional[int]:
         for i, meta_block in enumerate(self.meta_blocks):
@@ -79,8 +102,9 @@ class SSTable:
         start = self.meta_blocks[block_id].offset
         end = self.meta_blocks[block_id + 1].offset \
             if block_id + 1 < len(self.meta_blocks) \
-            else len(self.data)
-        encoded_block = self.data[start:end]
+            else self.meta_block_offset
+
+        encoded_block = self.file.read(start=start, end=end)
         return DataBlock.from_bytes(data=encoded_block)
 
     # TODO: Probably return the record and move the decoding up in the LSM Storage part
@@ -105,9 +129,8 @@ class SSTableBuilder:
 
     def __init__(self, sstable_size: Optional[int] = 262_144_000, block_size: Optional[int] = 65_536):
         # The usual target size of an SSTable is 256MB
-        self.sstable_size = sstable_size
         self.block_size = block_size
-        self.data_buffer = bytearray(self.sstable_size)
+        self.data_buffer = bytearray(sstable_size)
         self.data_block_offsets = []
         self.block_builder = DataBlockBuilder(target_size=block_size)
         self.current_buffer_position = 0
@@ -158,7 +181,16 @@ class SSTableBuilder:
 
         return block
 
-    def build(self):
+    def build(self, path: str) -> SSTable:
         self.finish_block()
-        return SSTable(data=bytes(self.data_buffer[:self.current_buffer_position]),
-                       meta_blocks=self.meta_blocks)
+
+        # Write to file
+        encoded_sstable = SSTableEncoding(data=bytes(self.data_buffer[:self.current_buffer_position]),
+                                          meta_blocks=self.meta_blocks).to_bytes()
+
+        file = SSTableFile(path=path, data=encoded_sstable)
+
+        return SSTable(
+            meta_blocks=self.meta_blocks,
+            file=file,
+            meta_block_offset=self.current_buffer_position)

@@ -1,6 +1,13 @@
+import os
+
 import pytest
 
 from src.sstable import SSTableBuilder
+
+TEST_FIXTURES = "./test_fixtures"
+
+if not os.path.exists(TEST_FIXTURES):
+    os.makedirs(TEST_FIXTURES)
 
 
 @pytest.fixture
@@ -27,7 +34,7 @@ def sstable_four_blocks():
     sstable_builder.add(key="ooo", value=b'some_long_value_for_ooo')
     sstable_builder.add(key="ppp", value=b'some_long_value_for_ppp')
 
-    sstable = sstable_builder.build()
+    sstable = sstable_builder.build(path=f"{TEST_FIXTURES}/sstable_four_blocks.sst")
 
     assert len(sstable.meta_blocks) == 4
     assert sstable.meta_blocks[0].first_key == "aaa"

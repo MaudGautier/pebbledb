@@ -1,6 +1,6 @@
 from src.blocks import DataBlock, MetaBlock
 from src.record import Record
-from src.sstable import SSTableBuilder, SSTable
+from src.sstable import SSTableBuilder, SSTable, SSTableEncoding
 from src.__fixtures__.sstable import sstable_four_blocks
 
 
@@ -56,7 +56,7 @@ def test_encode_sstable():
     data = encoded_block1 + encoded_block2
     meta_block1 = MetaBlock(first_key="key1", last_key="key2", offset=0)
     meta_block2 = MetaBlock(first_key="key3", last_key="key3", offset=42)  # 42 = 18*2 + 2*2 + 2
-    sstable = SSTable(data=data, meta_blocks=[meta_block1, meta_block2])
+    sstable = SSTableEncoding(data=data, meta_blocks=[meta_block1, meta_block2])
 
     # WHEN
     encoded_sstable = sstable.to_bytes()
@@ -80,7 +80,7 @@ def test_decode_sstable():
     data = encoded_data + encoded_meta_blocks + encoded_96
 
     # WHEN
-    decoded_sstable = SSTable.from_bytes(data)
+    decoded_sstable = SSTableEncoding.from_bytes(data)
 
     # THEN
     assert decoded_sstable.data == encoded_data

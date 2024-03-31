@@ -141,7 +141,7 @@ def test_flush_next_immutable_memtable(store_with_multiple_immutable_memtables):
     store.flush_next_immutable_memtable()
 
     # THEN
-    assert len(store.ss_tables_paths) == 1  # One SSTable has been added
+    assert len(store.ss_tables) == 1  # One SSTable has been added
     assert len(store.immutable_memtables) == nb_memtables - 1  # One memtable has been removed
 
     # TODO: when iterator on sstable done, check that we have both key1 and key2 in there (or new test)
