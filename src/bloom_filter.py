@@ -1,5 +1,6 @@
 import hashlib
-from typing import Callable
+import struct
+from typing import Callable, Optional
 
 
 class BloomFilter:
@@ -20,10 +21,12 @@ class BloomFilter:
     - If at least one of them is not set, then we are guaranteed that the key is not in the collection.
     """
 
-    def __init__(self, bits_size: int, nb_hash_functions: int):
-        self.bits_size = bits_size
+    def __init__(self, nb_bytes: int, nb_hash_functions: int, bits: Optional[int] = None):
+        # `bits` is bigger than a 4-byte int (it will be `nb_bytes` long), but Python is able to handle this
+        self.nb_bytes = nb_bytes
+        self.bits_size = 8 * nb_bytes
         self.hash_functions = self._select_hash_functions(nb_hash_functions)
-        self.bits = 1 << self.bits_size
+        self.bits = bits if bits else 0
 
     @staticmethod
     def _select_hash_functions(n: int) -> list[Callable]:

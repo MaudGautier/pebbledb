@@ -3,7 +3,7 @@ from src.bloom_filter import BloomFilter
 
 def test_lookups():
     # GIVEN
-    bloom_filter = BloomFilter(bits_size=32, nb_hash_functions=3)
+    bloom_filter = BloomFilter(nb_bytes=4, nb_hash_functions=3)
     keys = ["foo", "bar", "baz"]
     missing_keys = ["not_in_bloom_filter", "missing"]
 
