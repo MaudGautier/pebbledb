@@ -79,3 +79,9 @@ class BloomFilter:
             if not self._is_bit_set(bit_index=bit):
                 return False
         return True
+
+    def build_from_keys(self, keys: list[str]) -> "BloomFilter":
+        for key in keys:
+            self.add(key)
+
+        return self

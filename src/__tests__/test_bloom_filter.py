@@ -18,3 +18,16 @@ def test_lookups():
     # They could be true, but in this case we know they return False (probabilistic)
     for key in missing_keys:
         assert bloom_filter.may_contain(key=key) is False
+
+
+def test_build_from_keys():
+    # GIVEN
+    bloom_filter = BloomFilter(nb_bytes=1, nb_hash_functions=2)
+
+    # WHEN
+    bloom_filter.build_from_keys(["key1", "key2"])
+
+    # THEN
+    assert bloom_filter.may_contain("key1") is True
+    assert bloom_filter.may_contain("key2") is True
+
