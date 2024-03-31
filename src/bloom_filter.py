@@ -85,3 +85,14 @@ class BloomFilter:
             self.add(key)
 
         return self
+
+    def to_bytes(self) -> bytes:
+        return struct.pack("B" * self.nb_bytes, self.bits) + struct.pack("B", len(self.hash_functions))
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> "BloomFilter":
+        nb_bytes = len(data) - 1
+        nb_hash_functions = struct.unpack("B", data[nb_bytes:])[0]
+        bits = struct.unpack("B" * nb_bytes, data[:nb_bytes])[0]
+
+        return cls(nb_bytes=nb_bytes, nb_hash_functions=nb_hash_functions, bits=bits)
