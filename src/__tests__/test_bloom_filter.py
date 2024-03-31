@@ -48,9 +48,43 @@ def test_encode():
     assert encoded_bloom_filter == encoded_bits + encoded_nb_hash
 
 
+def test_encode_with_multiple_bytes():
+    # GIVEN
+    bloom_filter = BloomFilter(nb_bytes=3, nb_hash_functions=2)
+    bloom_filter.add("key1")
+    bloom_filter.add("key2")
+    bloom_filter.add("key3")
+
+    # WHEN
+    encoded_bloom_filter = bloom_filter.to_bytes()
+
+    # THEN
+    encoded_bits = b'1(\x00'  # Value obtained when hashing all keys
+    encoded_nb_hash = b'\x02'
+    assert encoded_bloom_filter == encoded_bits + encoded_nb_hash
+
+
 def test_encode_decode():
     # GIVEN
     bloom_filter = BloomFilter(nb_bytes=1, nb_hash_functions=2)
+    bloom_filter.add("key1")
+    bloom_filter.add("key2")
+    bloom_filter.add("key3")
+    encoded_bloom_filter = bloom_filter.to_bytes()
+
+    # WHEN
+    decoded_bloom_filter = BloomFilter.from_bytes(data=encoded_bloom_filter)
+
+    # THEN
+    assert bloom_filter.hash_functions == decoded_bloom_filter.hash_functions
+    assert bloom_filter.bits_size == decoded_bloom_filter.bits_size
+    assert bloom_filter.bits == decoded_bloom_filter.bits
+    assert bloom_filter.nb_bytes == decoded_bloom_filter.nb_bytes
+
+
+def test_encode_decode_with_multiple_bytes():
+    # GIVEN
+    bloom_filter = BloomFilter(nb_bytes=3, nb_hash_functions=2)
     bloom_filter.add("key1")
     bloom_filter.add("key2")
     bloom_filter.add("key3")

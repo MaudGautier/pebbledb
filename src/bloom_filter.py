@@ -87,12 +87,17 @@ class BloomFilter:
         return self
 
     def to_bytes(self) -> bytes:
-        return struct.pack("B" * self.nb_bytes, self.bits) + struct.pack("B", len(self.hash_functions))
+        # 0xFF is 255 (mask to get the lowest byte) - this encodes with little-endianness
+        bytes_to_pack = tuple((self.bits >> (8 * i)) & 0xFF for i in range(self.nb_bytes))
+        encoded_bits = struct.pack("B" * self.nb_bytes, *bytes_to_pack)
+        encoded_nb_hash_functions = struct.pack("B", len(self.hash_functions))
+        return encoded_bits + encoded_nb_hash_functions
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "BloomFilter":
         nb_bytes = len(data) - 1
         nb_hash_functions = struct.unpack("B", data[nb_bytes:])[0]
-        bits = struct.unpack("B" * nb_bytes, data[:nb_bytes])[0]
+        unpacked_bytes = struct.unpack("B" * nb_bytes, data[:nb_bytes])
+        bits = sum(byte << (8 * i) for i, byte in enumerate(unpacked_bytes))
 
         return cls(nb_bytes=nb_bytes, nb_hash_functions=nb_hash_functions, bits=bits)
