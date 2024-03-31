@@ -1,4 +1,5 @@
 from src.blocks import DataBlock, MetaBlock
+from src.bloom_filter import BloomFilter
 from src.record import Record
 from src.sstable import SSTableBuilder, SSTable, SSTableEncoding
 from src.__fixtures__.sstable import sstable_four_blocks
@@ -65,19 +66,24 @@ def test_encode_sstable():
     encoded_meta_block1 = meta_block1.to_bytes()
     encoded_meta_block2 = meta_block2.to_bytes()
     encoded_meta_blocks = b''.join([encoded_meta_block1, encoded_meta_block2])
-    encoded_64 = b'@\x00\x00\x00'  # 42 + 18 + 2 + 2
+    encoded_64 = b'@\x00\x00\x00'  # 64 = len(data) = 42 + 18 + 2 + 2
     encoded_meta_block_offset = encoded_64
-    assert encoded_sstable == data + encoded_meta_blocks + encoded_meta_block_offset
+    encoded_bloom_filter = bloom_filter.to_bytes()
+    encoded_96 = b'`\x00\x00\x00'  # 96 = len(data + encoded_meta_blocks)
+    encoded_bloom_filter_offset = encoded_96
+    assert encoded_sstable == data + encoded_meta_blocks + encoded_bloom_filter + encoded_meta_block_offset + encoded_bloom_filter_offset
 
 
 def test_decode_sstable():
     # GIVEN
     encoded_data = b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x04\x00\x00\x00key2\x06\x00\x00\x00value2\x00\x00\x12\x00\x02\x00\x04\x00\x00\x00key3\x06\x00\x00\x00value3\x00\x00\x01\x00'
-    encoded_meta_block1 = b'\x04\x00key1\x04\x00key2*\x00\x00\x00'
+    encoded_meta_block1 = b'\x04\x00key1\x04\x00key2\x00\x00\x00\x00'
     encoded_meta_block2 = b'\x04\x00key3\x04\x00key3*\x00\x00\x00'
+    encoded_bloom_filter = b'9\x02'
+    encoded_meta_block_offset = b'@\x00\x00\x00'
+    encoded_bloom_filter_offset = b'`\x00\x00\x00'
     encoded_meta_blocks = encoded_meta_block1 + encoded_meta_block2
-    encoded_96 = b'@\x00\x00\x00'  # 96 = ????
-    data = encoded_data + encoded_meta_blocks + encoded_96
+    data = encoded_data + encoded_meta_blocks + encoded_bloom_filter + encoded_meta_block_offset + encoded_bloom_filter_offset
 
     # WHEN
     decoded_sstable = SSTableEncoding.from_bytes(data)

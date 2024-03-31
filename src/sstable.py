@@ -2,6 +2,7 @@ import struct
 from typing import Optional, Iterator
 
 from src.blocks import DataBlockBuilder, DataBlock, MetaBlock
+from src.bloom_filter import BloomFilter
 from src.record import Record
 
 INT_i_SIZE = 4
@@ -26,17 +27,18 @@ class SSTableEncoding:
     """This class handles encoding and decoding of SSTables.
 
     Each SSTable has the following format:
-    +-----------------------+---------------------------+-------+
-    |         Blocks        |            Meta           | Extra |
-    +-----------------------+---------------------------+-------+
-    | DB1 | DB2 | ... | DBn | meta_DB1 | ... | meta_DBn | nb_DB |
-    +-----------------------+---------------------------+-------+
+    +-----------------------+---------------------------+--------------+----------------------------+
+    |         Blocks        |        Meta Blocks        |  Meta Bloom  |            Extra           |
+    +-----------------------+---------------------------+--------------+----------------------------+
+    | DB1 | DB2 | ... | DBn | meta_DB1 | ... | meta_DBn | bloom filter | meta_offset | bloom_offset |
+    +-----------------------+---------------------------+--------------+----------------------------+
     (DB = Data Block)
     """
 
-    def __init__(self, data: bytes, meta_blocks: list[MetaBlock]):
+    def __init__(self, data: bytes, meta_blocks: list[MetaBlock], bloom_filter: BloomFilter):
         self.meta_blocks = meta_blocks
         self.data = data
+        self.bloom_filter = bloom_filter
 
     def write(self, path):
         with open(path, "wb") as f:
@@ -45,18 +47,28 @@ class SSTableEncoding:
 
     def to_bytes(self) -> bytes:
         encoded_meta_blocks = b''.join([meta_block.to_bytes() for meta_block in self.meta_blocks])
+        encoded_bloom_filter = self.bloom_filter.to_bytes()
         encoded_meta_block_offset = struct.pack("i", len(self.data))
+        encoded_bloom_filter_offset = struct.pack("i", len(self.data) + len(encoded_meta_blocks))
 
-        return self.data + encoded_meta_blocks + encoded_meta_block_offset
+        return self.data + encoded_meta_blocks + encoded_bloom_filter + encoded_meta_block_offset + encoded_bloom_filter_offset
 
     @classmethod
     def from_bytes(cls, data) -> "SSTableEncoding":
-        # Decode number of data blocks
-        meta_block_offset_start = len(data) - INT_i_SIZE
-        meta_block_offset = struct.unpack("i", data[meta_block_offset_start:])[0]
+        # Decode extra
+        extra_section_start = len(data) - 2 * INT_i_SIZE
+        extra_section_end = len(data)
+        extra_meta_offset = extra_section_start
+        extra_bloom_offset = extra_section_start + INT_i_SIZE
+        bloom_offset = struct.unpack("i", data[extra_bloom_offset:extra_section_end])[0]
+        meta_block_offset = struct.unpack("i", data[extra_meta_offset:extra_bloom_offset])[0]
+
+        # Decode bloom filters
+        encoded_bloom_filter = data[bloom_offset:extra_section_start]
+        bloom_filter = BloomFilter.from_bytes(data=encoded_bloom_filter)
 
         # Decode meta blocks
-        encoded_meta_blocks = data[meta_block_offset: meta_block_offset_start]
+        encoded_meta_blocks = data[meta_block_offset:bloom_offset]
         meta_blocks = []
         while len(encoded_meta_blocks) > 0:
             meta_block = MetaBlock.from_bytes(data=encoded_meta_blocks)
@@ -66,7 +78,7 @@ class SSTableEncoding:
         # Decode data blocks
         encoded_data_blocks = data[0:meta_block_offset]
 
-        return cls(data=encoded_data_blocks, meta_blocks=meta_blocks)
+        return cls(data=encoded_data_blocks, meta_blocks=meta_blocks, bloom_filter=bloom_filter)
 
 
 class SSTable:
