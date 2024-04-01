@@ -1,6 +1,8 @@
-import hashlib
 import struct
-from typing import Callable, Optional
+from math import log, ceil
+from typing import Optional
+
+import mmh3
 
 
 class BloomFilter:
@@ -25,21 +27,8 @@ class BloomFilter:
         # `bits` is bigger than a 4-byte int (it will be `nb_bytes` long), but Python is able to handle this
         self.nb_bytes = nb_bytes
         self.bits_size = 8 * nb_bytes
-        self.hash_functions = self._select_hash_functions(nb_hash_functions)
+        self.nb_hash_functions = nb_hash_functions
         self.bits = bits if bits else 0
-
-    @staticmethod
-    def _select_hash_functions(n: int) -> list[Callable]:
-        available_hash_functions = [
-            hashlib.sha224,
-            hashlib.sha256,
-            hashlib.sha384,
-            hashlib.sha512,
-            hashlib.blake2b,
-            hashlib.blake2s,
-        ]
-        assert n <= len(available_hash_functions), "Too many hash functions required."
-        return available_hash_functions[0:n]
 
     def _hash(self, key: str) -> list[int]:
         """Hashes the key with all hash functions and defines the list of bits that should be set.
@@ -48,10 +37,9 @@ class BloomFilter:
         """
         encoded_key = key.encode(encoding="utf-8")
         selected_bits = []
-        for hash_function in self.hash_functions:
-            hashed_key = hash_function(encoded_key)
-            i = int(hashed_key.hexdigest(), base=16)
-            selected_bit = i % self.bits_size
+        for i in range(self.nb_hash_functions):
+            hashed_key = mmh3.hash(encoded_key, i)
+            selected_bit = hashed_key % self.bits_size
             selected_bits.append(selected_bit)
         return selected_bits
 
@@ -90,7 +78,7 @@ class BloomFilter:
         # 0xFF is 255 (mask to get the lowest byte) - this encodes with little-endianness
         bytes_to_pack = tuple((self.bits >> (8 * i)) & 0xFF for i in range(self.nb_bytes))
         encoded_bits = struct.pack("B" * self.nb_bytes, *bytes_to_pack)
-        encoded_nb_hash_functions = struct.pack("B", len(self.hash_functions))
+        encoded_nb_hash_functions = struct.pack("B", self.nb_hash_functions)
         return encoded_bits + encoded_nb_hash_functions
 
     @classmethod
