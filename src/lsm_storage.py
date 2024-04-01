@@ -6,7 +6,7 @@ from typing import Optional, Iterator
 from src.locks import ReadWriteLock, Mutex
 from src.memtable import MemTable
 from src.record import Record
-from src.sstable import SSTableBuilder, SSTable
+from src.sstable import SSTableBuilder
 from src.utils import merge_iterators, filter_duplicate_keys
 
 
@@ -104,6 +104,8 @@ class LsmStorage:
                 return value
 
         for sstable in self.ss_tables:
+            if not sstable.bloom_filter.may_contain(key=key):
+                continue
             value = sstable.get(key=key)
             if value is not None:
                 return value

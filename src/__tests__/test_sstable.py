@@ -1,7 +1,6 @@
 from src.blocks import DataBlock, MetaBlock
 from src.bloom_filter import BloomFilter
-from src.record import Record
-from src.sstable import SSTableBuilder, SSTable, SSTableEncoding
+from src.sstable import SSTableBuilder, SSTableEncoding
 from src.__fixtures__.sstable import sstable_four_blocks
 
 

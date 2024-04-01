@@ -1,14 +1,15 @@
 from unittest import mock
 
+from src.bloom_filter import BloomFilter
 from src.lsm_storage import LsmStorage
 from src.__fixtures__.store import (
     store_with_multiple_immutable_memtables,
     store_with_multiple_immutable_memtables_records,
     store_with_duplicated_keys,
-    store_with_duplicated_keys_records
+    store_with_duplicated_keys_records, TEST_DIRECTORY
 )
 from src.record import Record
-from src.sstable import SSTable
+from src.sstable import SSTable, SSTableFile
 
 
 def test_can_read_a_value_inserted():
@@ -164,3 +165,33 @@ def test_get_value_from_store(store_with_multiple_immutable_memtables):
     assert store.get(key="key4") == b'value4'
     assert store.get(key="key5") == b'value5'
     assert store.get(key="key6") == b'value6'
+
+
+def test_dont_look_in_bloom_filter_if_key_absent():
+    # GIVEN
+    bloom_filter = BloomFilter(nb_bytes=2, nb_hash_functions=3)
+    inserted_keys = ["foo", "bar"]
+    for key in inserted_keys:
+        bloom_filter.add(key=key)
+    sstable = SSTable(meta_blocks=[],
+                      meta_block_offset=0,
+                      bloom_filter=bloom_filter,
+                      file=SSTableFile(path=f"{TEST_DIRECTORY}/empty.sst", data=b''))
+    store = LsmStorage()
+    store.ss_tables.append(sstable)
+
+    # WHEN/THEN
+    for key in inserted_keys:
+        with mock.patch.object(sstable, 'get', wraps=sstable.get) as mocked_sstable_get:
+            # WHEN
+            store.get(key=key)
+
+            # THEN
+            mocked_sstable_get.assert_called_once()
+
+    with mock.patch.object(sstable, 'get', wraps=sstable.get) as mocked_sstable_get:
+        # WHEN
+        store.get("baz")
+
+        # THEN
+        mocked_sstable_get.assert_not_called()
