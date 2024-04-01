@@ -5,6 +5,7 @@ docopt==0.6.2
 exceptiongroup==1.2.0
 executing==2.0.1
 iniconfig==2.0.0
+ipdb==0.13.13
 ipython==8.18.1
 jedi==0.19.1
 matplotlib-inline==0.1.6
