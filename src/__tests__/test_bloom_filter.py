@@ -21,11 +21,8 @@ def test_lookups():
 
 
 def test_build_from_keys():
-    # GIVEN
-    bloom_filter = BloomFilter(nb_bytes=1, nb_hash_functions=2)
-
-    # WHEN
-    bloom_filter.build_from_keys(["key1", "key2"])
+    # GIVEN/WHEN
+    bloom_filter = BloomFilter.build_from_keys_and_fp_rate(["key1", "key2"], 0.001)
 
     # THEN
     assert bloom_filter.may_contain("key1") is True

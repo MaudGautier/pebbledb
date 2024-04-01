@@ -68,12 +68,6 @@ class BloomFilter:
                 return False
         return True
 
-    def build_from_keys(self, keys: list[str]) -> "BloomFilter":
-        for key in keys:
-            self.add(key)
-
-        return self
-
     def to_bytes(self) -> bytes:
         # 0xFF is 255 (mask to get the lowest byte) - this encodes with little-endianness
         bytes_to_pack = tuple((self.bits >> (8 * i)) & 0xFF for i in range(self.nb_bytes))
@@ -89,3 +83,32 @@ class BloomFilter:
         bits = sum(byte << (8 * i) for i, byte in enumerate(unpacked_bytes))
 
         return cls(nb_bytes=nb_bytes, nb_hash_functions=nb_hash_functions, bits=bits)
+
+    @classmethod
+    def build_from_keys_and_fp_rate(cls, keys: list[str], fp_rate: float) -> "BloomFilter":
+        """
+        This method returns a bloom filter with optimal parameters given the number of items to add and the desired
+        false positive rate.
+
+        Given:
+        - n: number of keys in the bloom filter
+        - p: false probability rate
+
+        The optimal number of bits can be computed as:
+        m = (-n * log(p)) / (log(2)^2)
+
+        The optimal number of hash functions can be computed as:
+        k = (m / n) * log(2)
+
+        (Proof for the formulas can be found on wikipedia: https://en.wikipedia.org/wiki/Bloom_filter).
+        """
+        n = len(keys)
+        m = (-n * log(fp_rate)) / (log(2) ** 2)
+        k = (m / n) * log(2)
+
+        bloom_filter = cls(nb_bytes=ceil(m / 8), nb_hash_functions=round(k))
+
+        for key in keys:
+            bloom_filter.add(key)
+
+        return bloom_filter
