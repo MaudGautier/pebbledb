@@ -140,7 +140,7 @@ class LsmStorage:
                 self.ss_tables.append(sstable)
 
     def compute_path(self):
-        timestamp_in_us = time.time() * 1_000_000
+        timestamp_in_us = int(time.time() * 1_000_000)
         return f"{self.directory}/{timestamp_in_us}.sst"
 
     def create_directory(self):
