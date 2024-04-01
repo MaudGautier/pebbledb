@@ -82,11 +82,23 @@ class SSTableEncoding:
 
 
 class SSTable:
-    def __init__(self, meta_blocks: list[MetaBlock], meta_block_offset: int, file: SSTableFile):
+    # TODO: ne contenir que:
+    #  first key, last key ??? (utile pour savoir si besoin de regarder dedans - plus tard quand compaction niveaux ) ,
+    #  ✅ meta_blocks,
+    #  ✅ meta_block_offset,
+    #  ✅ file
+    #  ----------------------------------------
+    #  Iterator à part ???
+
+    def __init__(self,
+                 meta_blocks: list[MetaBlock],
+                 meta_block_offset: int,
+                 file: SSTableFile,
+                 bloom_filter: BloomFilter):
         self.file = file
         self.meta_blocks = meta_blocks
         self.meta_block_offset = meta_block_offset
-        # self.bloom = BloomFilter(bits_size=8*1_000_000, nb_hash_functions=5)
+        self.bloom_filter = bloom_filter
 
     def __iter__(self) -> Iterator[Record]:
         for block_id in range(len(self.meta_blocks)):
@@ -147,6 +159,7 @@ class SSTableBuilder:
         self.block_builder = DataBlockBuilder(target_size=block_size)
         self.current_buffer_position = 0
         self.meta_blocks = []
+        self.keys = []
 
     def add(self, key: Record.Key, value: Record.Value):
         """Adds a key-value pair to the SSTable.
@@ -154,6 +167,7 @@ class SSTableBuilder:
         Once it is full, the block is created, the encoded block is added to the SSTable's buffer and a new block
         builder is initialized.
         """
+        self.keys.append(key)
         was_added = self.block_builder.add(key=key, value=value)
 
         # Nothing to do if the record was added to the block
@@ -197,12 +211,16 @@ class SSTableBuilder:
         self.finish_block()
 
         # Write to file
+        bloom_filter = BloomFilter.build_from_keys_and_fp_rate(keys=self.keys, fp_rate=0.001)
         encoded_sstable = SSTableEncoding(data=bytes(self.data_buffer[:self.current_buffer_position]),
-                                          meta_blocks=self.meta_blocks).to_bytes()
-
+                                          meta_blocks=self.meta_blocks,
+                                          bloom_filter=bloom_filter).to_bytes()
         file = SSTableFile(path=path, data=encoded_sstable)
 
+        # Return python object
         return SSTable(
             meta_blocks=self.meta_blocks,
             file=file,
-            meta_block_offset=self.current_buffer_position)
+            meta_block_offset=self.current_buffer_position,
+            bloom_filter=bloom_filter
+        )

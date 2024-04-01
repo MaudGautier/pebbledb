@@ -57,7 +57,8 @@ def test_encode_sstable():
     data = encoded_block1 + encoded_block2
     meta_block1 = MetaBlock(first_key="key1", last_key="key2", offset=0)
     meta_block2 = MetaBlock(first_key="key3", last_key="key3", offset=42)  # 42 = 18*2 + 2*2 + 2
-    sstable = SSTableEncoding(data=data, meta_blocks=[meta_block1, meta_block2])
+    bloom_filter = BloomFilter.build_from_keys_and_fp_rate(["key1", "key2", "key3"], fp_rate=0.0001)
+    sstable = SSTableEncoding(data=data, meta_blocks=[meta_block1, meta_block2], bloom_filter=bloom_filter)
 
     # WHEN
     encoded_sstable = sstable.to_bytes()
