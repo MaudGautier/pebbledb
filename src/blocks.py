@@ -1,6 +1,7 @@
 import struct
 from typing import Optional, Iterator
 
+from src.iterators import DataBlockIterator
 from src.record import Record
 
 INT_H_SIZE = 2
@@ -21,13 +22,6 @@ class DataBlock:
     def __init__(self, data: bytes, offsets: list[int]):
         self.data = data
         self.offsets = offsets
-
-    def __iter__(self) -> Iterator[bytes]:
-        starts = self.offsets
-        ends = self.offsets[1:] + [len(self.data)]
-        for start, end in zip(starts, ends):
-            encoded_record = self.data[start:end]
-            yield encoded_record
 
     @property
     def number_records(self) -> int:
@@ -62,10 +56,10 @@ class DataBlock:
 
         return cls(data=encoded_records, offsets=offsets)
 
+    # TODO: will need to move this to DataBlockIterator at some point I think
     def get(self, key: Record.Key) -> Optional[Record]:
-        for encoded_record in self:
-            # TODO: not great that we have to decode -> maybe add an iterator class ?
-            record = Record.from_bytes(data=encoded_record)
+        iterator = DataBlockIterator(block=self)
+        for record in iterator:
             if record.key == key:
                 return record
         return None

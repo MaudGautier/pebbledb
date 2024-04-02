@@ -1,5 +1,5 @@
 import struct
-from typing import Optional, Iterator
+from typing import Optional
 
 from src.blocks import DataBlockBuilder, DataBlock, MetaBlock
 from src.bloom_filter import BloomFilter
@@ -99,13 +99,6 @@ class SSTable:
         self.meta_blocks = meta_blocks
         self.meta_block_offset = meta_block_offset
         self.bloom_filter = bloom_filter
-
-    def __iter__(self) -> Iterator[Record]:
-        for block_id in range(len(self.meta_blocks)):
-            data_block = self.read_data_block(block_id=block_id)
-            for encoded_record in data_block:
-                record = Record.from_bytes(data=encoded_record)
-                yield record
 
     def find_block_id(self, key: Record.Key) -> Optional[int]:
         for i, meta_block in enumerate(self.meta_blocks):

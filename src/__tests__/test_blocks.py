@@ -103,28 +103,6 @@ def test_decode_meta_block():
     assert decoded_block.offset == 100
 
 
-def test_iterate_on_data_block():
-    # GIVEN
-    block_builder = DataBlockBuilder(target_size=100)
-    block_builder.add(key="key1", value=b'value1')
-    block_builder.add(key="key2", value=b'value2')
-    block_builder.add(key="key3", value=b'value3')
-    block_builder.add(key="key4", value=b'value4')
-    block = block_builder.create_block()
-
-    # WHEN
-    iterated_items = list(item for item in block)
-
-    # THEN
-    expected_items = [
-        b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1',
-        b'\x04\x00\x00\x00key2\x06\x00\x00\x00value2',
-        b'\x04\x00\x00\x00key3\x06\x00\x00\x00value3',
-        b'\x04\x00\x00\x00key4\x06\x00\x00\x00value4',
-    ]
-    assert iterated_items == expected_items
-
-
 def test_get_record():
     # GIVEN
     block_builder = DataBlockBuilder(target_size=100)

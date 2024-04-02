@@ -3,6 +3,7 @@ import time
 from collections import deque
 from typing import Optional, Iterator
 
+from src.iterators import MemTableIterator
 from src.locks import ReadWriteLock, Mutex
 from src.memtable import MemTable
 from src.record import Record
@@ -130,7 +131,8 @@ class LsmStorage:
             # Flush it to SSTable
             path = self.compute_path()
             sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
-            for record in memtable_to_flush:
+            memtable_iterator = MemTableIterator(memtable=memtable_to_flush)
+            for record in memtable_iterator:
                 sstable_builder.add(key=record.key, value=record.value)
             sstable = sstable_builder.build(path=path)
 

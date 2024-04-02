@@ -41,18 +41,3 @@ def test_scan():
         Record(key="4", value="4".encode(encoding="utf-8"))
     ]
     assert scanned_records == expected_records
-
-
-def test_iterate():
-    # GIVEN
-    memtable = MemTable()
-    keys = ["1", "6", "9", "4"]
-    for key in keys:
-        memtable.put(key=key, value=key.encode(encoding="utf-8"))
-
-    # WHEN
-    records = [record for record in memtable]
-
-    # THEN
-    expected_records = [Record(key=key, value=key.encode(encoding="utf-8")) for key in sorted(keys)]
-    assert records == expected_records

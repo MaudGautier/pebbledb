@@ -1,9 +1,12 @@
-from typing import Iterator
+from typing import Iterator, TYPE_CHECKING
 
-from src.blocks import DataBlock
-from src.memtable import MemTable
 from src.record import Record
-from src.sstable import SSTable
+
+# TODO: Should be possible to remove this when finished decoupling iterators logic from DataBlocks
+if TYPE_CHECKING:
+    from src.blocks import DataBlock
+    from src.memtable import MemTable
+    from src.sstable import SSTable
 
 
 class BaseIterator(Iterator):
@@ -18,7 +21,7 @@ class BaseIterator(Iterator):
 
 
 class MemTableIterator(BaseIterator):
-    def __init__(self, memtable: MemTable):
+    def __init__(self, memtable: "MemTable"):
         super().__init__()
         self.generator = iter(memtable.map)
         self.current = None
@@ -36,7 +39,7 @@ class MemTableIterator(BaseIterator):
 
 
 class DataBlockIterator(BaseIterator):
-    def __init__(self, block: DataBlock):
+    def __init__(self, block: "DataBlock"):
         super().__init__()
         self._index = 0
         self.block = block
@@ -56,13 +59,13 @@ class DataBlockIterator(BaseIterator):
 
 
 class SSTableIterator(BaseIterator):
-    def __init__(self, sstable: SSTable):
+    def __init__(self, sstable: "SSTable"):
         super().__init__()
         self._index = 0
         self.sstable = sstable
         self.block_iterator = DataBlockIterator(block=self._get_first_data_block())
 
-    def _get_first_data_block(self) -> DataBlock:
+    def _get_first_data_block(self) -> "DataBlock":
         return self.sstable.read_data_block(block_id=0)
 
     def __iter__(self) -> "SSTableIterator":
