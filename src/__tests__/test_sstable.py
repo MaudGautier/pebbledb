@@ -1,3 +1,5 @@
+import pytest
+
 from src.blocks import DataBlock, MetaBlock
 from src.bloom_filter import BloomFilter
 from src.sstable import SSTableBuilder, SSTableEncoding
@@ -133,3 +135,41 @@ def test_get_key(sstable_four_blocks, records_for_sstable_four_blocks):
     assert sstable.get("a") is None
     assert sstable.get("iiii") is None
     assert sstable.get("zzz") is None
+
+
+@pytest.mark.parametrize(
+    ("start_key", "end_key"),
+    [
+        pytest.param(
+            "cc", "eee",
+            id="inside",
+        ),
+        pytest.param(
+            "a", "ccc",
+            id="overlap-below",
+        ),
+        pytest.param(
+            "a", "aa",
+            id="outside-below",
+        ),
+        pytest.param(
+            "dd", "zzzz",
+            id="overlap-above",
+        ),
+        pytest.param(
+            "ww", "zzzz",
+            id="outside-above",
+        ),
+    ],
+)
+def test_scan_sstable(start_key, end_key, sstable_four_blocks, records_for_sstable_four_blocks):
+    # GIVEN
+    sstable = sstable_four_blocks
+
+    # WHEN
+    # start_key, end_key = "cc", "eee"
+    scanned_records_inside = list(record for record in sstable.scan(lower=start_key, upper=end_key))
+
+    # THEN
+    assert scanned_records_inside == [record for record in records_for_sstable_four_blocks if
+                                      start_key <= record.key <= end_key]

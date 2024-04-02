@@ -3,6 +3,7 @@ from typing import Optional
 
 from src.blocks import DataBlockBuilder, DataBlock, MetaBlock
 from src.bloom_filter import BloomFilter
+from src.iterators import SSTableIterator
 from src.record import Record
 
 INT_i_SIZE = 4
@@ -137,6 +138,9 @@ class SSTable:
         record = block.get(key=key)
 
         return record.value if record is not None else None
+
+    def scan(self, lower: Record.Key, upper: Record.Key) -> SSTableIterator:
+        return SSTableIterator(sstable=self, start_key=lower, end_key=upper)
 
 
 class SSTableBuilder:
