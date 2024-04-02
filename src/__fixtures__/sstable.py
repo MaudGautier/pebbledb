@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from src.record import Record
 from src.sstable import SSTableBuilder
 
 TEST_FIXTURES = "./test_fixtures"
@@ -11,28 +12,36 @@ if not os.path.exists(TEST_FIXTURES):
 
 
 @pytest.fixture
-def sstable_four_blocks():
+def records_for_sstable_four_blocks():
+    return [
+        # Goes into Data Block 0
+        Record(key="aaa", value=b'some_long_value_for_aaa'),
+        Record(key="bbb", value=b'some_long_value_for_bbb'),
+        Record(key="ccc", value=b'some_long_value_for_ccc'),
+        Record(key="ddd", value=b'some_long_value_for_ddd'),
+        # Goes into Data Block 1
+        Record(key="eee", value=b'some_long_value_for_eee'),
+        Record(key="fff", value=b'some_long_value_for_fff'),
+        Record(key="ggg", value=b'some_long_value_for_ggg'),
+        Record(key="hhh", value=b'some_long_value_for_hhh'),
+        # Goes into Data Block 2
+        Record(key="iii", value=b'some_long_value_for_iii'),
+        Record(key="jjj", value=b'some_long_value_for_jjj'),
+        Record(key="kkk", value=b'some_long_value_for_kkk'),
+        Record(key="lll", value=b'some_long_value_for_lll'),
+        # Goes into Data Block 3
+        Record(key="mmm", value=b'some_long_value_for_mmm'),
+        Record(key="nnn", value=b'some_long_value_for_nnn'),
+        Record(key="ooo", value=b'some_long_value_for_ooo'),
+        Record(key="ppp", value=b'some_long_value_for_ppp')
+    ]
+
+
+@pytest.fixture
+def sstable_four_blocks(records_for_sstable_four_blocks):
     sstable_builder = SSTableBuilder(sstable_size=20000, block_size=150)
-    # Goes into Data Block 0
-    sstable_builder.add(key="aaa", value=b'some_long_value_for_aaa')
-    sstable_builder.add(key="bbb", value=b'some_long_value_for_bbb')
-    sstable_builder.add(key="ccc", value=b'some_long_value_for_ccc')
-    sstable_builder.add(key="ddd", value=b'some_long_value_for_ddd')
-    # Goes into Data Block 1
-    sstable_builder.add(key="eee", value=b'some_long_value_for_eee')
-    sstable_builder.add(key="fff", value=b'some_long_value_for_fff')
-    sstable_builder.add(key="ggg", value=b'some_long_value_for_ggg')
-    sstable_builder.add(key="hhh", value=b'some_long_value_for_hhh')
-    # Goes into Data Block 2
-    sstable_builder.add(key="iii", value=b'some_long_value_for_iii')
-    sstable_builder.add(key="jjj", value=b'some_long_value_for_jjj')
-    sstable_builder.add(key="kkk", value=b'some_long_value_for_kkk')
-    sstable_builder.add(key="lll", value=b'some_long_value_for_lll')
-    # Goes into Data Block 3
-    sstable_builder.add(key="mmm", value=b'some_long_value_for_mmm')
-    sstable_builder.add(key="nnn", value=b'some_long_value_for_nnn')
-    sstable_builder.add(key="ooo", value=b'some_long_value_for_ooo')
-    sstable_builder.add(key="ppp", value=b'some_long_value_for_ppp')
+    for record in records_for_sstable_four_blocks:
+        sstable_builder.add(key=record.key, value=record.value)
 
     sstable = sstable_builder.build(path=f"{TEST_FIXTURES}/sstable_four_blocks.sst")
 

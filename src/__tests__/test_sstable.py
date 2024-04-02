@@ -1,7 +1,7 @@
 from src.blocks import DataBlock, MetaBlock
 from src.bloom_filter import BloomFilter
 from src.sstable import SSTableBuilder, SSTableEncoding
-from src.__fixtures__.sstable import sstable_four_blocks
+from src.__fixtures__.sstable import sstable_four_blocks, records_for_sstable_four_blocks
 
 
 def test_add_record_to_current_block():
@@ -121,15 +121,15 @@ def test_read_data_block(sstable_four_blocks):
     assert data_block.offsets == [0, 34, 68, 102]
 
 
-def test_get_key(sstable_four_blocks):
+def test_get_key(sstable_four_blocks, records_for_sstable_four_blocks):
     # GIVEN
     sstable = sstable_four_blocks
 
     # WHEN/THEN
-    assert sstable.get("ddd") == b'some_long_value_for_ddd'
-    assert sstable.get("eee") == b'some_long_value_for_eee'
+    for record in records_for_sstable_four_blocks:
+        assert sstable.get(record.key) == record.value
+    # Missing records
     assert sstable.get("jj") is None
-    assert sstable.get("ooo") == b'some_long_value_for_ooo'
     assert sstable.get("a") is None
     assert sstable.get("iiii") is None
     assert sstable.get("zzz") is None
