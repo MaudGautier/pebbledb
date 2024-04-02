@@ -33,6 +33,24 @@ def test_iterate_on_empty_memtable_raises_stop_iteration():
         next(memtable_iterator)
 
 
+def test_iterate_on_memtable_with_boundaries():
+    # GIVEN
+    memtable = MemTable()
+    for key in ["1", "4", "6", "9"]:
+        memtable.put(key=key, value=key.encode(encoding="utf-8"))
+    memtable_iterator = MemTableIterator(memtable=memtable, start_key="0", end_key="5")
+
+    # WHEN
+    scanned_records = list(item for item in memtable_iterator)
+
+    # THEN
+    expected_records = [
+        Record(key="1", value="1".encode(encoding="utf-8")),
+        Record(key="4", value="4".encode(encoding="utf-8"))
+    ]
+    assert scanned_records == expected_records
+
+
 def test_iterate_on_data_block():
     # GIVEN
     block_builder = DataBlockBuilder(target_size=100)

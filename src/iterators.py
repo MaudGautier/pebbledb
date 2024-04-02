@@ -1,4 +1,4 @@
-from typing import Iterator, TYPE_CHECKING
+from typing import Iterator, TYPE_CHECKING, Optional
 
 from src.record import Record
 
@@ -21,10 +21,26 @@ class BaseIterator(Iterator):
 
 
 class MemTableIterator(BaseIterator):
-    def __init__(self, memtable: "MemTable"):
+    def __init__(self,
+                 memtable: "MemTable",
+                 start_key: Optional[Record.Key] = None,
+                 end_key: Optional[Record.Key] = None):
         super().__init__()
-        self.generator = iter(memtable.map)
+        self.generator = self._select_generator(memtable=memtable, start_key=start_key, end_key=end_key)
         self.current = None
+
+    @staticmethod
+    def _select_generator(
+            memtable: "MemTable",
+            start_key: Optional[Record.Key],
+            end_key: Optional[Record.Key]) -> Iterator[bytes]:
+        if start_key is None and end_key is None:
+            return iter(memtable.map)
+
+        if start_key is not None and end_key is not None:
+            return iter(memtable.map.scan(lower=start_key, upper=end_key))
+
+        raise ValueError(f"Only 'start_key' or 'end_key' was passed. The iterator cannot handle this case!")
 
     def __iter__(self) -> "MemTableIterator":
         return self
