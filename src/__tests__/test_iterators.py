@@ -197,3 +197,42 @@ def test_iterate_on_finished_sstable_raises_stop_iteration(sstable_four_blocks):
     # Next iteration should raise an error
     with pytest.raises(StopIteration):
         next(sstable_iterator)
+
+
+def test_iterate_on_sstable_with_boundaries_inside(sstable_four_blocks, records_for_sstable_four_blocks):
+    # GIVEN
+    start_key, end_key = "cc", "eeee"
+    sstable_iterator = SSTableIterator(sstable=sstable_four_blocks, start_key=start_key, end_key=end_key)
+
+    # WHEN
+    iterated_records = list(item for item in sstable_iterator)
+
+    # THEN
+    expected_records = [record for record in records_for_sstable_four_blocks if start_key <= record.key <= end_key]
+    assert iterated_records == expected_records
+
+
+def test_iterate_on_sstable_with_boundaries_before(sstable_four_blocks, records_for_sstable_four_blocks):
+    # GIVEN
+    start_key, end_key = "a", "aa"
+    sstable_iterator = SSTableIterator(sstable=sstable_four_blocks, start_key=start_key, end_key=end_key)
+
+    # WHEN
+    iterated_records = list(item for item in sstable_iterator)
+
+    # THEN
+    expected_records = []
+    assert iterated_records == expected_records
+
+
+def test_iterate_on_sstable_with_boundaries_after(sstable_four_blocks, records_for_sstable_four_blocks):
+    # GIVEN
+    start_key, end_key = "www", "zzz"
+    sstable_iterator = SSTableIterator(sstable=sstable_four_blocks, start_key=start_key, end_key=end_key)
+
+    # WHEN
+    iterated_records = list(item for item in sstable_iterator)
+
+    # THEN
+    expected_records = []
+    assert iterated_records == expected_records
