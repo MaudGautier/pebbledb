@@ -55,10 +55,39 @@ class MemTableIterator(BaseIterator):
 
 
 class DataBlockIterator(BaseIterator):
-    def __init__(self, block: "DataBlock"):
+    def __init__(self,
+                 block: "DataBlock",
+                 start_key: Optional[Record.Key] = None,
+                 end_key: Optional[Record.Key] = None,
+                 ):
         super().__init__()
-        self._index = 0
         self.block = block
+        self._index = self._select_index(key=start_key)
+        self._end_key = end_key
+
+    def _select_index(self, key: Optional[Record.Key] = None) -> int:
+        """Selects the first key that is >= key"""
+        if key is None:
+            return 0
+
+        offsets = self.block.offsets + [len(self.block.data)]
+
+        low, high = 0, len(self.block.offsets)
+        while low < high:
+            mid = int(low + (high - low) / 2)
+            offset_start = offsets[mid]
+            offset_end = offsets[mid + 1]
+            encoded_record = self.block.data[offset_start:offset_end]
+            record = Record.from_bytes(data=encoded_record)
+            if record.key == key:
+                return mid
+            if record.key < key:
+                low = mid + 1
+            if record.key > key:
+                high = mid
+
+        # TODO mettre tout ca dans une autre fonction et StopIteration si plus que le truc (ça devrait être bon avec ce que j'ai - ajouter un test)
+        return low
 
     def __iter__(self) -> "DataBlockIterator":
         return self
@@ -71,7 +100,11 @@ class DataBlockIterator(BaseIterator):
             self.block.data)
         self._index += 1
         encoded_record = self.block.data[offset:next_offset]
-        return Record.from_bytes(data=encoded_record)
+        record = Record.from_bytes(data=encoded_record)
+        if self._end_key and record.key > self._end_key:
+            raise StopIteration
+        return record
+
 
 
 class SSTableIterator(BaseIterator):
