@@ -6,7 +6,9 @@ from src.__fixtures__.store import (
     store_with_multiple_immutable_memtables,
     store_with_multiple_immutable_memtables_records,
     store_with_duplicated_keys,
-    store_with_duplicated_keys_records, TEST_DIRECTORY
+    store_with_duplicated_keys_records,
+    store_with_one_sstable,
+    TEST_DIRECTORY
 )
 from src.record import Record
 from src.sstable import SSTable, SSTableFile
@@ -195,3 +197,16 @@ def test_dont_look_in_bloom_filter_if_key_absent():
 
         # THEN
         mocked_sstable_get.assert_not_called()
+
+
+def test_scan_on_both_memtables_and_sstables(store_with_one_sstable, store_with_multiple_immutable_memtables_records):
+    # GIVEN
+    store = store_with_one_sstable
+
+    # WHEN
+    scanned_records = list(record for record in store.scan(lower="key2", upper="key5"))
+
+    # THEN
+    expected_records = [Record(key=key, value=value) for key, value in store_with_multiple_immutable_memtables_records
+                        if "key2" <= key <= "key5"]
+    assert scanned_records == expected_records

@@ -106,7 +106,6 @@ class DataBlockIterator(BaseIterator):
         return record
 
 
-
 class SSTableIterator(BaseIterator):
     def __init__(self,
                  sstable: "SSTable",

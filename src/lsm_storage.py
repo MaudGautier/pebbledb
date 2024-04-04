@@ -117,8 +117,9 @@ class LsmStorage:
         active_memtable_iterator = self.memtable.scan(lower=lower, upper=upper)
         immutable_memtables_iterators = [memtable.scan(lower=lower, upper=upper) for memtable in
                                          self.immutable_memtables]
+        sstables_iterators = [sstable.scan(lower=lower, upper=upper) for sstable in self.ss_tables]
 
-        merged = merge_iterators([active_memtable_iterator] + immutable_memtables_iterators)
+        merged = merge_iterators([active_memtable_iterator] + immutable_memtables_iterators + sstables_iterators)
         filtered = filter_duplicate_keys(merged)
         yield from filtered
 
