@@ -127,9 +127,10 @@ class SSTable:
 
     # TODO: Probably return the record and move the decoding up in the LSM Storage part
     def get(self, key: Record.Key) -> Optional[Record.Value]:
-        # logique:
-        # 1. trouve le bon block (lire meta blocks => lequel) => offset du datablock
-        # 2. dans block: trouve la clé: binary search sur les clés offsets
+        """To look up a key in a SSTable, we need to:
+        1. Find the block that may contain it (by parsing meta blocks first and last keys)
+        2. Read the block and search for the key within the block.
+        """
         block_id = self.find_block_id(key=key)
         if block_id is None:
             return None
