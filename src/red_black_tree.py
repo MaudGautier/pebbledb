@@ -53,7 +53,7 @@ class Node:
 
         return parent.parent
 
-    def in_order_traversal(self, lower: Optional[Key] = None, upper: Optional[Key] = None):
+    def in_order_traversal(self, lower: Optional[Key] = None, upper: Optional[Key] = None) -> Iterator["Node"]:
         if self is RedBlackTree.NIL_LEAF:
             return
 
