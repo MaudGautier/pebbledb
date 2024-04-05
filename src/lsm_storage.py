@@ -24,7 +24,7 @@ class LsmStorage:
         self._block_size = block_size
         self.ss_tables = []
         self.directory = directory
-        self.create_directory()
+        self._create_directory()
 
     @staticmethod
     def _create_memtable():
@@ -122,14 +122,14 @@ class LsmStorage:
             iterators=[active_memtable_iterator] + immutable_memtables_iterators + sstables_iterators)
         yield from iterator
 
-    def flush_next_immutable_memtable(self) -> None:
+    def _flush_next_immutable_memtable(self) -> None:
         with self._freeze_lock:
             # Read the oldest memtable
             with self._state_lock.read():
                 memtable_to_flush = self.immutable_memtables[-1]
 
             # Flush it to SSTable
-            path = self.compute_path()
+            path = self._compute_path()
             sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
             memtable_iterator = MemTableIterator(memtable=memtable_to_flush)
             for record in memtable_iterator:
@@ -141,10 +141,10 @@ class LsmStorage:
                 self.immutable_memtables.pop()
                 self.ss_tables.append(sstable)
 
-    def compute_path(self):
+    def _compute_path(self):
         timestamp_in_us = int(time.time() * 1_000_000)
         return f"{self.directory}/{timestamp_in_us}.sst"
 
-    def create_directory(self):
+    def _create_directory(self):
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
