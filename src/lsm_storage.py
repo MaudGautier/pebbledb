@@ -3,12 +3,11 @@ import time
 from collections import deque
 from typing import Optional, Iterator
 
-from src.iterators import MemTableIterator
+from src.iterators import MemTableIterator, MergingIterator
 from src.locks import ReadWriteLock, Mutex
 from src.memtable import MemTable
 from src.record import Record
 from src.sstable import SSTableBuilder
-from src.utils import merge_iterators, filter_duplicate_keys
 
 
 class LsmStorage:
@@ -119,9 +118,9 @@ class LsmStorage:
                                          self.immutable_memtables]
         sstables_iterators = [sstable.scan(lower=lower, upper=upper) for sstable in self.ss_tables]
 
-        merged = merge_iterators([active_memtable_iterator] + immutable_memtables_iterators + sstables_iterators)
-        filtered = filter_duplicate_keys(merged)
-        yield from filtered
+        iterator = MergingIterator(
+            iterators=[active_memtable_iterator] + immutable_memtables_iterators + sstables_iterators)
+        yield from iterator
 
     def flush_next_immutable_memtable(self) -> None:
         with self._freeze_lock:

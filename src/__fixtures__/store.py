@@ -8,10 +8,13 @@ TEST_DIRECTORY = "./test_store"
 @pytest.fixture
 def store_with_multiple_immutable_memtables_records():
     return [
+        # Table 1
         ("key1", b'value1'),
         ("key2", b'value2'),
+        # Table 2
         ("key3", b'value3'),
         ("key4", b'value4'),
+        # Table 3
         ("key5", b'value5'),
         ("key6", b'value6'),
     ]

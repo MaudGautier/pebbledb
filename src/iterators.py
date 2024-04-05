@@ -1,3 +1,4 @@
+from heapq import heappush, heappop
 from typing import Iterator, TYPE_CHECKING, Optional
 
 from src.record import Record
@@ -138,3 +139,51 @@ class SSTableIterator(BaseIterator):
                                                     start_key=self.start_key,
                                                     end_key=self.end_key)
             return next(self)
+
+
+class MergingIterator(BaseIterator):
+    def __init__(self, iterators: list[BaseIterator]):
+        super().__init__()
+        self.iterators = iterators
+        self.merged_and_filtered_iterator = self.filter_duplicate_keys(self.merge_iterators())
+
+    def __iter__(self) -> "MergingIterator":
+        return self
+
+    def __next__(self):
+        return next(self.merged_and_filtered_iterator)
+        # merged_iterator = self.merge_iterators()
+        # return self.filter_duplicate_keys(merged_iterator)
+
+    def merge_iterators(self) -> BaseIterator:
+        no_item = object()
+        heap = []
+
+        def get_next(iterator: BaseIterator):
+            try:
+                return next(iterator)
+            except StopIteration:
+                return no_item
+
+        def try_push_iterator(iterator_index: int):
+            next_item = get_next(iterator=self.iterators[iterator_index])
+            if next_item is no_item:
+                return
+            heappush(heap, (next_item, iterator_index))
+
+        for i in range(len(self.iterators)):
+            try_push_iterator(i)
+
+        while len(heap):
+            value, i = heappop(heap)
+            yield value
+            try_push_iterator(i)
+
+    @staticmethod
+    def filter_duplicate_keys(iterator: Iterator[Record]) -> Iterator[Record]:
+        previous_item = None
+        for item in iterator:
+            if previous_item is not None and item.is_duplicate(previous_item):
+                continue
+            yield item
+            previous_item = item

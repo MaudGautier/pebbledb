@@ -1,7 +1,7 @@
 import pytest
 
 from src.blocks import DataBlock, DataBlockBuilder
-from src.iterators import DataBlockIterator, MemTableIterator, SSTableIterator
+from src.iterators import DataBlockIterator, MemTableIterator, SSTableIterator, MergingIterator, BaseIterator
 from src.memtable import MemTable
 from src.record import Record
 from src.__fixtures__.sstable import sstable_four_blocks, records_for_sstable_four_blocks
@@ -236,3 +236,91 @@ def test_iterate_on_sstable_with_boundaries_after(sstable_four_blocks, records_f
     # THEN
     expected_records = []
     assert iterated_records == expected_records
+
+
+class MockBaseIterator(BaseIterator):
+    def __init__(self, items):
+        super().__init__()
+        self.items = items
+        self.index = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.index < len(self.items):
+            item = self.items[self.index]
+            self.index += 1
+            return item
+        else:
+            raise StopIteration
+
+
+class MockRecord:
+    def __init__(self, value):
+        self.value = value
+
+    def __lt__(self, other):
+        return self.value < other.value
+
+    def is_duplicate(self, other):
+        return self.value == other.value
+
+
+def test_merging_iterator_without_identical_values():
+    # GIVEN
+    iterator1 = MockBaseIterator([MockRecord(0), MockRecord(2), MockRecord(4)])  # Even numbers
+    iterator2 = MockBaseIterator([MockRecord(1), MockRecord(3), MockRecord(5)])  # Odd numbers
+    iterators = [iterator1, iterator2]
+
+    # WHEN
+    merging_iterator = MergingIterator(iterators)
+    results = list(item for item in merging_iterator.merge_iterators())
+
+    # THEN
+    expected_values = [0, 1, 2, 3, 4, 5]
+    assert [item.value for item in results] == expected_values
+
+
+def test_merge_iterators_with_identical_values():
+    """If two iterators have the same key, it should select the value from the first iterator and ignore others"""
+    # GIVEN
+    iterator1_items = [
+        Record(key="A", value="A1"),
+        Record(key="B", value="B1"),
+        Record(key="D", value="D1")
+    ]
+    iterator2_items = [
+        Record(key="A", value="A2"),
+        Record(key="C", value="C2"),
+        Record(key="D", value="D2"),
+        Record(key="E", value="E2"),
+    ]
+    iterator1 = MockBaseIterator(items=iterator1_items)
+    iterator2 = MockBaseIterator(items=iterator2_items)
+
+    # WHEN
+    merging_iterator = MergingIterator(iterators=[iterator1, iterator2])
+
+    # THEN
+    expected_items = [
+        Record(key="A", value="A1"),
+        Record(key="B", value="B1"),
+        Record(key="C", value="C2"),
+        Record(key="D", value="D1"),
+        Record(key="E", value="E2")
+    ]
+    assert list(merging_iterator) == expected_items
+
+
+def test_merge_iterators_when_one_empty():
+    # GIVEN
+    iterator_with_one_item = MockBaseIterator(items=[i for i in range(1)])
+    empty_iterator = MockBaseIterator(items=[i for i in range(0) if i % 2 == 1])
+
+    # WHEN
+    merged_iterator = MergingIterator(iterators=[empty_iterator, iterator_with_one_item])
+
+    # THEN
+    expected_values = [0]
+    assert list(merged_iterator) == expected_values
