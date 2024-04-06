@@ -15,6 +15,7 @@ from src.__fixtures__.store import (
     records_for_store_with_multiple_l0_sstables,
     TEST_DIRECTORY
 )
+from src.memtable import MemTable
 from src.record import Record
 from src.sstable import SSTable, SSTableFile
 
@@ -189,6 +190,52 @@ def test_flush_waits_for_freeze():
     # Assert that freeze ended before flush started
     assert times['freeze_end'] < times['flush_start']
 
+
+def test_freeze_waits_for_flush():
+    # GIVEN
+    storage = LsmStorage(directory=TEST_DIRECTORY)
+    storage.memtable.approximate_size = storage._max_sstable_size + 1
+    memtable_to_flush = MemTable()
+    memtable_to_flush.put("key", b'value')
+    storage.immutable_memtables.append(memtable_to_flush)
+
+    # Original methods with timing
+    times = {}
+
+    original_freeze_memtable = storage._freeze_memtable
+
+    def _freeze_memtable_with_timing():
+        times['freeze_memtable_start'] = time.time()
+        original_freeze_memtable()  # Ensure this calls the real implementation
+        times['freeze_memtable_end'] = time.time()
+
+    def flush_next_immutable_memtable_with_timing():
+        times['flush_start'] = time.time()
+        storage.flush_next_immutable_memtable()
+        times['flush_end'] = time.time()
+
+    def _try_freeze_with_timing():
+        times['freeze_start'] = time.time()
+        storage._try_freeze()
+        times['freeze_end'] = time.time()
+
+    # Replace or wrap the original _freeze_memtable method with the timing version
+    storage._freeze_memtable = _freeze_memtable_with_timing
+
+    # WHEN
+    # Start threads
+    flush_thread = threading.Thread(target=flush_next_immutable_memtable_with_timing)
+    freeze_thread = threading.Thread(target=_try_freeze_with_timing)
+
+    flush_thread.start()
+    freeze_thread.start()
+
+    flush_thread.join()
+    freeze_thread.join()
+
+    # THEN
+    # Assert that flush ended before freeze memtable starts
+    assert times['flush_end'] < times['freeze_memtable_start']
 
 
 def test_flush_memtables_prepends_sstables_in_l0_level(store_with_multiple_immutable_memtables,
