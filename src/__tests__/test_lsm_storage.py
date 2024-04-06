@@ -231,3 +231,19 @@ def test_compact(store_with_multiple_l0_sstables, records_for_store_with_multipl
 
     # THEN
     assert len(new_sstables) == 2
+
+
+def test_trigger_compaction(store_with_multiple_l0_sstables, records_for_store_with_multiple_l0_sstables):
+    # GIVEN
+    store = store_with_multiple_l0_sstables
+
+    # WHEN
+    store.trigger_compaction()
+
+    # THEN
+    assert len(store.ss_tables_levels) == 1
+    assert len(store.ss_tables_levels[0]) == 2
+    assert store.ss_tables_levels[0][0].first_key == "key1"
+    assert store.ss_tables_levels[0][0].last_key == "key3"
+    assert store.ss_tables_levels[0][1].first_key == "key4"
+    assert store.ss_tables_levels[0][1].last_key == "key5"

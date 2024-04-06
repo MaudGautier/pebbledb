@@ -23,6 +23,7 @@ class LsmStorage:
         self._max_sstable_size = max_sstable_size
         self._block_size = block_size
         self.ss_tables = []
+        self.ss_tables_levels = []
         self.directory = directory
         self._create_directory()
 
@@ -162,3 +163,13 @@ class LsmStorage:
         new_ss_tables.append(sstable)
 
         return new_ss_tables
+
+    def trigger_compaction(self):
+        # For now: compacts all L0 sstables into L1 sstables
+        l0_ss_table_iterator = MergingIterator(iterators=[
+            SSTableIterator(sstable=sstable) for sstable in self.ss_tables
+        ])
+
+        new_ss_tables = self._compact(sstables_iterator=l0_ss_table_iterator)
+        self.ss_tables_levels.insert(0, new_ss_tables)
+        # TODO: update this to deal with more levels (when the time comes)
