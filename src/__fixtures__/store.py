@@ -61,7 +61,7 @@ def store_with_one_sstable(store_with_multiple_immutable_memtables_records):
     store = LsmStorage(max_sstable_size=30, block_size=20, directory=TEST_DIRECTORY)
     for record in store_with_multiple_immutable_memtables_records:
         store.put(key=record[0], value=record[1])
-    store._flush_next_immutable_memtable()
+    store.flush_next_immutable_memtable()
 
     assert len(store.immutable_memtables) == 2
     assert len(store.ss_tables) == 1
@@ -94,7 +94,7 @@ def store_with_multiple_l0_sstables(records_for_store_with_multiple_l0_sstables)
         store.put(key=record[0], value=record[1])
     assert len(store.immutable_memtables) == 4
     for i in range(len(store.immutable_memtables)):
-        store._flush_next_immutable_memtable()
+        store.flush_next_immutable_memtable()
 
     assert len(store.immutable_memtables) == 0
     assert len(store.ss_tables) == 4

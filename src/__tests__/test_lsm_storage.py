@@ -144,7 +144,7 @@ def test_flush_next_immutable_memtable(store_with_multiple_immutable_memtables):
     nb_memtables = len(store.immutable_memtables)
 
     # WHEN
-    store._flush_next_immutable_memtable()
+    store.flush_next_immutable_memtable()
 
     # THEN
     assert len(store.ss_tables) == 1  # One SSTable has been added
@@ -163,8 +163,8 @@ def test_flush_memtables_prepends_sstables_in_l0_level(store_with_multiple_immut
     nb_memtables = len(store.immutable_memtables)
 
     # WHEN
-    store._flush_next_immutable_memtable()
-    store._flush_next_immutable_memtable()
+    store.flush_next_immutable_memtable()
+    store.flush_next_immutable_memtable()
 
     # THEN
     assert len(store.ss_tables) == 2  # Two SSTables have been added
@@ -178,7 +178,7 @@ def test_flush_memtables_prepends_sstables_in_l0_level(store_with_multiple_immut
 def test_get_value_from_store(store_with_multiple_immutable_memtables):
     # GIVEN
     store = store_with_multiple_immutable_memtables
-    store._flush_next_immutable_memtable()
+    store.flush_next_immutable_memtable()
 
     # WHEN/THEN
     # From SSTable

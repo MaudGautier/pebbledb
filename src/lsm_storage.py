@@ -123,7 +123,7 @@ class LsmStorage:
             iterators=[active_memtable_iterator] + immutable_memtables_iterators + sstables_iterators)
         yield from iterator
 
-    def _flush_next_immutable_memtable(self) -> None:
+    def flush_next_immutable_memtable(self) -> None:
         with self._state_lock:
             # Read the oldest memtable
             with self._read_write_lock.read():
