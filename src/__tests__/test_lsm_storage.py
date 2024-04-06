@@ -1,6 +1,7 @@
 from unittest import mock
 
 from src.bloom_filter import BloomFilter
+from src.iterators import MergingIterator, SSTableIterator
 from src.lsm_storage import LsmStorage
 from src.__fixtures__.store import (
     store_with_multiple_immutable_memtables,
@@ -8,6 +9,8 @@ from src.__fixtures__.store import (
     store_with_duplicated_keys,
     store_with_duplicated_keys_records,
     store_with_one_sstable,
+    store_with_multiple_l0_sstables,
+    records_for_store_with_multiple_l0_sstables,
     TEST_DIRECTORY
 )
 from src.record import Record
@@ -210,3 +213,18 @@ def test_scan_on_both_memtables_and_sstables(store_with_one_sstable, store_with_
     expected_records = [Record(key=key, value=value) for key, value in store_with_multiple_immutable_memtables_records
                         if "key2" <= key <= "key5"]
     assert scanned_records == expected_records
+
+
+def test_compact(store_with_multiple_l0_sstables, records_for_store_with_multiple_l0_sstables):
+    # GIVEN
+    store = store_with_multiple_l0_sstables
+
+    l0_ss_table_iterator = MergingIterator(iterators=[
+        SSTableIterator(sstable=sstable) for sstable in store.ss_tables
+    ])
+
+    # WHEN
+    new_sstables = store._compact(sstables_iterator=l0_ss_table_iterator)
+
+    # THEN
+    assert len(new_sstables) == 2

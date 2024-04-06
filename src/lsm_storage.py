@@ -3,11 +3,11 @@ import time
 from collections import deque
 from typing import Optional, Iterator
 
-from src.iterators import MemTableIterator, MergingIterator
+from src.iterators import MemTableIterator, MergingIterator, SSTableIterator
 from src.locks import ReadWriteLock, Mutex
 from src.memtable import MemTable
 from src.record import Record
-from src.sstable import SSTableBuilder
+from src.sstable import SSTableBuilder, SSTable
 
 
 class LsmStorage:
@@ -148,3 +148,17 @@ class LsmStorage:
     def _create_directory(self):
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
+
+    def _compact(self, sstables_iterator: MergingIterator) -> list[SSTable]:
+        new_ss_tables = []
+        sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
+        for record in sstables_iterator:
+            sstable_builder.add(key=record.key, value=record.value)
+            if sstable_builder.current_buffer_position >= self._max_sstable_size:
+                sstable = sstable_builder.build(path=self._compute_path())
+                new_ss_tables.append(sstable)
+                sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
+        sstable = sstable_builder.build(path=self._compute_path())
+        new_ss_tables.append(sstable)
+
+        return new_ss_tables
