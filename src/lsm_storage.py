@@ -166,11 +166,17 @@ class LsmStorage:
 
     def trigger_compaction(self):
         # For now: compacts all L0 sstables into L1 sstables
-        l0_ss_table_iterator = MergingIterator(iterators=[
-            SSTableIterator(sstable=sstable) for sstable in self.ss_tables
-        ])
+        with self._read_write_lock.read():
+            sstables_to_compact = [sstable for sstable in self.ss_tables]
+            l0_ss_table_iterator = MergingIterator(iterators=[
+                SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
+            ])
 
         new_ss_tables = self._compact(sstables_iterator=l0_ss_table_iterator)
-        self.ss_tables_levels.insert(0, new_ss_tables)
-        self.ss_tables = deque()
-        # TODO: update this to deal with more levels (when the time comes)
+
+        with self._state_lock:
+            with self._read_write_lock.write():
+                self.ss_tables_levels.insert(0, new_ss_tables)
+                for sstable in sstables_to_compact:
+                    self.ss_tables.remove(sstable)
+                # TODO: update this to deal with more levels (when the time comes)

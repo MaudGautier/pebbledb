@@ -1,3 +1,5 @@
+import threading
+import time
 from unittest import mock
 
 from src.bloom_filter import BloomFilter
@@ -153,7 +155,40 @@ def test_flush_next_immutable_memtable(store_with_multiple_immutable_memtables):
     # TODO: when iterator on sstable done, check that we have both key1 and key2 in there (or new test)
 
 
-# TODO: add test to ensure that no freezing while flushing
+def test_flush_waits_for_freeze():
+    # GIVEN
+    storage = LsmStorage(directory=TEST_DIRECTORY)
+    storage.put("key", b'value')
+    storage.memtable.approximate_size = storage._max_sstable_size + 1
+
+    # Original methods with timing
+    times = {}
+
+    def _try_freeze_with_timing():
+        times['freeze_start'] = time.time()
+        storage._try_freeze()
+        times['freeze_end'] = time.time()
+
+    def flush_next_immutable_memtable_with_timing():
+        times['flush_start'] = time.time()
+        storage.flush_next_immutable_memtable()
+        times['flush_end'] = time.time()
+
+    # WHEN
+    # Start threads
+    freeze_thread = threading.Thread(target=_try_freeze_with_timing)
+    flush_thread = threading.Thread(target=flush_next_immutable_memtable_with_timing)
+
+    freeze_thread.start()
+    flush_thread.start()
+
+    freeze_thread.join()
+    flush_thread.join()
+
+    # THEN
+    # Assert that freeze ended before flush started
+    assert times['freeze_end'] < times['flush_start']
+
 
 
 def test_flush_memtables_prepends_sstables_in_l0_level(store_with_multiple_immutable_memtables,
