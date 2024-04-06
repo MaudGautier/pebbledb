@@ -156,6 +156,25 @@ def test_flush_next_immutable_memtable(store_with_multiple_immutable_memtables):
 # TODO: add test to ensure that no freezing while flushing
 
 
+def test_flush_memtables_prepends_sstables_in_l0_level(store_with_multiple_immutable_memtables,
+                                                       store_with_multiple_immutable_memtables_records):
+    # GIVEN
+    store = store_with_multiple_immutable_memtables
+    nb_memtables = len(store.immutable_memtables)
+
+    # WHEN
+    store._flush_next_immutable_memtable()
+    store._flush_next_immutable_memtable()
+
+    # THEN
+    assert len(store.ss_tables) == 2  # Two SSTables have been added
+    assert len(store.immutable_memtables) == nb_memtables - 2  # Two memtables have been removed
+    assert store.ss_tables[-1].first_key == store_with_multiple_immutable_memtables_records[0][0]
+    assert store.ss_tables[-1].last_key == store_with_multiple_immutable_memtables_records[1][0]
+    assert store.ss_tables[-2].first_key == store_with_multiple_immutable_memtables_records[2][0]
+    assert store.ss_tables[-2].last_key == store_with_multiple_immutable_memtables_records[3][0]
+
+
 def test_get_value_from_store(store_with_multiple_immutable_memtables):
     # GIVEN
     store = store_with_multiple_immutable_memtables

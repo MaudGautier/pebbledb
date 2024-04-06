@@ -22,7 +22,7 @@ class LsmStorage:
         self._freeze_lock = Mutex()
         self._max_sstable_size = max_sstable_size
         self._block_size = block_size
-        self.ss_tables = []
+        self.ss_tables: deque[SSTable] = deque()
         self.ss_tables_levels = []
         self.directory = directory
         self._create_directory()
@@ -140,7 +140,7 @@ class LsmStorage:
             # Update state to remove oldest memtable and add new SSTable
             with self._state_lock.write():
                 self.immutable_memtables.pop()
-                self.ss_tables.append(sstable)
+                self.ss_tables.insert(0, sstable)
 
     def _compute_path(self):
         timestamp_in_us = int(time.time() * 1_000_000)
