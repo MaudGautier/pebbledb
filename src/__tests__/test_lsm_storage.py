@@ -181,7 +181,10 @@ def test_dont_look_in_bloom_filter_if_key_absent():
     sstable = SSTable(meta_blocks=[],
                       meta_block_offset=0,
                       bloom_filter=bloom_filter,
-                      file=SSTableFile(path=f"{TEST_DIRECTORY}/empty.sst", data=b''))
+                      file=SSTableFile(path=f"{TEST_DIRECTORY}/empty.sst", data=b''),
+                      first_key="foo",
+                      last_key="bar"
+                      )
     store = LsmStorage()
     store.ss_tables.append(sstable)
 

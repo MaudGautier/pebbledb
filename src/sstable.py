@@ -95,11 +95,16 @@ class SSTable:
                  meta_blocks: list[MetaBlock],
                  meta_block_offset: int,
                  file: SSTableFile,
-                 bloom_filter: BloomFilter):
+                 bloom_filter: BloomFilter,
+                 first_key: Record.Key,
+                 last_key: Record.Key
+                 ):
         self.file = file
         self.meta_blocks = meta_blocks
         self.meta_block_offset = meta_block_offset
         self.bloom_filter = bloom_filter
+        self.first_key = first_key
+        self.last_key = last_key
 
     def find_block_id(self, key: Record.Key) -> Optional[int]:
         for i, meta_block in enumerate(self.meta_blocks):
@@ -220,5 +225,7 @@ class SSTableBuilder:
             meta_blocks=self.meta_blocks,
             file=file,
             meta_block_offset=self.current_buffer_position,
-            bloom_filter=bloom_filter
+            bloom_filter=bloom_filter,
+            first_key=self.keys[0],
+            last_key=self.keys[-1]
         )
