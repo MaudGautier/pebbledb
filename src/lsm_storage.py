@@ -172,4 +172,5 @@ class LsmStorage:
 
         new_ss_tables = self._compact(sstables_iterator=l0_ss_table_iterator)
         self.ss_tables_levels.insert(0, new_ss_tables)
+        self.ss_tables = deque()
         # TODO: update this to deal with more levels (when the time comes)

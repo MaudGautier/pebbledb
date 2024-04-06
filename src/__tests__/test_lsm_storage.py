@@ -266,3 +266,4 @@ def test_trigger_compaction(store_with_multiple_l0_sstables, records_for_store_w
     assert store.ss_tables_levels[0][0].last_key == "key3"
     assert store.ss_tables_levels[0][1].first_key == "key4"
     assert store.ss_tables_levels[0][1].last_key == "key5"
+    assert len(store.ss_tables) == 0
