@@ -239,47 +239,36 @@ def test_iterate_on_sstable_with_boundaries_after(sstable_four_blocks, records_f
 
 
 class MockBaseIterator(BaseIterator):
-    def __init__(self, items):
+    def __init__(self, records: list[Record]):
         super().__init__()
-        self.items = items
+        self.records = records
         self.index = 0
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        if self.index < len(self.items):
-            item = self.items[self.index]
+        if self.index < len(self.records):
+            item = self.records[self.index]
             self.index += 1
             return item
         else:
             raise StopIteration
 
 
-class MockRecord:
-    def __init__(self, value):
-        self.value = value
-
-    def __lt__(self, other):
-        return self.value < other.value
-
-    def is_duplicate(self, other):
-        return self.value == other.value
-
-
 def test_merging_iterator_without_identical_values():
     # GIVEN
-    iterator1 = MockBaseIterator([MockRecord(0), MockRecord(2), MockRecord(4)])  # Even numbers
-    iterator2 = MockBaseIterator([MockRecord(1), MockRecord(3), MockRecord(5)])  # Odd numbers
+    iterator1 = MockBaseIterator([Record("0", b'0'), Record("2", b'2'), Record("4", b'4')])  # Even numbers
+    iterator2 = MockBaseIterator([Record("1", b'1'), Record("3", b'3'), Record("5", b'5')])  # Odd numbers
     iterators = [iterator1, iterator2]
 
     # WHEN
     merging_iterator = MergingIterator(iterators)
-    results = list(item for item in merging_iterator.merge_iterators())
+    results = list(merging_iterator.merge_iterators())
 
     # THEN
-    expected_values = [0, 1, 2, 3, 4, 5]
-    assert [item.value for item in results] == expected_values
+    expected_values = [Record(key, key.encode()) for key in ["0", "1", "2", "3", "4", "5"]]
+    assert [item for item in results] == expected_values
 
 
 def test_merge_iterators_with_identical_values():
@@ -296,8 +285,8 @@ def test_merge_iterators_with_identical_values():
         Record(key="D", value="D2"),
         Record(key="E", value="E2"),
     ]
-    iterator1 = MockBaseIterator(items=iterator1_items)
-    iterator2 = MockBaseIterator(items=iterator2_items)
+    iterator1 = MockBaseIterator(records=iterator1_items)
+    iterator2 = MockBaseIterator(records=iterator2_items)
 
     # WHEN
     merging_iterator = MergingIterator(iterators=[iterator1, iterator2])
@@ -315,12 +304,12 @@ def test_merge_iterators_with_identical_values():
 
 def test_merge_iterators_when_one_empty():
     # GIVEN
-    iterator_with_one_item = MockBaseIterator(items=[i for i in range(1)])
-    empty_iterator = MockBaseIterator(items=[i for i in range(0) if i % 2 == 1])
+    iterator_with_one_item = MockBaseIterator(records=[Record("0", b'0')])
+    empty_iterator = MockBaseIterator(records=[])
 
     # WHEN
     merged_iterator = MergingIterator(iterators=[empty_iterator, iterator_with_one_item])
 
     # THEN
-    expected_values = [0]
+    expected_values = [Record("0", b'0')]
     assert list(merged_iterator) == expected_values

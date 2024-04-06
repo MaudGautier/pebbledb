@@ -152,8 +152,6 @@ class MergingIterator(BaseIterator):
 
     def __next__(self):
         return next(self.merged_and_filtered_iterator)
-        # merged_iterator = self.merge_iterators()
-        # return self.filter_duplicate_keys(merged_iterator)
 
     def merge_iterators(self) -> BaseIterator:
         no_item = object()
@@ -165,17 +163,20 @@ class MergingIterator(BaseIterator):
             except StopIteration:
                 return no_item
 
+        def heap_key(record: Record, sequence_number: int):
+            return record.key, sequence_number
+
         def try_push_iterator(iterator_index: int):
             next_item = get_next(iterator=self.iterators[iterator_index])
             if next_item is no_item:
                 return
-            heappush(heap, (next_item, iterator_index))
+            heappush(heap, (heap_key(next_item, iterator_index), next_item))
 
         for i in range(len(self.iterators)):
             try_push_iterator(i)
 
         while len(heap):
-            value, i = heappop(heap)
+            (_, i), value = heappop(heap)
             yield value
             try_push_iterator(i)
 
