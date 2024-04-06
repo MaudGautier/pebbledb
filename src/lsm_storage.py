@@ -18,8 +18,8 @@ class LsmStorage:
         self.memtable = self._create_memtable()
         # Immutable memtables are stored in a linked list because they will always be parsed from most recent to oldest.
         self.immutable_memtables: deque[MemTable] = deque()
-        self._state_lock = ReadWriteLock()
-        self._freeze_lock = Mutex()
+        self._read_write_lock = ReadWriteLock()
+        self._state_lock = Mutex()
         self._max_sstable_size = max_sstable_size
         self._block_size = block_size
         self.ss_tables: deque[SSTable] = deque()
@@ -36,23 +36,23 @@ class LsmStorage:
         The memtable should be frozen if it is bigger than the `self._max_sstable_size` threshold.
 
         Further explanations on the details of this method:
-        - It acquires the `self._freeze_lock` to ensure that only one freeze operation occurs at any given time
+        - It acquires the `self._state_lock` to ensure that only one freeze operation occurs at any given time
           (necessary because concurrency is allowed => two concurrent insert operations could end up doing a freeze)
-        - The size of the memtable is checked twice: once before acquiring the `self._freeze_lock` and a second time
+        - The size of the memtable is checked twice: once before acquiring the `self._state_lock` and a second time
           after acquiring it. This is to avoid taking a lock unnecessarily the first time and thus to avoid impacting
           performance (preventing other operations needing this lock when it is not necessary). Once the condition is
-          true and the `self._freeze_lock` is acquired, it is important to check the condition a second time because the
+          true and the `self._state_lock` is acquired, it is important to check the condition a second time because the
           memtable might have been frozen by another operation while this one was checking the condition and acquiring
           the lock.
         - It acquires a read lock on the state before reading the memtable's size. This is in order to comply to the
-          concurrency protocol here: the mutex `self._freeze_lock` is for freeze operations, the ReadWriteLock
-          `self.state_lock` is for reading/writing on the state.
+          concurrency protocol here: the mutex `self._state_lock` is for freeze operations (and other operations
+          modifying the state), the ReadWriteLock `self._read_write_lock` is for reading/writing on one element.
 
         Note: another approach would have been to do the following:
         ```
         if approximate_size >= self._max_sstable_size:
-            with self._freeze_lock:
-                state_read_lock = self._state_lock.read()
+            with self._state_lock:
+                state_read_lock = self._read_write_lock.read()
                 state_read_lock.__enter__()
                 latest_approximate_size = self.memtable.approximate_size
                 if latest_approximate_size >= self._max_sstable_size:
@@ -73,18 +73,18 @@ class LsmStorage:
         opted for better concurrency here (it is no big deal if the size is a bit bigger or smaller when freezing than
         when checked).
         """
-        with self._state_lock.read():
+        with self._read_write_lock.read():
             approximate_size = self.memtable.approximate_size
 
         if approximate_size >= self._max_sstable_size:
-            with self._freeze_lock:
-                with self._state_lock.read():
+            with self._state_lock:
+                with self._read_write_lock.read():
                     latest_approximate_size = self.memtable.approximate_size
                 if latest_approximate_size >= self._max_sstable_size:
                     self._freeze_memtable()
 
     def _freeze_memtable(self):
-        with self._state_lock.write():
+        with self._read_write_lock.write():
             new_memtable = self._create_memtable()
             self.immutable_memtables.insert(0, self.memtable)
             self.memtable = new_memtable
@@ -124,9 +124,9 @@ class LsmStorage:
         yield from iterator
 
     def _flush_next_immutable_memtable(self) -> None:
-        with self._freeze_lock:
+        with self._state_lock:
             # Read the oldest memtable
-            with self._state_lock.read():
+            with self._read_write_lock.read():
                 memtable_to_flush = self.immutable_memtables[-1]
 
             # Flush it to SSTable
@@ -138,7 +138,7 @@ class LsmStorage:
             sstable = sstable_builder.build(path=path)
 
             # Update state to remove oldest memtable and add new SSTable
-            with self._state_lock.write():
+            with self._read_write_lock.write():
                 self.immutable_memtables.pop()
                 self.ss_tables.insert(0, sstable)
 
