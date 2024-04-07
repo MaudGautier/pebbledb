@@ -160,16 +160,19 @@ class LsmStorage:
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
-    def _compact(self, sstables_iterator: MergingIterator) -> list[SSTable]:
+    def _compact(self, records_iterator: MergingIterator) -> list[SSTable]:
         new_ss_tables = []
         sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
-        for record in sstables_iterator:
+
+        for record in records_iterator:
             sstable_builder.add(key=record.key, value=record.value)
+
             if sstable_builder.current_buffer_position >= self._max_sstable_size:
                 sstable = sstable_builder.build(path=self._compute_path())
                 new_ss_tables.append(sstable)
                 sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
-        if sstable_builder.keys:
+
+        if sstable_builder.current_buffer_position > 0:
             sstable = sstable_builder.build(path=self._compute_path())
             new_ss_tables.append(sstable)
 
@@ -183,7 +186,7 @@ class LsmStorage:
                 SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
             ])
 
-        new_ss_tables = self._compact(sstables_iterator=l0_ss_table_iterator)
+        new_ss_tables = self._compact(records_iterator=l0_ss_table_iterator)
 
         with self._state_lock:
             with self._read_write_lock.write():

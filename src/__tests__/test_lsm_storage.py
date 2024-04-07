@@ -330,7 +330,7 @@ def test_compact(store_with_multiple_l0_sstables, records_for_store_with_multipl
     ])
 
     # WHEN
-    new_sstables = store._compact(sstables_iterator=l0_ss_table_iterator)
+    new_sstables = store._compact(records_iterator=l0_ss_table_iterator)
 
     # THEN
     assert len(new_sstables) == 2
