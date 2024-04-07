@@ -145,7 +145,7 @@ class MergingIterator(BaseIterator):
     def __init__(self, iterators: list[BaseIterator]):
         super().__init__()
         self.iterators = iterators
-        self.merged_and_filtered_iterator = self.filter_duplicate_keys(self.merge_iterators())
+        self.merged_and_filtered_iterator = self._filter_duplicate_keys(self._merge_iterators())
 
     def __iter__(self) -> "MergingIterator":
         return self
@@ -153,7 +153,7 @@ class MergingIterator(BaseIterator):
     def __next__(self):
         return next(self.merged_and_filtered_iterator)
 
-    def merge_iterators(self) -> BaseIterator:
+    def _merge_iterators(self) -> BaseIterator:
         no_item = object()
         heap = []
 
@@ -181,7 +181,7 @@ class MergingIterator(BaseIterator):
             try_push_iterator(i)
 
     @staticmethod
-    def filter_duplicate_keys(iterator: Iterator[Record]) -> Iterator[Record]:
+    def _filter_duplicate_keys(iterator: Iterator[Record]) -> Iterator[Record]:
         previous_item = None
         for item in iterator:
             if previous_item is not None and item.is_duplicate(previous_item):

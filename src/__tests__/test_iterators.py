@@ -264,7 +264,7 @@ def test_merging_iterator_without_identical_values():
 
     # WHEN
     merging_iterator = MergingIterator(iterators)
-    results = list(merging_iterator.merge_iterators())
+    results = list(merging_iterator._merge_iterators())
 
     # THEN
     expected_values = [Record(key, key.encode()) for key in ["0", "1", "2", "3", "4", "5"]]
