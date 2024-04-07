@@ -159,8 +159,9 @@ class LsmStorage:
                 sstable = sstable_builder.build(path=self._compute_path())
                 new_ss_tables.append(sstable)
                 sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
-        sstable = sstable_builder.build(path=self._compute_path())
-        new_ss_tables.append(sstable)
+        if sstable_builder.keys:
+            sstable = sstable_builder.build(path=self._compute_path())
+            new_ss_tables.append(sstable)
 
         return new_ss_tables
 
