@@ -111,6 +111,16 @@ class LsmStorage:
             if value is not None:
                 return value
 
+        for level in self.ss_tables_levels:
+            for sstable in level:
+                if not sstable.first_key <= key <= sstable.last_key:
+                    continue
+                if not sstable.bloom_filter.may_contain(key=key):
+                    continue
+                value = sstable.get(key=key)
+                if value is not None:
+                    return value
+
         return None
 
     def scan(self, lower: Record.Key, upper: Record.Key) -> Iterator[Record]:
