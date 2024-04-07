@@ -188,3 +188,20 @@ class MergingIterator(BaseIterator):
                 continue
             yield item
             previous_item = item
+
+
+class ConcatenatingIterator(BaseIterator):
+    def __init__(self, iterators: list[BaseIterator]):
+        super().__init__()
+        self.iterators = iterators
+        self.iterator = self._concatenate_iterators()
+
+    def __iter__(self) -> "ConcatenatingIterator":
+        return self
+
+    def __next__(self):
+        return next(self.iterator)
+
+    def _concatenate_iterators(self) -> BaseIterator:
+        for iterator in self.iterators:
+            yield from iterator

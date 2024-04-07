@@ -1,7 +1,8 @@
 import pytest
 
 from src.blocks import DataBlock, DataBlockBuilder
-from src.iterators import DataBlockIterator, MemTableIterator, SSTableIterator, MergingIterator, BaseIterator
+from src.iterators import DataBlockIterator, MemTableIterator, SSTableIterator, MergingIterator, BaseIterator, \
+    ConcatenatingIterator
 from src.memtable import MemTable
 from src.record import Record
 from src.__fixtures__.sstable import sstable_four_blocks, records_for_sstable_four_blocks
@@ -313,3 +314,43 @@ def test_merge_iterators_when_one_empty():
     # THEN
     expected_values = [Record("0", b'0')]
     assert list(merged_iterator) == expected_values
+
+
+def test_concatenating_iterator():
+    iterator1_items = [
+        Record(key="A", value="A1"),
+        Record(key="B", value="B1"),
+        Record(key="C", value="C1")
+    ]
+    iterator2_items = [
+        Record(key="D", value="D2"),
+        Record(key="E", value="E2"),
+    ]
+    iterator1 = MockBaseIterator(records=iterator1_items)
+    iterator2 = MockBaseIterator(records=iterator2_items)
+
+    # WHEN
+    concatenating_iterator = ConcatenatingIterator(iterators=[iterator1, iterator2])
+
+    # THEN
+    expected_items = [
+        Record(key="A", value="A1"),
+        Record(key="B", value="B1"),
+        Record(key="C", value="C1"),
+        Record(key="D", value="D2"),
+        Record(key="E", value="E2")
+    ]
+    assert list(concatenating_iterator) == expected_items
+
+
+def test_concatenating_iterator_when_one_empty():
+    # GIVEN
+    iterator_with_one_item = MockBaseIterator(records=[Record("0", b'0')])
+    empty_iterator = MockBaseIterator(records=[])
+
+    # WHEN
+    concatenating_iterator = ConcatenatingIterator(iterators=[empty_iterator, iterator_with_one_item])
+
+    # THEN
+    expected_values = [Record("0", b'0')]
+    assert list(concatenating_iterator) == expected_values
