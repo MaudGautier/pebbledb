@@ -152,3 +152,30 @@ def test_reconstruct_from_two_flush_events_and_one_compaction_event(sstable_one_
     assert len(store.ss_tables) == 0  # l0
     assert len(store.ss_tables_levels[0]) == 1  # l1
     assert store.ss_tables_levels[0][0] == sstable3
+
+
+def test_reconstruct_from_two_flush_events_interspaced_with_compaction_events(sstable_one_block_1,
+                                                                              sstable_one_block_2,
+                                                                              sstable_one_block_3,
+                                                                              sstable_one_block_4):
+    # GIVEN
+    sstable1 = sstable_one_block_1
+    sstable2 = sstable_one_block_2
+    sstable3 = sstable_one_block_3
+    sstable4 = sstable_one_block_4
+    events = [
+        FlushEvent(sstable=sstable1),
+        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable3], output_level=1),
+        FlushEvent(sstable=sstable2),
+        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable4], output_level=1),
+    ]
+    manifest = Manifest(events=events, nb_levels=3)
+
+    # WHEN
+    store = manifest.reconstruct()
+
+    # THEN
+    assert len(store.ss_tables) == 0  # l0
+    assert len(store.ss_tables_levels[0]) == 2  # l1
+    assert store.ss_tables_levels[0][1] == sstable3
+    assert store.ss_tables_levels[0][0] == sstable4
