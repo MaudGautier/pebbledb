@@ -68,13 +68,12 @@ def records_for_sstable_one_block():
     ]
 
 
-@pytest.fixture
-def sstable_one_block(records_for_sstable_one_block):
+def build_sstable_one_block(records_for_sstable_one_block, file_name):
     sstable_builder = SSTableBuilder(sstable_size=20000, block_size=150)
     for record in records_for_sstable_one_block:
         sstable_builder.add(key=record.key, value=record.value)
 
-    sstable = sstable_builder.build(path=f"{TEST_FIXTURES}/sstable_one_block.sst")
+    sstable = sstable_builder.build(path=f"{TEST_FIXTURES}/{file_name}.sst")
 
     assert len(sstable.meta_blocks) == 1
     assert sstable.meta_blocks[0].first_key == "key1"
@@ -84,25 +83,10 @@ def sstable_one_block(records_for_sstable_one_block):
 
 
 @pytest.fixture
-def records_for_sstable_one_block_2():
-    return [
-        # Goes into Data Block 0
-        Record(key="key1", value=b'value1'),
-        Record(key="key2", value=b'value2'),
-        Record(key="key3", value=b'value3')
-    ]
+def sstable_one_block_1(records_for_sstable_one_block):
+    return build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block")
 
 
 @pytest.fixture
-def sstable_one_block_2(records_for_sstable_one_block_2):
-    sstable_builder = SSTableBuilder(sstable_size=20000, block_size=150)
-    for record in records_for_sstable_one_block_2:
-        sstable_builder.add(key=record.key, value=record.value)
-
-    sstable = sstable_builder.build(path=f"{TEST_FIXTURES}/sstable_one_block.sst")
-
-    assert len(sstable.meta_blocks) == 1
-    assert sstable.meta_blocks[0].first_key == "key1"
-    assert sstable.meta_blocks[0].last_key == "key3"
-
-    return sstable
+def sstable_one_block_2(records_for_sstable_one_block):
+    return build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block_2")

@@ -1,6 +1,11 @@
 from src.manifest import Manifest, FlushEvent, CompactionEvent
-from src.__fixtures__.sstable import sstable_four_blocks, records_for_sstable_four_blocks, sstable_one_block, \
-    records_for_sstable_one_block, sstable_one_block_2, records_for_sstable_one_block_2
+from src.__fixtures__.sstable import (
+    sstable_four_blocks,
+    records_for_sstable_four_blocks,
+    sstable_one_block_1,
+    records_for_sstable_one_block,
+    sstable_one_block_2
+)
 
 
 def test_reconstruct_from_empty_events():
@@ -32,11 +37,14 @@ def test_reconstruct_from_one_flush_event(sstable_four_blocks):
         assert len(level) == 0
 
 
-def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_block):
+def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_block_1):
     # GIVEN
     sstable1 = sstable_four_blocks
-    sstable2 = sstable_one_block
-    events = [FlushEvent(sstable=sstable1), FlushEvent(sstable=sstable2)]
+    sstable2 = sstable_one_block_1
+    events = [
+        FlushEvent(sstable=sstable1),
+        FlushEvent(sstable=sstable2)
+    ]
     manifest = Manifest(events=events)
 
     # WHEN
@@ -50,12 +58,14 @@ def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_bloc
         assert len(level) == 0
 
 
-def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_blocks, sstable_one_block):
+def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_blocks, sstable_one_block_1):
     # GIVEN
     sstable1 = sstable_four_blocks
-    sstable2 = sstable_one_block
-    events = [FlushEvent(sstable=sstable1),
-              CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], output_level=1)]
+    sstable2 = sstable_one_block_1
+    events = [
+        FlushEvent(sstable=sstable1),
+        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], output_level=1)
+    ]
     manifest = Manifest(events=events)
 
     # WHEN
@@ -68,15 +78,17 @@ def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_
 
 
 def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four_blocks,
-                                                                    sstable_one_block,
+                                                                    sstable_one_block_1,
                                                                     sstable_one_block_2):
     # GIVEN
     sstable1 = sstable_four_blocks
-    sstable2 = sstable_one_block
+    sstable2 = sstable_one_block_1
     sstable3 = sstable_one_block_2
-    events = [FlushEvent(sstable=sstable1),
-              CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], output_level=1),
-              CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], output_level=2)]
+    events = [
+        FlushEvent(sstable=sstable1),
+        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], output_level=1),
+        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], output_level=2)
+    ]
     manifest = Manifest(events=events)
 
     # WHEN
