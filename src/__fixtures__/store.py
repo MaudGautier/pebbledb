@@ -103,7 +103,7 @@ def store_with_multiple_l0_sstables(records_for_store_with_multiple_l0_sstables)
 
 
 @pytest.fixture
-def records_for_store_with_l0_and_l1_sstables():
+def records_for_store_with_multiple_l1_sstables():
     return [
         # Table 0
         ("key4", b'value4'),
@@ -121,9 +121,9 @@ def records_for_store_with_l0_and_l1_sstables():
 
 
 @pytest.fixture
-def store_with_l0_and_l1_sstables(records_for_store_with_l0_and_l1_sstables):
+def store_with_multiple_l1_sstables(records_for_store_with_multiple_l1_sstables):
     store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY)
-    for record in records_for_store_with_l0_and_l1_sstables:
+    for record in records_for_store_with_multiple_l1_sstables:
         store.put(key=record[0], value=record[1])
     assert len(store.immutable_memtables) == 4
     for i in range(len(store.immutable_memtables)):
@@ -132,7 +132,7 @@ def store_with_l0_and_l1_sstables(records_for_store_with_l0_and_l1_sstables):
     assert len(store.immutable_memtables) == 0
     assert len(store.ss_tables) == 4
 
-    store.trigger_compaction()
+    store.force_compaction_l0()
 
     assert len(store.ss_tables) == 0
     assert len(store.ss_tables_levels) == 1

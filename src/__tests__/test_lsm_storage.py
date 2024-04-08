@@ -13,8 +13,8 @@ from src.__fixtures__.store import (
     store_with_one_sstable,
     store_with_multiple_l0_sstables,
     records_for_store_with_multiple_l0_sstables,
-    store_with_l0_and_l1_sstables,
-    records_for_store_with_l0_and_l1_sstables,
+    store_with_multiple_l1_sstables,
+    records_for_store_with_multiple_l1_sstables,
     TEST_DIRECTORY
 )
 from src.memtable import MemTable
@@ -336,12 +336,12 @@ def test_compact(store_with_multiple_l0_sstables, records_for_store_with_multipl
     assert len(new_sstables) == 2
 
 
-def test_trigger_compaction(store_with_multiple_l0_sstables, records_for_store_with_multiple_l0_sstables):
+def test_trigger_l0_compaction(store_with_multiple_l0_sstables, records_for_store_with_multiple_l0_sstables):
     # GIVEN
     store = store_with_multiple_l0_sstables
 
     # WHEN
-    store.trigger_compaction()
+    store.force_compaction_l0()
 
     # THEN
     assert len(store.ss_tables_levels) == 1
@@ -353,14 +353,14 @@ def test_trigger_compaction(store_with_multiple_l0_sstables, records_for_store_w
     assert len(store.ss_tables) == 0
 
 
-def test_read_path_with_sstables_on_levels_0_and_1(store_with_l0_and_l1_sstables,
-                                                   records_for_store_with_l0_and_l1_sstables):
+def test_read_path_with_sstables_on_levels_0_and_1(store_with_multiple_l1_sstables,
+                                                   records_for_store_with_multiple_l1_sstables):
     # GIVEN
-    store = store_with_l0_and_l1_sstables
+    store = store_with_multiple_l1_sstables
 
     # WHEN
-    values = [store.get(key=record[0]) for record in records_for_store_with_l0_and_l1_sstables]
+    values = [store.get(key=record[0]) for record in records_for_store_with_multiple_l1_sstables]
 
     # THEN
-    expected_values = [record[1] for record in records_for_store_with_l0_and_l1_sstables]
+    expected_values = [record[1] for record in records_for_store_with_multiple_l1_sstables]
     assert values == expected_values

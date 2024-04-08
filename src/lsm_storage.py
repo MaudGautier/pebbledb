@@ -178,7 +178,7 @@ class LsmStorage:
 
         return new_ss_tables
 
-    def trigger_compaction(self):
+    def force_compaction_l0(self):
         # For now: compacts all L0 sstables into L1 sstables
         with self._read_write_lock.read():
             sstables_to_compact = [sstable for sstable in self.ss_tables]
