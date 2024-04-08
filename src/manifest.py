@@ -31,27 +31,20 @@ class Manifest:
         self.nb_levels = nb_levels
 
     def reconstruct(self) -> LsmStorage:
-        ss_tables_levels = [deque() for i in range(self.nb_levels)]
+        ss_tables_levels = [deque() for _ in range(self.nb_levels + 1)]
 
-        l0_sstables = deque()
         for event in self.events:
             if event.type == "Flush":
-                l0_sstables.insert(0, event.sstable)
+                ss_tables_levels[0].insert(0, event.sstable)
             if event.type == "Compaction":
-                level = event.output_level - 1
-                if level == 0:
-                    for sstable in event.output_sstables:
-                        ss_tables_levels[level].insert(0, sstable)
-                    for sstable in event.input_sstables:
-                        l0_sstables.remove(sstable)
-                if level >= 1:
-                    for sstable in event.output_sstables:
-                        ss_tables_levels[level].insert(0, sstable)
-                    for sstable in event.input_sstables:
-                        ss_tables_levels[level - 1].remove(sstable)
+                level = event.output_level
+                for sstable in event.output_sstables:
+                    ss_tables_levels[level].insert(0, sstable)
+                for sstable in event.input_sstables:
+                    ss_tables_levels[level - 1].remove(sstable)
 
         store = LsmStorage()
-        store.ss_tables = l0_sstables
-        store.ss_tables_levels = ss_tables_levels
+        store.ss_tables = ss_tables_levels[0]
+        store.ss_tables_levels = ss_tables_levels[1:]
 
         return store
