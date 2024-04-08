@@ -364,3 +364,24 @@ def test_read_path_with_sstables_on_levels_0_and_1(store_with_multiple_l1_sstabl
     # THEN
     expected_values = [record[1] for record in records_for_store_with_multiple_l1_sstables]
     assert values == expected_values
+
+
+def test_trigger_l1_compaction_to_l2(store_with_multiple_l1_sstables, records_for_store_with_multiple_l1_sstables):
+    # GIVEN
+    store = store_with_multiple_l1_sstables
+
+    # WHEN
+    store.force_compaction_l1_or_more_level(level=1)
+
+    # THEN
+    assert len(store.ss_tables_levels) == 2
+    assert len(store.ss_tables_levels[0]) == 0
+    assert len(store.ss_tables_levels[1]) == 4
+    assert store.ss_tables_levels[1][0].first_key == "key1"
+    assert store.ss_tables_levels[1][0].last_key == "key2"
+    assert store.ss_tables_levels[1][1].first_key == "key3"
+    assert store.ss_tables_levels[1][1].last_key == "key4"
+    assert store.ss_tables_levels[1][2].first_key == "key5"
+    assert store.ss_tables_levels[1][2].last_key == "key6"
+    assert store.ss_tables_levels[1][3].first_key == "key7"
+    assert store.ss_tables_levels[1][3].last_key == "key8"

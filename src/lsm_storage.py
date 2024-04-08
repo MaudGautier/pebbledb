@@ -1,9 +1,9 @@
 import os
 import time
 from collections import deque
-from typing import Optional, Iterator
+from typing import Optional, Iterator, Deque
 
-from src.iterators import MemTableIterator, MergingIterator, SSTableIterator
+from src.iterators import MemTableIterator, MergingIterator, SSTableIterator, ConcatenatingIterator, BaseIterator
 from src.locks import ReadWriteLock, Mutex
 from src.memtable import MemTable
 from src.record import Record
@@ -17,13 +17,13 @@ class LsmStorage:
                  directory: Optional[str] = "."):
         self.memtable = self._create_memtable()
         # Immutable memtables are stored in a linked list because they will always be parsed from most recent to oldest.
-        self.immutable_memtables: deque[MemTable] = deque()
+        self.immutable_memtables: Deque[MemTable] = deque()
         self._read_write_lock = ReadWriteLock()
         self._state_lock = Mutex()
         self._max_sstable_size = max_sstable_size
         self._block_size = block_size
-        self.ss_tables: deque[SSTable] = deque()
-        self.ss_tables_levels = []
+        self.ss_tables: Deque[SSTable] = deque()
+        self.ss_tables_levels: list[Deque[SSTable]] = []
         self.directory = directory
         self._create_directory()
 
@@ -160,7 +160,7 @@ class LsmStorage:
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
-    def _compact(self, records_iterator: MergingIterator) -> list[SSTable]:
+    def _compact(self, records_iterator: BaseIterator) -> list[SSTable]:
         new_ss_tables = []
         sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
 
@@ -180,6 +180,9 @@ class LsmStorage:
 
     def force_compaction_l0(self):
         # For now: compacts all L0 sstables into L1 sstables
+        if len(self.ss_tables_levels) == 0:
+            self.ss_tables_levels.append(deque())
+
         with self._read_write_lock.read():
             sstables_to_compact = [sstable for sstable in self.ss_tables]
             l0_ss_table_iterator = MergingIterator(iterators=[
@@ -190,7 +193,28 @@ class LsmStorage:
 
         with self._state_lock:
             with self._read_write_lock.write():
-                self.ss_tables_levels.insert(0, new_ss_tables)
+                self.ss_tables_levels[0].extendleft(reversed(new_ss_tables))
                 for sstable in sstables_to_compact:
                     self.ss_tables.remove(sstable)
-                # TODO: update this to deal with more levels (when the time comes)
+
+    def force_compaction_l1_or_more_level(self, level: int):
+        level_index = level - 1
+        if len(self.ss_tables_levels) < level:
+            raise ValueError(f"Level {level} does not exist")
+
+        if len(self.ss_tables_levels) == level:
+            self.ss_tables_levels.append(deque())
+
+        with self._read_write_lock.read():
+            sstables_to_compact = [sstable for sstable in self.ss_tables_levels[level_index]]
+            l0_ss_table_iterator = ConcatenatingIterator(iterators=[
+                SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
+            ])
+
+        new_ss_tables = self._compact(records_iterator=l0_ss_table_iterator)
+
+        with self._state_lock:
+            with self._read_write_lock.write():
+                self.ss_tables_levels[level_index + 1].extendleft(reversed(new_ss_tables))
+                for sstable in sstables_to_compact:
+                    self.ss_tables_levels[level_index].remove(sstable)
