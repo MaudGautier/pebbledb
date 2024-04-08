@@ -90,3 +90,8 @@ def sstable_one_block_1(records_for_sstable_one_block):
 @pytest.fixture
 def sstable_one_block_2(records_for_sstable_one_block):
     return build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block_2")
+
+
+@pytest.fixture
+def sstable_one_block_3(records_for_sstable_one_block):
+    return build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block_3")

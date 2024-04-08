@@ -4,7 +4,8 @@ from src.__fixtures__.sstable import (
     records_for_sstable_four_blocks,
     sstable_one_block_1,
     records_for_sstable_one_block,
-    sstable_one_block_2
+    sstable_one_block_2,
+    sstable_one_block_3
 )
 
 
@@ -99,3 +100,26 @@ def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four
     assert len(store.ss_tables_levels[0]) == 0  # l1
     assert len(store.ss_tables_levels[1]) == 1  # l2
     assert store.ss_tables_levels[1][0] == sstable3
+
+
+def test_reconstruct_from_two_flush_event_and_two_compaction_events(sstable_one_block_1,
+                                                                    sstable_one_block_2,
+                                                                    sstable_one_block_3):
+    # GIVEN
+    sstable1 = sstable_one_block_1
+    sstable2 = sstable_one_block_2
+    sstable3 = sstable_one_block_3
+    events = [
+        FlushEvent(sstable=sstable1),
+        FlushEvent(sstable=sstable2),
+        CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable3], output_level=1),
+    ]
+    manifest = Manifest(events=events)
+
+    # WHEN
+    store = manifest.reconstruct()
+
+    # THEN
+    assert len(store.ss_tables) == 0  # l0
+    assert len(store.ss_tables_levels[0]) == 1  # l1
+    assert store.ss_tables_levels[0][0] == sstable3
