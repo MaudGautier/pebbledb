@@ -26,31 +26,32 @@ class FlushEvent(Event):
 
 
 class Manifest:
-    def __init__(self, events):  # TODO stop passing events - read them from file at some point
+    def __init__(self, events, nb_levels):  # TODO stop passing events and nb_levels - read them from file at some point
         self.events = events
+        self.nb_levels = nb_levels
 
     def reconstruct(self) -> LsmStorage:
+        ss_tables_levels = [deque() for i in range(self.nb_levels)]
+
         l0_sstables = deque()
-        l1_sstables = deque()
-        l2_sstables = deque()
         for event in self.events:
             if event.type == "Flush":
                 l0_sstables.insert(0, event.sstable)
             if event.type == "Compaction":
-                if event.output_level == 1:
+                level = event.output_level - 1
+                if level == 0:
                     for sstable in event.output_sstables:
-                        l1_sstables.insert(0, sstable)
+                        ss_tables_levels[level].insert(0, sstable)
                     for sstable in event.input_sstables:
                         l0_sstables.remove(sstable)
-                if event.output_level == 2:
+                if level >= 1:
                     for sstable in event.output_sstables:
-                        l2_sstables.insert(0, sstable)
+                        ss_tables_levels[level].insert(0, sstable)
                     for sstable in event.input_sstables:
-                        l1_sstables.remove(sstable)
+                        ss_tables_levels[level - 1].remove(sstable)
 
         store = LsmStorage()
         store.ss_tables = l0_sstables
-        store.ss_tables_levels.append(l1_sstables)  # TODO: do this better later
-        store.ss_tables_levels.append(l2_sstables)
+        store.ss_tables_levels = ss_tables_levels
 
         return store

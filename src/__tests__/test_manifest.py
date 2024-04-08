@@ -5,14 +5,15 @@ from src.__fixtures__.sstable import (
     sstable_one_block_1,
     records_for_sstable_one_block,
     sstable_one_block_2,
-    sstable_one_block_3
+    sstable_one_block_3,
+    sstable_one_block_4
 )
 
 
 def test_reconstruct_from_empty_events():
     # GIVEN
     events = []
-    manifest = Manifest(events=events)
+    manifest = Manifest(events=events, nb_levels=3)
 
     # WHEN
     store = manifest.reconstruct()
@@ -27,7 +28,7 @@ def test_reconstruct_from_one_flush_event(sstable_four_blocks):
     # GIVEN
     sstable = sstable_four_blocks
     events = [FlushEvent(sstable=sstable)]
-    manifest = Manifest(events=events)
+    manifest = Manifest(events=events, nb_levels=3)
 
     # WHEN
     store = manifest.reconstruct()
@@ -46,7 +47,7 @@ def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_bloc
         FlushEvent(sstable=sstable1),
         FlushEvent(sstable=sstable2)
     ]
-    manifest = Manifest(events=events)
+    manifest = Manifest(events=events, nb_levels=3)
 
     # WHEN
     store = manifest.reconstruct()
@@ -67,7 +68,7 @@ def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_
         FlushEvent(sstable=sstable1),
         CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], output_level=1)
     ]
-    manifest = Manifest(events=events)
+    manifest = Manifest(events=events, nb_levels=3)
 
     # WHEN
     store = manifest.reconstruct()
@@ -90,7 +91,7 @@ def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four
         CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], output_level=1),
         CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], output_level=2)
     ]
-    manifest = Manifest(events=events)
+    manifest = Manifest(events=events, nb_levels=3)
 
     # WHEN
     store = manifest.reconstruct()
@@ -102,7 +103,35 @@ def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four
     assert store.ss_tables_levels[1][0] == sstable3
 
 
-def test_reconstruct_from_two_flush_event_and_two_compaction_events(sstable_one_block_1,
+def test_reconstruct_from_one_flush_event_and_three_compaction_events(sstable_one_block_1,
+                                                                      sstable_one_block_2,
+                                                                      sstable_one_block_3,
+                                                                      sstable_one_block_4):
+    # GIVEN
+    sstable1 = sstable_one_block_1
+    sstable2 = sstable_one_block_2
+    sstable3 = sstable_one_block_3
+    sstable4 = sstable_one_block_4
+    events = [
+        FlushEvent(sstable=sstable1),
+        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], output_level=1),
+        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], output_level=2),
+        CompactionEvent(input_sstables=[sstable3], output_sstables=[sstable4], output_level=3),
+    ]
+    manifest = Manifest(events=events, nb_levels=3)
+
+    # WHEN
+    store = manifest.reconstruct()
+
+    # THEN
+    assert len(store.ss_tables) == 0  # l0
+    assert len(store.ss_tables_levels[0]) == 0  # l1
+    assert len(store.ss_tables_levels[1]) == 0  # l2
+    assert len(store.ss_tables_levels[2]) == 1  # l3
+    assert store.ss_tables_levels[2][0] == sstable4
+
+
+def test_reconstruct_from_two_flush_events_and_one_compaction_event(sstable_one_block_1,
                                                                     sstable_one_block_2,
                                                                     sstable_one_block_3):
     # GIVEN
@@ -114,7 +143,7 @@ def test_reconstruct_from_two_flush_event_and_two_compaction_events(sstable_one_
         FlushEvent(sstable=sstable2),
         CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable3], output_level=1),
     ]
-    manifest = Manifest(events=events)
+    manifest = Manifest(events=events, nb_levels=3)
 
     # WHEN
     store = manifest.reconstruct()
