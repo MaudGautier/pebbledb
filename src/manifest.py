@@ -35,11 +35,26 @@ class Manifest:
 
     def reconstruct(self) -> LsmStorage:
         l0_sstables = []
+        l1_sstables = []
+        l2_sstables = []
         for event in self.events:
             if event.type == "Flush":
                 l0_sstables.insert(0, event.sstable)
+            if event.type == "Compaction":
+                if event.output_level == 1:
+                    for sstable in event.output_sstables:
+                        l1_sstables.insert(0, sstable)
+                    for sstable in event.input_sstables:
+                        l0_sstables.remove(sstable)
+                if event.output_level == 2:
+                    for sstable in event.output_sstables:
+                        l2_sstables.insert(0, sstable)
+                    for sstable in event.input_sstables:
+                        l1_sstables.remove(sstable)
 
         store = LsmStorage()
         store.ss_tables = l0_sstables
+        store.ss_tables_levels.append(l1_sstables)  # TDOO: do this better later
+        store.ss_tables_levels.append(l2_sstables)
 
         return store
