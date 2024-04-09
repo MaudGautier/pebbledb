@@ -66,7 +66,7 @@ def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_
     sstable2 = sstable_one_block_1
     events = [
         FlushEvent(sstable=sstable1),
-        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], output_level=1)
+        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0)
     ]
     manifest = Manifest(events=events, nb_levels=3)
 
@@ -88,8 +88,8 @@ def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four
     sstable3 = sstable_one_block_2
     events = [
         FlushEvent(sstable=sstable1),
-        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], output_level=1),
-        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], output_level=2)
+        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0),
+        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], level=1)
     ]
     manifest = Manifest(events=events, nb_levels=3)
 
@@ -114,9 +114,9 @@ def test_reconstruct_from_one_flush_event_and_three_compaction_events(sstable_on
     sstable4 = sstable_one_block_4
     events = [
         FlushEvent(sstable=sstable1),
-        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], output_level=1),
-        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], output_level=2),
-        CompactionEvent(input_sstables=[sstable3], output_sstables=[sstable4], output_level=3),
+        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0),
+        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], level=1),
+        CompactionEvent(input_sstables=[sstable3], output_sstables=[sstable4], level=2),
     ]
     manifest = Manifest(events=events, nb_levels=3)
 
@@ -141,7 +141,7 @@ def test_reconstruct_from_two_flush_events_and_one_compaction_event(sstable_one_
     events = [
         FlushEvent(sstable=sstable1),
         FlushEvent(sstable=sstable2),
-        CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable3], output_level=1),
+        CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable3], level=0),
     ]
     manifest = Manifest(events=events, nb_levels=3)
 
@@ -165,9 +165,9 @@ def test_reconstruct_from_two_flush_events_interspaced_with_compaction_events(ss
     sstable4 = sstable_one_block_4
     events = [
         FlushEvent(sstable=sstable1),
-        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable3], output_level=1),
+        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable3], level=0),
         FlushEvent(sstable=sstable2),
-        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable4], output_level=1),
+        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable4], level=0),
     ]
     manifest = Manifest(events=events, nb_levels=3)
 

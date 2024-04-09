@@ -10,12 +10,12 @@ class Event:
 
 
 class CompactionEvent(Event):
-    def __init__(self, input_sstables: list[SSTable], output_sstables: list[SSTable], output_level: int):
+    def __init__(self, input_sstables: list[SSTable], output_sstables: list[SSTable], level: int):
         super().__init__()
         self.type = "Compaction"
         self.input_sstables = input_sstables
         self.output_sstables = output_sstables
-        self.output_level = output_level
+        self.level = level
 
 
 class FlushEvent(Event):
@@ -37,11 +37,11 @@ class Manifest:
             if event.type == "Flush":
                 ss_tables_levels[0].insert(0, event.sstable)
             if event.type == "Compaction":
-                level = event.output_level
+                level = event.level
                 for sstable in event.output_sstables:
-                    ss_tables_levels[level].insert(0, sstable)
+                    ss_tables_levels[level + 1].insert(0, sstable)
                 for sstable in event.input_sstables:
-                    ss_tables_levels[level - 1].remove(sstable)
+                    ss_tables_levels[level].remove(sstable)
 
         store = LsmStorage()
         store.ss_tables = ss_tables_levels[0]
