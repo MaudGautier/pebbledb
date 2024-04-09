@@ -14,7 +14,11 @@ class LsmStorage:
     def __init__(self,
                  max_sstable_size: Optional[int] = 262_144_000,
                  block_size: Optional[int] = 65_536,
+                 levels_ratio: float = 0.1,
+                 max_l0_sstables: int = 10,
                  directory: Optional[str] = "."):
+        self._levels_ratio = levels_ratio
+        self._max_l0_sstables = max_l0_sstables
         self.memtable = self._create_memtable()
         # Immutable memtables are stored in a linked list because they will always be parsed from most recent to oldest.
         self.immutable_memtables: Deque[MemTable] = deque()
@@ -218,3 +222,25 @@ class LsmStorage:
                 self.ss_tables_levels[level_index + 1].extendleft(reversed(new_ss_tables))
                 for sstable in sstables_to_compact:
                     self.ss_tables_levels[level_index].remove(sstable)
+
+    def _try_compact(self):
+        """Checks if a level should be compacted or not and compacts it if so.
+
+        Compaction should be triggered:
+        - at level 0 if the number of SSTables at level 0 exceeds a given threshold (`self._max_l0_sstables`)
+        - at any other level if the ratio of the number of SSTables at this level over the number of SSTables at the
+        next level exceeds a given threshold (`self._levels_ratio`).
+        """
+
+        # Try to compact level 0
+        if len(self.ss_tables) >= self._max_l0_sstables:
+            self.force_compaction_l0()
+
+        # Try to compact other levels
+        for i in range(len(self.ss_tables_levels) - 1):
+            level = self.ss_tables_levels[i]
+            next_level = self.ss_tables_levels[i + 1]
+            if len(level) >= self._levels_ratio * len(next_level):
+                self.force_compaction_l1_or_more_level(level=i)
+
+        return

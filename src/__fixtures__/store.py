@@ -57,7 +57,7 @@ def store_with_duplicated_keys(store_with_duplicated_keys_records):
 
 
 @pytest.fixture
-def store_with_one_sstable(store_with_multiple_immutable_memtables_records):
+def store_with_one_l0_sstable(store_with_multiple_immutable_memtables_records):
     store = LsmStorage(max_sstable_size=30, block_size=20, directory=TEST_DIRECTORY)
     for record in store_with_multiple_immutable_memtables_records:
         store.put(key=record[0], value=record[1])
@@ -138,5 +138,62 @@ def store_with_multiple_l1_sstables(records_for_store_with_multiple_l1_sstables)
     assert len(store.ss_tables_levels) == 1
     assert len(store.ss_tables_levels[0]) == 4
 
+    return store
+
+
+@pytest.fixture
+def records_for_store_with_four_l1_and_one_l2_sstables():
+    return [
+        # Table 0
+        ("key4", b'value4'),
+        ("key3", b'value3'),
+        # Table 1
+        ("key8", b'value8'),
+        ("key5", b'value5'),
+        # Table 2
+        ("key1", b'value1'),
+        ("key6", b'value6'),
+        # Table 3
+        ("key7", b'value7'),
+        ("key2", b'value2'),
+        # Table 4
+        ("key9", b'value9'),
+        ("key10", b'value10'),
+    ]
+
+
+@pytest.fixture
+def store_with_four_l1_and_one_l2_sstables(records_for_store_with_four_l1_and_one_l2_sstables):
+    store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY)
+    for record in records_for_store_with_four_l1_and_one_l2_sstables:
+        store.put(key=record[0], value=record[1])
+    assert len(store.immutable_memtables) == 5
+    for i in range(4):
+        store.flush_next_immutable_memtable()
+
+    assert len(store.immutable_memtables) == 1
+    assert len(store.ss_tables) == 4
+
+    store.force_compaction_l0()
+    store.force_compaction_l1_or_more_level(level=1)
+
+    assert len(store.ss_tables) == 0
+    assert len(store.ss_tables_levels) == 2
+    assert len(store.ss_tables_levels[0]) == 0
+    assert len(store.ss_tables_levels[1]) == 4
+
+    store.flush_next_immutable_memtable()
+
+    assert len(store.ss_tables) == 1
+    assert len(store.ss_tables_levels) == 2
+    assert len(store.ss_tables_levels[0]) == 0
+    assert len(store.ss_tables_levels[1]) == 4
+
+    store.force_compaction_l0()
+
+    assert len(store.ss_tables) == 0
+    assert len(store.ss_tables_levels) == 2
+    assert len(store.ss_tables_levels[0]) == 1
+    assert len(store.ss_tables_levels[1]) == 4
 
     return store

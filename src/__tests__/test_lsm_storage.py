@@ -10,11 +10,13 @@ from src.__fixtures__.store import (
     store_with_multiple_immutable_memtables_records,
     store_with_duplicated_keys,
     store_with_duplicated_keys_records,
-    store_with_one_sstable,
+    store_with_one_l0_sstable,
     store_with_multiple_l0_sstables,
     records_for_store_with_multiple_l0_sstables,
     store_with_multiple_l1_sstables,
     records_for_store_with_multiple_l1_sstables,
+    store_with_four_l1_and_one_l2_sstables,
+    records_for_store_with_four_l1_and_one_l2_sstables,
     TEST_DIRECTORY
 )
 from src.memtable import MemTable
@@ -308,9 +310,10 @@ def test_dont_look_in_bloom_filter_if_key_absent():
         mocked_sstable_get.assert_not_called()
 
 
-def test_scan_on_both_memtables_and_sstables(store_with_one_sstable, store_with_multiple_immutable_memtables_records):
+def test_scan_on_both_memtables_and_sstables(store_with_one_l0_sstable,
+                                             store_with_multiple_immutable_memtables_records):
     # GIVEN
-    store = store_with_one_sstable
+    store = store_with_one_l0_sstable
 
     # WHEN
     scanned_records = list(record for record in store.scan(lower="key2", upper="key5"))
@@ -385,3 +388,61 @@ def test_trigger_l1_compaction_to_l2(store_with_multiple_l1_sstables, records_fo
     assert store.ss_tables_levels[1][2].last_key == "key6"
     assert store.ss_tables_levels[1][3].first_key == "key7"
     assert store.ss_tables_levels[1][3].last_key == "key8"
+
+
+def test_try_compact_should_force_compact_l0_if_above_the_threshold(store_with_one_l0_sstable):
+    # GIVEN
+    store = store_with_one_l0_sstable
+    store._max_l0_sstables = 1
+
+    # WHEN/THEN
+    with mock.patch.object(store, 'force_compaction_l0', wraps=store.force_compaction_l0) as mocked_freeze:
+        # WHEN
+        store._try_compact()
+
+        # THEN
+        mocked_freeze.assert_called_once()
+
+
+def test_try_compact_should_not_force_compact_l0_if_below_the_threshold(store_with_one_l0_sstable):
+    # GIVEN
+    store = store_with_one_l0_sstable
+    store._max_l0_sstables = 2
+
+    # WHEN/THEN
+    with mock.patch.object(store, 'force_compaction_l0', wraps=store.force_compaction_l0) as mocked_freeze:
+        # WHEN
+        store._try_compact()
+
+        # THEN
+        mocked_freeze.assert_not_called()
+
+
+def test_try_compact_should_force_compact_l1_if_above_the_threshold(store_with_four_l1_and_one_l2_sstables):
+    # GIVEN
+    store = store_with_four_l1_and_one_l2_sstables
+    store._levels_ratio = 0.2
+
+    # WHEN/THEN
+    with mock.patch.object(store, 'force_compaction_l1_or_more_level',
+                           wraps=store.force_compaction_l1_or_more_level) as mocked_freeze:
+        # WHEN
+        store._try_compact()
+
+        # THEN
+        mocked_freeze.assert_called_once()
+
+
+def test_try_compact_should_not_force_compact_l1_if_below_the_threshold(store_with_four_l1_and_one_l2_sstables):
+    # GIVEN
+    store = store_with_four_l1_and_one_l2_sstables
+    store._levels_ratio = 0.3
+
+    # WHEN/THEN
+    with mock.patch.object(store, 'force_compaction_l1_or_more_level',
+                           wraps=store.force_compaction_l1_or_more_level) as mocked_freeze:
+        # WHEN
+        store._try_compact()
+
+        # THEN
+        mocked_freeze.assert_not_called()
