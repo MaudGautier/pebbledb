@@ -197,3 +197,66 @@ def store_with_four_l1_and_one_l2_sstables(records_for_store_with_four_l1_and_on
     assert len(store.ss_tables_levels[1]) == 4
 
     return store
+
+
+@pytest.fixture
+def records_for_store_with_one_sstable_at_five_levels():
+    return [
+        # Table 0
+        ("keyA", b'valueA'),
+        ("keyB", b'valueB'),
+        # Table 1
+        ("keyC", b'valueC'),
+        ("keyD", b'valueD'),
+        # Table 2
+        ("keyE", b'valueE'),
+        ("keyF", b'valueF'),
+        # Table 3
+        ("keyG", b'valueG'),
+        ("keyH", b'valueH'),
+        # Table 4
+        ("keyI", b'valueI'),
+        ("keyJ", b'valueJ'),
+    ]
+
+
+@pytest.fixture
+def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_five_levels):
+    store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY)
+    for record in records_for_store_with_one_sstable_at_five_levels:
+        store.put(key=record[0], value=record[1])
+
+    # Table 0
+    store.flush_next_immutable_memtable()
+    store.force_compaction_l0()
+    store.force_compaction_l1_or_more_level(level=1)
+    store.force_compaction_l1_or_more_level(level=2)
+    store.force_compaction_l1_or_more_level(level=3)
+
+    # Table 1
+    store.flush_next_immutable_memtable()
+    store.force_compaction_l0()
+    store.force_compaction_l1_or_more_level(level=1)
+    store.force_compaction_l1_or_more_level(level=2)
+
+    # Table 2
+    store.flush_next_immutable_memtable()
+    store.force_compaction_l0()
+    store.force_compaction_l1_or_more_level(level=1)
+
+    # Table 3
+    store.flush_next_immutable_memtable()
+    store.force_compaction_l0()
+
+    # Table 4
+    store.flush_next_immutable_memtable()
+
+    # Assertions
+    assert len(store.ss_tables) == 1
+    assert len(store.ss_tables_levels) == 4
+    assert len(store.ss_tables_levels[0]) == 1
+    assert len(store.ss_tables_levels[1]) == 1
+    assert len(store.ss_tables_levels[2]) == 1
+    assert len(store.ss_tables_levels[3]) == 1
+
+    return store

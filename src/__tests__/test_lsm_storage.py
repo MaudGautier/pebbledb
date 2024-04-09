@@ -17,6 +17,8 @@ from src.__fixtures__.store import (
     records_for_store_with_multiple_l1_sstables,
     store_with_four_l1_and_one_l2_sstables,
     records_for_store_with_four_l1_and_one_l2_sstables,
+    store_with_one_sstable_at_five_levels,
+    records_for_store_with_one_sstable_at_five_levels,
     TEST_DIRECTORY
 )
 from src.memtable import MemTable
@@ -446,3 +448,23 @@ def test_try_compact_should_not_force_compact_l1_if_below_the_threshold(store_wi
 
         # THEN
         mocked_freeze.assert_not_called()
+
+
+def test_try_compact_should_compact_in_cascade(store_with_one_sstable_at_five_levels):
+    # GIVEN
+    store = store_with_one_sstable_at_five_levels
+    store._levels_ratio = 2
+    store._max_l0_sstables = 1
+
+    # WHEN/THEN
+    with mock.patch.object(store, 'force_compaction_l1_or_more_level',
+                           wraps=store.force_compaction_l1_or_more_level) as mocked_freeze:
+        # WHEN
+        store._try_compact()
+
+        # THEN
+        mocked_freeze.assert_has_calls([mock.call(level=1), mock.call(level=2), mock.call(level=3)])
+        assert len(store.ss_tables_levels[0]) == 0
+        assert len(store.ss_tables_levels[1]) == 0
+        assert len(store.ss_tables_levels[2]) == 0
+        assert len(store.ss_tables_levels[3]) == 5

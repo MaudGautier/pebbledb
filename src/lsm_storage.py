@@ -230,6 +230,9 @@ class LsmStorage:
         - at level 0 if the number of SSTables at level 0 exceeds a given threshold (`self._max_l0_sstables`)
         - at any other level if the ratio of the number of SSTables at this level over the number of SSTables at the
         next level exceeds a given threshold (`self._levels_ratio`).
+
+        A compaction operation executed at a given level may trigger compaction at higher levels.
+        In other words, compaction operations are triggered in cascade here.
         """
 
         # Try to compact level 0
@@ -237,10 +240,10 @@ class LsmStorage:
             self.force_compaction_l0()
 
         # Try to compact other levels
-        for i in range(len(self.ss_tables_levels) - 1):
-            level = self.ss_tables_levels[i]
-            next_level = self.ss_tables_levels[i + 1]
-            if len(level) >= self._levels_ratio * len(next_level):
-                self.force_compaction_l1_or_more_level(level=i)
+        for level_index in range(len(self.ss_tables_levels) - 1):
+            current_level = self.ss_tables_levels[level_index]
+            next_level = self.ss_tables_levels[level_index + 1]
+            if len(current_level) >= self._levels_ratio * len(next_level):
+                self.force_compaction_l1_or_more_level(level=level_index + 1)
 
         return
