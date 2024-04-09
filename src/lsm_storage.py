@@ -156,6 +156,8 @@ class LsmStorage:
                 self.immutable_memtables.pop()
                 self.ss_tables.insert(0, sstable)
 
+        self._try_compact()
+
     def _compute_path(self):
         timestamp_in_us = int(time.time() * 1_000_000)
         return f"{self.directory}/{timestamp_in_us}.sst"

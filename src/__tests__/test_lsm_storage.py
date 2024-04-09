@@ -468,3 +468,17 @@ def test_try_compact_should_compact_in_cascade(store_with_one_sstable_at_five_le
         assert len(store.ss_tables_levels[1]) == 0
         assert len(store.ss_tables_levels[2]) == 0
         assert len(store.ss_tables_levels[3]) == 5
+
+
+def test_flush_next_immutable_memtable_tries_compacting(store_with_multiple_immutable_memtables):
+    # GIVEN
+    store = store_with_multiple_immutable_memtables
+
+    # WHEN
+    with mock.patch.object(store, '_try_compact',
+                           wraps=store._try_compact) as mocked_freeze:
+        # WHEN
+        store.flush_next_immutable_memtable()
+
+        # THEN
+        mocked_freeze.assert_called_once()
