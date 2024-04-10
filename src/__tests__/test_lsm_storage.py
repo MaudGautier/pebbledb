@@ -5,22 +5,6 @@ from unittest import mock
 from src.bloom_filter import BloomFilter
 from src.iterators import MergingIterator, SSTableIterator
 from src.lsm_storage import LsmStorage
-from src.__fixtures__.store import (
-    store_with_multiple_immutable_memtables,
-    store_with_multiple_immutable_memtables_records,
-    store_with_duplicated_keys,
-    store_with_duplicated_keys_records,
-    store_with_one_l0_sstable,
-    store_with_multiple_l0_sstables,
-    records_for_store_with_multiple_l0_sstables,
-    store_with_multiple_l1_sstables,
-    records_for_store_with_multiple_l1_sstables,
-    store_with_four_l1_and_one_l2_sstables,
-    records_for_store_with_four_l1_and_one_l2_sstables,
-    store_with_one_sstable_at_five_levels,
-    records_for_store_with_one_sstable_at_five_levels,
-    TEST_DIRECTORY
-)
 from src.memtable import MemTable
 from src.record import Record
 from src.sstable import SSTable, SSTableFile

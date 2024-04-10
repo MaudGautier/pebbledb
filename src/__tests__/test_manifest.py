@@ -1,13 +1,4 @@
 from src.manifest import Manifest, FlushEvent, CompactionEvent
-from src.__fixtures__.sstable import (
-    sstable_four_blocks,
-    records_for_sstable_four_blocks,
-    sstable_one_block_1,
-    records_for_sstable_one_block,
-    sstable_one_block_2,
-    sstable_one_block_3,
-    sstable_one_block_4
-)
 
 
 def test_reconstruct_from_empty_events():

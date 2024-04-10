@@ -5,7 +5,6 @@ from src.iterators import DataBlockIterator, MemTableIterator, SSTableIterator, 
     ConcatenatingIterator
 from src.memtable import MemTable
 from src.record import Record
-from src.__fixtures__.sstable import sstable_four_blocks, records_for_sstable_four_blocks
 
 
 def test_iterate_on_memtable():

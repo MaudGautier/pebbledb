@@ -3,7 +3,6 @@ import pytest
 from src.blocks import DataBlock, MetaBlock
 from src.bloom_filter import BloomFilter
 from src.sstable import SSTableBuilder, SSTableEncoding
-from src.__fixtures__.sstable import sstable_four_blocks, records_for_sstable_four_blocks
 
 
 def test_add_record_to_current_block():
