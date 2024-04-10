@@ -12,7 +12,6 @@ class Event:
 class CompactionEvent(Event):
     def __init__(self, input_sstables: list[SSTable], output_sstables: list[SSTable], level: int):
         super().__init__()
-        self.type = "Compaction"
         self.input_sstables = input_sstables
         self.output_sstables = output_sstables
         self.level = level
@@ -21,7 +20,6 @@ class CompactionEvent(Event):
 class FlushEvent(Event):
     def __init__(self, sstable: SSTable):
         super().__init__()
-        self.type = "Flush"
         self.sstable = sstable
 
 
@@ -34,9 +32,9 @@ class Manifest:
         ss_tables_levels = [deque() for _ in range(self.nb_levels + 1)]
 
         for event in self.events:
-            if event.type == "Flush":
+            if isinstance(event, FlushEvent):
                 ss_tables_levels[0].insert(0, event.sstable)
-            if event.type == "Compaction":
+            if isinstance(event, CompactionEvent):
                 level = event.level
                 for sstable in event.output_sstables:
                     ss_tables_levels[level + 1].insert(0, sstable)
