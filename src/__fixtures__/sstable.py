@@ -55,7 +55,10 @@ def sstable_four_blocks(records_for_sstable_four_blocks):
     assert sstable.meta_blocks[3].first_key == "mmm"
     assert sstable.meta_blocks[3].last_key == "ppp"
 
-    return sstable
+    yield sstable
+
+    # Cleanup code (Delete the file created by the fixture)
+    os.remove(sstable.file.path)
 
 
 @pytest.fixture
@@ -79,25 +82,29 @@ def build_sstable_one_block(records_for_sstable_one_block, file_name):
     assert sstable.meta_blocks[0].first_key == "key1"
     assert sstable.meta_blocks[0].last_key == "key3"
 
-    return sstable
+    yield sstable
+
+    # Cleanup code (Delete the file created by the fixture)
+    os.remove(sstable.file.path)
+
 
 
 @pytest.fixture
 def sstable_one_block_1(records_for_sstable_one_block):
-    return build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block")
+    yield from build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block")
 
 
 @pytest.fixture
 def sstable_one_block_2(records_for_sstable_one_block):
-    return build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block_2")
+    yield from build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block_2")
 
 
 @pytest.fixture
 def sstable_one_block_3(records_for_sstable_one_block):
-    return build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block_3")
+    yield from build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block_3")
 
 
 
 @pytest.fixture
 def sstable_one_block_4(records_for_sstable_one_block):
-    return build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block_4")
+    yield from build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block_4")
