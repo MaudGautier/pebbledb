@@ -1,3 +1,6 @@
+import os
+import time
+
 import pytest
 
 from src.lsm_storage import LsmStorage
@@ -261,3 +264,13 @@ def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_
     assert len(store.ss_tables_levels[3]) == 1
 
     return store
+
+
+@pytest.fixture
+def empty_store():
+    return LsmStorage(directory=TEST_DIRECTORY)
+
+
+@pytest.fixture
+def temporary_sstable_path():
+    return f"{TEST_DIRECTORY}/{time.time() * 1_000_000}.sst"

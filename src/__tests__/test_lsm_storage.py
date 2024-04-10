@@ -146,9 +146,9 @@ def test_flush_next_immutable_memtable(store_with_multiple_immutable_memtables):
     # TODO: when iterator on sstable done, check that we have both key1 and key2 in there (or new test)
 
 
-def test_flush_waits_for_freeze():
+def test_flush_waits_for_freeze(empty_store):
     # GIVEN
-    storage = LsmStorage(directory=TEST_DIRECTORY)
+    storage = empty_store
     storage.put("key", b'value')
     storage.memtable.approximate_size = storage._max_sstable_size + 1
 
@@ -181,9 +181,9 @@ def test_flush_waits_for_freeze():
     assert times['freeze_end'] < times['flush_start']
 
 
-def test_freeze_waits_for_flush():
+def test_freeze_waits_for_flush(empty_store):
     # GIVEN
-    storage = LsmStorage(directory=TEST_DIRECTORY)
+    storage = empty_store
     storage.memtable.approximate_size = storage._max_sstable_size + 1
     memtable_to_flush = MemTable()
     memtable_to_flush.put("key", b'value')
@@ -263,7 +263,7 @@ def test_get_value_from_store(store_with_multiple_immutable_memtables):
     assert store.get(key="key6") == b'value6'
 
 
-def test_dont_look_in_bloom_filter_if_key_absent():
+def test_dont_look_in_bloom_filter_if_key_absent(temporary_sstable_path):
     # GIVEN
     bloom_filter = BloomFilter(nb_bytes=2, nb_hash_functions=3)
     inserted_keys = ["foo", "bar"]
@@ -272,7 +272,7 @@ def test_dont_look_in_bloom_filter_if_key_absent():
     sstable = SSTable(meta_blocks=[],
                       meta_block_offset=0,
                       bloom_filter=bloom_filter,
-                      file=SSTableFile(path=f"{TEST_DIRECTORY}/empty.sst", data=b''),
+                      file=SSTableFile(path=temporary_sstable_path, data=b''),
                       first_key="foo",
                       last_key="bar"
                       )
