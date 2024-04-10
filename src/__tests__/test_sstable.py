@@ -1,8 +1,10 @@
+from contextlib import nullcontext as does_not_raise
+
 import pytest
 
 from src.blocks import DataBlock, MetaBlock
 from src.bloom_filter import BloomFilter
-from src.sstable import SSTableBuilder, SSTableEncoding
+from src.sstable import SSTableBuilder, SSTableEncoding, SSTableFile
 
 
 def test_add_record_to_current_block():
@@ -172,3 +174,39 @@ def test_scan_sstable(start_key, end_key, sstable_four_blocks, records_for_sstab
     # THEN
     assert scanned_records_inside == [record for record in records_for_sstable_four_blocks if
                                       start_key <= record.key <= end_key]
+
+
+def test_create_sstable_file_object_from_existing_path_should_raise_an_error(sstable_four_blocks):
+    # GIVEN
+    path_with_file = sstable_four_blocks.file.path
+
+    # WHEN/THEN
+    with pytest.raises(ValueError):
+        SSTableFile.create(path=path_with_file, data=b'')
+
+
+def test_open_sstable_file_object_from_existing_path_should_not_raise_an_error(sstable_four_blocks):
+    # GIVEN
+    path_with_file = sstable_four_blocks.file.path
+
+    # WHEN/THEN
+    with does_not_raise():
+        SSTableFile.open(path=path_with_file)
+
+
+def test_create_sstable_file_object_from_new_path_should_not_raise_an_error(temporary_sstable_path):
+    # GIVEN
+    path_with_no_file = temporary_sstable_path
+
+    # WHEN/THEN
+    with does_not_raise():
+        SSTableFile.create(path=path_with_no_file, data=b'')
+
+
+def test_open_sstable_file_object_from_new_path_should_raise_an_error(temporary_sstable_path):
+    # GIVEN
+    path_with_no_file = temporary_sstable_path
+
+    # WHEN/THEN
+    with pytest.raises(ValueError):
+        SSTableFile.open(path=path_with_no_file)

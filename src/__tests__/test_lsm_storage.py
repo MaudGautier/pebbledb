@@ -272,7 +272,7 @@ def test_dont_look_in_bloom_filter_if_key_absent(temporary_sstable_path):
     sstable = SSTable(meta_blocks=[],
                       meta_block_offset=0,
                       bloom_filter=bloom_filter,
-                      file=SSTableFile(path=temporary_sstable_path, data=b''),
+                      file=SSTableFile.create(path=temporary_sstable_path, data=b''),
                       first_key="foo",
                       last_key="bar"
                       )

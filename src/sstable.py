@@ -1,3 +1,4 @@
+import os
 import struct
 from typing import Optional
 
@@ -10,9 +11,23 @@ INT_i_SIZE = 4
 
 
 class SSTableFile:
-    def __init__(self, path: str, data: bytes):
+    def __init__(self, path: str):
         self.path = path
-        self._write(data=data)
+
+    @classmethod
+    def create(cls, path: str, data: bytes):
+        obj = cls(path)
+        if obj._exists():
+            raise ValueError(f"Cannot create the file because there is already one at {path}")
+        obj._write(data=data)
+        return obj
+
+    @classmethod
+    def open(cls, path: str):
+        obj = cls(path)
+        if not obj._exists():
+            raise ValueError(f"Cannot open the file because there is none at {path}")
+        return obj
 
     def _write(self, data: bytes):
         with open(self.path, "wb") as f:
@@ -22,6 +37,9 @@ class SSTableFile:
         with open(self.path, "rb") as f:
             f.seek(start)
             return f.read(end - start)
+
+    def _exists(self) -> bool:
+        return os.path.isfile(self.path)
 
 
 class SSTableEncoding:
@@ -218,7 +236,7 @@ class SSTableBuilder:
         encoded_sstable = SSTableEncoding(data=bytes(self.data_buffer[:self.current_buffer_position]),
                                           meta_blocks=self.meta_blocks,
                                           bloom_filter=bloom_filter).to_bytes()
-        file = SSTableFile(path=path, data=encoded_sstable)
+        file = SSTableFile.create(path=path, data=encoded_sstable)
 
         # Return python object
         return SSTable(
