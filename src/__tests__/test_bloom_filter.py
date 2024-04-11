@@ -73,10 +73,7 @@ def test_encode_decode():
     decoded_bloom_filter = BloomFilter.from_bytes(data=encoded_bloom_filter)
 
     # THEN
-    assert bloom_filter.nb_hash_functions == decoded_bloom_filter.nb_hash_functions
-    assert bloom_filter.bits_size == decoded_bloom_filter.bits_size
-    assert bloom_filter.bits == decoded_bloom_filter.bits
-    assert bloom_filter.nb_bytes == decoded_bloom_filter.nb_bytes
+    assert decoded_bloom_filter == bloom_filter
 
 
 def test_encode_decode_with_multiple_bytes():
@@ -91,10 +88,7 @@ def test_encode_decode_with_multiple_bytes():
     decoded_bloom_filter = BloomFilter.from_bytes(data=encoded_bloom_filter)
 
     # THEN
-    assert bloom_filter.nb_hash_functions == decoded_bloom_filter.nb_hash_functions
-    assert bloom_filter.bits_size == decoded_bloom_filter.bits_size
-    assert bloom_filter.bits == decoded_bloom_filter.bits
-    assert bloom_filter.nb_bytes == decoded_bloom_filter.nb_bytes
+    assert decoded_bloom_filter == bloom_filter
 
 
 def test_bloom_filters_are_equal():
