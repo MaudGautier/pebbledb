@@ -309,3 +309,15 @@ def test_read_range_sstable_file(sstable_file_1, content_of_sstable_file_1):
 
     # THEN
     assert content == content_of_sstable_file_1[8:19]
+
+
+def test_reconstruct_a_sstable_from_file(sstable_four_blocks):
+    # GIVEN
+    original_sstable = sstable_four_blocks
+    path = original_sstable.file.path
+
+    # WHEN
+    reconstructed_sstable = SSTable.build_from_path(path=path)
+
+    # THEN
+    assert reconstructed_sstable == original_sstable

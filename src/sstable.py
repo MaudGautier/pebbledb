@@ -68,6 +68,10 @@ class SSTableEncoding:
         self.data = data
         self.bloom_filter = bloom_filter
 
+    @property
+    def meta_block_section_offset(self):
+        return len(self.data)
+
     def write(self, path):
         with open(path, "wb") as f:
             encoded_sstable = self.to_bytes()
@@ -184,6 +188,22 @@ class SSTable:
 
     def scan(self, lower: Record.Key, upper: Record.Key) -> SSTableIterator:
         return SSTableIterator(sstable=self, start_key=lower, end_key=upper)
+
+    @classmethod
+    def build_from_path(cls, path: str):
+        file = SSTableFile.open(path=path)
+        data = file.read()
+        sstable_encoding = SSTableEncoding.from_bytes(data=data)
+
+        first_key = sstable_encoding.meta_blocks[0].first_key
+        last_key = sstable_encoding.meta_blocks[-1].last_key
+        meta_blocks = sstable_encoding.meta_blocks
+        meta_block_offset = sstable_encoding.meta_block_section_offset
+        bloom_filter = sstable_encoding.bloom_filter
+
+        return cls(meta_blocks=meta_blocks, meta_block_offset=meta_block_offset,
+                   first_key=first_key, last_key=last_key,
+                   bloom_filter=bloom_filter, file=file)
 
 
 class SSTableBuilder:
