@@ -4,7 +4,7 @@ import pytest
 
 from src.blocks import DataBlock, MetaBlock
 from src.bloom_filter import BloomFilter
-from src.sstable import SSTableBuilder, SSTableEncoding, SSTableFile
+from src.sstable import SSTableBuilder, SSTableEncoding, SSTable, SSTableFile
 
 
 def test_add_record_to_current_block():
@@ -231,3 +231,59 @@ def test_sstable_files_are_not_equal(temporary_sstable_path, temporary_sstable_p
 
     # WHEN/THEN
     assert file1 != file2
+
+
+def test_sstables_are_equal(temporary_sstable_path, simple_bloom_filter):
+    # GIVEN
+    SSTableFile.create(path=temporary_sstable_path, data=b'')
+    file1 = SSTableFile.open(path=temporary_sstable_path)
+    file2 = SSTableFile.open(path=temporary_sstable_path)
+    sstable_1 = SSTable(meta_blocks=[], first_key="key1", last_key="key3", meta_block_offset=10,
+                        bloom_filter=simple_bloom_filter, file=file1)
+    sstable_2 = SSTable(meta_blocks=[], first_key="key1", last_key="key3", meta_block_offset=10,
+                        bloom_filter=simple_bloom_filter, file=file2)
+
+    # WHEN
+    are_equal = sstable_1 == sstable_2
+
+    # THEN
+    assert are_equal is True
+
+
+def test_sstables_are_not_equal_under_several_conditions(temporary_sstable_path, simple_bloom_filter,
+                                                         simple_bloom_filter_2, sstable_four_blocks):
+    # GIVEN
+    SSTableFile.create(path=temporary_sstable_path, data=b'')
+    meta_block = MetaBlock(first_key="key1", last_key="key3", offset=0)
+    meta_block_other = MetaBlock(first_key="key1", last_key="key3", offset=2)
+    sstable = SSTable(meta_blocks=[meta_block], first_key="key1", last_key="key3", meta_block_offset=10,
+                      bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+    sstable_first_key = SSTable(meta_blocks=[meta_block], first_key="key2", last_key="key3", meta_block_offset=10,
+                                bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+    sstable_last_key = SSTable(meta_blocks=[meta_block], first_key="key1", last_key="key4", meta_block_offset=10,
+                               bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+    sstable_meta_block = SSTable(meta_blocks=[meta_block_other], first_key="key1", last_key="key3",
+                                 meta_block_offset=10,
+                                 bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+    sstable_offset = SSTable(meta_blocks=[meta_block], first_key="key1", last_key="key3", meta_block_offset=11,
+                             bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+    sstable_bloom = SSTable(meta_blocks=[meta_block], first_key="key1", last_key="key3", meta_block_offset=10,
+                            bloom_filter=simple_bloom_filter_2, file=SSTableFile.open(path=temporary_sstable_path))
+    sstable_file = SSTable(meta_blocks=[meta_block], first_key="key1", last_key="key3", meta_block_offset=10,
+                           bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=sstable_four_blocks.file.path))
+
+    # WHEN
+    are_equal_first_key = sstable == sstable_first_key
+    are_equal_last_key = sstable == sstable_last_key
+    are_equal_meta_block = sstable == sstable_meta_block
+    are_equal_offset = sstable == sstable_offset
+    are_equal_bloom = sstable == sstable_bloom
+    are_equal_file = sstable == sstable_file
+
+    # THEN
+    assert are_equal_first_key is False
+    assert are_equal_last_key is False
+    assert are_equal_meta_block is False
+    assert are_equal_offset is False
+    assert are_equal_bloom is False
+    assert are_equal_file is False

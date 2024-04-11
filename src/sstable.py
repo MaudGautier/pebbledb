@@ -129,6 +129,16 @@ class SSTable:
         self.first_key = first_key
         self.last_key = last_key
 
+    def __eq__(self, other):
+        if not isinstance(other, SSTable):
+            return NotImplemented
+        return (self.file == other.file
+                and self.meta_blocks == other.meta_blocks
+                and self.meta_block_offset == other.meta_block_offset
+                and self.bloom_filter == other.bloom_filter
+                and self.first_key == other.first_key
+                and self.last_key == other.last_key)
+
     def find_block_id(self, key: Record.Key) -> Optional[int]:
         for i, meta_block in enumerate(self.meta_blocks):
             if meta_block.last_key < key:
