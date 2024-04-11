@@ -30,6 +30,11 @@ class BloomFilter:
         self.nb_hash_functions = nb_hash_functions
         self.bits = bits if bits else 0
 
+    def __eq__(self, other):
+        if not isinstance(other, BloomFilter):
+            return NotImplemented
+        return self.bits == other.bits and self.nb_hash_functions == other.nb_hash_functions
+
     def _hash(self, key: str) -> list[int]:
         """Hashes the key with all hash functions and defines the list of bits that should be set.
         After hashing, we take the modulo of the result by the size of the sequence of bits so that all hash functions

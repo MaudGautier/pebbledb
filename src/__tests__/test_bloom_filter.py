@@ -95,3 +95,52 @@ def test_encode_decode_with_multiple_bytes():
     assert bloom_filter.bits_size == decoded_bloom_filter.bits_size
     assert bloom_filter.bits == decoded_bloom_filter.bits
     assert bloom_filter.nb_bytes == decoded_bloom_filter.nb_bytes
+
+
+def test_bloom_filters_are_equal():
+    # GIVEN
+    keys = ["key1", "key2", "key3"]
+    bloom_filter1 = BloomFilter(nb_bytes=8, nb_hash_functions=3)
+    bloom_filter2 = BloomFilter(nb_bytes=8, nb_hash_functions=3)
+    for key in keys:
+        bloom_filter1.add(key)
+        bloom_filter2.add(key)
+
+    # WHEN
+    are_equal = bloom_filter1 == bloom_filter2
+
+    # THEN
+    assert are_equal is True
+
+
+def test_bloom_filters_are_not_equal_if_different_number_of_hash_functions():
+    # GIVEN
+    keys = ["key1", "key2", "key3"]
+    bloom_filter1 = BloomFilter(nb_bytes=8, nb_hash_functions=3)
+    bloom_filter2 = BloomFilter(nb_bytes=8, nb_hash_functions=4)
+    for key in keys:
+        bloom_filter1.add(key)
+        bloom_filter2.add(key)
+
+    # WHEN
+    are_equal = bloom_filter1 == bloom_filter2
+
+    # THEN
+    assert are_equal is False
+
+
+def test_bloom_filters_are_not_equal_if_different_keys():
+    # GIVEN
+    keys = ["key1", "key2", "key3"]
+    bloom_filter1 = BloomFilter(nb_bytes=8, nb_hash_functions=3)
+    bloom_filter2 = BloomFilter(nb_bytes=8, nb_hash_functions=4)
+    for key in keys:
+        bloom_filter1.add(key)
+    for key in keys[:2]:
+        bloom_filter2.add(key)
+
+    # WHEN
+    are_equal = bloom_filter1 == bloom_filter2
+
+    # THEN
+    assert are_equal is False
