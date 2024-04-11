@@ -6,6 +6,7 @@ from src.manifest import (
     ManifestFlushRecord,
     ManifestCompactionRecord,
     ManifestSSTablesBlock,
+    ManifestRecord,
 )
 
 
@@ -290,3 +291,41 @@ def test_encode_decode_manifest_compaction_record(sstable_one_block_1, sstable_o
     assert manifest_compaction_record.event.input_sstables == decoded_manifest_record.event.input_sstables
     assert manifest_compaction_record.event.output_sstables == decoded_manifest_record.event.output_sstables
     assert manifest_compaction_record.event.level == decoded_manifest_record.event.level
+
+
+def test_encode_decode_manifest_record_which_is_a_flush_record(sstable_one_block_1):
+    # GIVEN
+    sstable = sstable_one_block_1
+    flush_event = FlushEvent(sstable=sstable)
+    manifest_record = ManifestRecord(event=flush_event)
+
+    # WHEN
+    encoded_manifest_record = manifest_record.to_bytes()
+    decoded_manifest_record = ManifestRecord.from_bytes(data=encoded_manifest_record)
+
+    # THEN
+    assert isinstance(manifest_record.event, FlushEvent)
+    assert isinstance(decoded_manifest_record.event, FlushEvent)
+    assert manifest_record.event == decoded_manifest_record.event
+
+
+def test_encode_decode_manifest_record_which_is_a_compaction_record(sstable_one_block_1, sstable_one_block_2,
+                                                                    sstable_one_block_3, sstable_one_block_4):
+    # GIVEN
+    sstable1 = sstable_one_block_1
+    sstable2 = sstable_one_block_2
+    sstable3 = sstable_one_block_3
+    sstable4 = sstable_one_block_4
+    compaction_event = CompactionEvent(input_sstables=[sstable1, sstable2],
+                                       output_sstables=[sstable3, sstable4],
+                                       level=1)
+    manifest_record = ManifestRecord(event=compaction_event)
+
+    # WHEN
+    encoded_manifest_record = manifest_record.to_bytes()
+    decoded_manifest_record = ManifestRecord.from_bytes(data=encoded_manifest_record)
+
+    # THEN
+    assert isinstance(manifest_record.event, CompactionEvent)
+    assert isinstance(decoded_manifest_record.event, CompactionEvent)
+    assert manifest_record.event == decoded_manifest_record.event

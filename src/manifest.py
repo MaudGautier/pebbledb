@@ -62,16 +62,35 @@ class Manifest:
 
 
 class ManifestRecord:
+    category_encoding = {"FLUSH": 0, "COMPACT": 1}
+
     def __init__(self, event: Event):
         self.event = event
-        self.category_encoding = {"FLUSH": 0, "COMPACT": 1}
 
     def to_bytes(self) -> bytes:
-        raise NotImplementedError()
+        category_byte = struct.pack("B", self.category_encoding[self.category])
+        if isinstance(self.event, FlushEvent):
+            return category_byte + ManifestFlushRecord(event=self.event).to_bytes()
+        if isinstance(self.event, CompactionEvent):
+            return category_byte + ManifestCompactionRecord(event=self.event).to_bytes()
+        raise ValueError("TO BYTES not handled category")
+
+    @property
+    def category(self) -> str:
+        if isinstance(self.event, FlushEvent):
+            return "FLUSH"
+        if isinstance(self.event, CompactionEvent):
+            return "COMPACT"
+        raise ValueError("The event cannot be identified")
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> "ManifestRecord":
-        raise NotImplementedError()
+    def from_bytes(cls, data: bytes):
+        category = struct.unpack("B", data[:1])[0]
+        if category == 0:
+            return cls(event=ManifestFlushRecord.from_bytes(data[1:]).event)
+        if category == 1:
+            return cls(event=ManifestCompactionRecord.from_bytes(data[1:]).event)
+        raise ValueError("FROM BYTES not handled category")
 
 
 class ManifestFlushRecord(ManifestRecord):
@@ -86,27 +105,20 @@ class ManifestFlushRecord(ManifestRecord):
     """
 
     def __init__(self, event: FlushEvent):
-        super().__init__(event=event)
-        self.event = event  # TODO: check if there is a way _NOT_ to do that
-        self.category = self.category_encoding["FLUSH"]
+        super().__init__(event)
+        self.event = event
 
-    def to_bytes(self) -> bytes:
-        encoded_category = struct.pack("B", self.category)
+    def to_bytes(self):
         manifest_ss_table = ManifestSSTable(sstable=self.event.sstable)
         encoded_manifest_sstable = manifest_ss_table.to_bytes()
         encoded_size = struct.pack("B", len(encoded_manifest_sstable))
 
-        return encoded_category + encoded_size + encoded_manifest_sstable
+        return encoded_size + encoded_manifest_sstable
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "ManifestFlushRecord":
-        category = struct.unpack("B", data[:1])[0]
-        # TODO: move category encoding in ManifestRecord instead (parent class) and then dispatch to children classes
-        if category != 0:  # FLUSH
-            raise ValueError("PROBLEM NOT HANDLED!!!")
-
-        size = struct.unpack("B", data[1:2])[0]
-        sstable = ManifestSSTable.from_bytes(data=data[2:2 + size]).sstable
+        size = struct.unpack("B", data[0:1])[0]
+        sstable = ManifestSSTable.from_bytes(data=data[1:1 + size]).sstable
         event = FlushEvent(sstable=sstable)
 
         return cls(event=event)
@@ -187,12 +199,10 @@ class ManifestCompactionRecord(ManifestRecord):
     """
 
     def __init__(self, event: CompactionEvent):
-        super().__init__(event=event)
+        super().__init__(event)
         self.event = event
-        self.category = self.category_encoding["COMPACT"]
 
     def to_bytes(self) -> bytes:
-        encoded_category = struct.pack("B", self.category)
         encoded_level = struct.pack("B", self.event.level)
 
         encoded_in_sstables = ManifestSSTablesBlock(sstables=self.event.input_sstables).to_bytes()
@@ -200,16 +210,12 @@ class ManifestCompactionRecord(ManifestRecord):
         encoded_size_in_sstables = struct.pack("H", len(encoded_in_sstables))
         encoded_size_out_sstables = struct.pack("H", len(encoded_out_sstables))
 
-        return encoded_category + encoded_level + encoded_size_in_sstables + encoded_size_out_sstables + encoded_in_sstables + encoded_out_sstables
+        return (encoded_level + encoded_size_in_sstables + encoded_size_out_sstables +
+                encoded_in_sstables + encoded_out_sstables)
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "ManifestCompactionRecord":
-        category_start, extra_start = 0, 1
-        category = struct.unpack("B", data[category_start:extra_start])[0]
-        # TODO: move category encoding in ManifestRecord instead (parent class) and then dispatch to children classes
-        if category != 1:  # COMPACT
-            raise ValueError("PROBLEM NOT HANDLED!!!")
-
+        extra_start = 0
         level = struct.unpack("B", data[extra_start:extra_start + 1])[0]
         size_in_sstables = struct.unpack("H", data[extra_start + 1: extra_start + 3])[0]
         size_out_sstables = struct.unpack("H", data[extra_start + 3: extra_start + 5])[0]
