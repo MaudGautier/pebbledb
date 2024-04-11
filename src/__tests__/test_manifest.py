@@ -180,6 +180,27 @@ def test_reconstruct_from_two_flush_events_interspaced_with_compaction_events(ss
     assert store.ss_tables_levels[0][0] == sstable4
 
 
+def test_flush_events_are_equal(sstable_one_block_1):
+    # GIVEN
+    flush_event_1 = FlushEvent(sstable=sstable_one_block_1)
+    flush_event_2 = FlushEvent(sstable=sstable_one_block_1)
+
+    # WHEN
+    are_equal = flush_event_1 == flush_event_2
+
+    # THEN
+    assert are_equal is True
+
+
+def test_flush_events_are_not_equal_if_different_sstables(sstable_one_block_1, sstable_one_block_2):
+    # GIVEN
+    flush_event_1 = FlushEvent(sstable=sstable_one_block_1)
+    flush_event_2 = FlushEvent(sstable=sstable_one_block_2)
+
+    # WHEN/THEN
+    assert flush_event_1 != flush_event_2
+
+
 def test_encode_decode_manifest_sstable(sstable_one_block_1):
     # GIVEN
     sstable = sstable_one_block_1
