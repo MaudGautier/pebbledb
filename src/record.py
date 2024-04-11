@@ -2,8 +2,17 @@ import struct
 
 
 class Record:
-    """The record that is stored in both the MemTable (in memory) and in the SSTable (on disk).
+    """This class handles encoding and decoding of Records.
+
+    Records are stored in both the MemTable (in memory) and in the SSTable (on disk).
     It is a pair of key-value. The key is a string, and the value is in bytes (encoded and decoded by a layer above).
+
+    Each Record has the following format:
+    +----------+----------------+------------+------------------+
+    | Key_size |       Key      | Value_size |      Value       |
+    +----------+----------------+------------+------------------+
+    | 4 bytes  | Key_size bytes |  4 bytes   | Value_size bytes |
+    +----------+----------------+------------+------------------+
     """
     Key = str
     Value = bytes

@@ -106,11 +106,11 @@ class MetaBlock:
 
     Each Meta Block has the following format:
 
-    +---------+--------------+---------+--------------+---------+
-    | FK_size |      FK      | LK_size |      LK      | offset  |
-    +---------+--------------+---------+--------------+---------+
-    | 16 bits | FK_size bits | 16 bits | LK_size bits | 32 bits |
-    +---------+--------------+---------+--------------+---------+
+    +---------+---------------+---------+---------------+---------+
+    | FK_size |       FK      | LK_size |      LK       | offset  |
+    +---------+---------------+---------+---------------+---------+
+    | 2 bytes | FK_size bytes | 2 bytes | LK_size bytes | 4 bytes |
+    +---------+---------------+---------+---------------+---------+
     (FK = First Key, LK = Last Key, offset = start position of the data block)
     """
 
