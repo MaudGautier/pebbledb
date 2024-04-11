@@ -38,10 +38,14 @@ class SSTableFile:
         with open(self.path, "wb") as f:
             f.write(data)
 
-    def read(self, start: int, end: int) -> bytes:
+    def read_range(self, start: int, end: int) -> bytes:
         with open(self.path, "rb") as f:
             f.seek(start)
             return f.read(end - start)
+
+    def read(self) -> bytes:
+        with open(self.path, "rb") as f:
+            return f.read()
 
     def _exists(self) -> bool:
         return os.path.isfile(self.path)
@@ -160,7 +164,7 @@ class SSTable:
             if block_id + 1 < len(self.meta_blocks) \
             else self.meta_block_offset
 
-        encoded_block = self.file.read(start=start, end=end)
+        encoded_block = self.file.read_range(start=start, end=end)
         return DataBlock.from_bytes(data=encoded_block)
 
     # TODO: Probably return the record and move the decoding up in the LSM Storage part

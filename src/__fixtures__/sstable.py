@@ -100,7 +100,16 @@ def sstable_one_block_3(records_for_sstable_one_block):
     yield from build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block_3")
 
 
-
 @pytest.fixture
 def sstable_one_block_4(records_for_sstable_one_block):
     yield from build_sstable_one_block(records_for_sstable_one_block, "sstable_one_block_4")
+
+
+@pytest.fixture
+def content_of_sstable_file_1():
+    return b'this_is_the_content_of_sstable_file_1'
+
+
+@pytest.fixture
+def sstable_file_1(temporary_sstable_path, content_of_sstable_file_1):
+    return SSTableFile.create(path=temporary_sstable_path, data=content_of_sstable_file_1)

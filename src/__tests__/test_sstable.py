@@ -287,3 +287,25 @@ def test_sstables_are_not_equal_under_several_conditions(temporary_sstable_path,
     assert are_equal_offset is False
     assert are_equal_bloom is False
     assert are_equal_file is False
+
+
+def test_read_sstable_file(sstable_file_1, content_of_sstable_file_1):
+    # GIVEN
+    sstable_file = sstable_file_1
+
+    # WHEN
+    content = sstable_file.read()
+
+    # THEN
+    assert content == content_of_sstable_file_1
+
+
+def test_read_range_sstable_file(sstable_file_1, content_of_sstable_file_1):
+    # GIVEN
+    sstable_file = sstable_file_1
+
+    # WHEN
+    content = sstable_file.read_range(start=8, end=19)
+
+    # THEN
+    assert content == content_of_sstable_file_1[8:19]
