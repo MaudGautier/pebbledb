@@ -105,3 +105,34 @@ class ManifestFlushRecord(ManifestRecord):
         event = FlushEvent(sstable=sstable)
 
         return cls(event=event)
+
+
+class ManifestSSTable:
+    """This class handles encoding and decoding of ManifestSSTables.
+
+    Each ManifestSSTable has the following format:
+    +-----------+-----------------+
+    | path_size |      path       |
+    +-----------+-----------------+
+    |  1 byte   | path_size bytes |
+    +-----------+-----------------+
+    """
+
+    def __init__(self, sstable: SSTable):
+        self.sstable = sstable
+
+    def to_bytes(self) -> bytes:
+        sstable_path = self.sstable.file.path
+        encoded_path_size = struct.pack("B", len(sstable_path))
+        encoded_path = sstable_path.encode(encoding="utf-8")
+
+        return encoded_path_size + encoded_path
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> "ManifestSSTable":
+        filename_size = struct.unpack("B", data[0:1])[0]
+        file_path = data[1:1 + filename_size].decode("utf-8")
+
+        sstable = SSTable.build_from_path(path=file_path)
+
+        return cls(sstable=sstable)
