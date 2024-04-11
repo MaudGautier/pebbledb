@@ -71,11 +71,11 @@ class ManifestFlushRecord(ManifestRecord):
     """This class handles encoding and decoding of ManifestFlushRecords.
 
     Each ManifestFlushRecord has the following format:
-    +--------+-----------+-----------------+
-    | FLUSH  | path_size |      path       | # TODO: ADD TIMESTAMP ???
-    +--------+-----------+-----------------+
-    | 1 byte |  1 byte   | path_size bytes |
-    +--------+-----------+-----------------+
+    +--------+-----------------------+-----------------------------+
+    | FLUSH  | manifest_sstable_size |       ManifestSSTable       | # TODO: ADD TIMESTAMP ???
+    +--------+-----------------------+-----------------------------+
+    | 1 byte |        1 byte         | manifest_sstable_size bytes |
+    +--------+-----------------------+-----------------------------+
     """
 
     def __init__(self, event: FlushEvent):
@@ -84,24 +84,22 @@ class ManifestFlushRecord(ManifestRecord):
         self.category = self.category_encoding["FLUSH"]
 
     def to_bytes(self) -> bytes:
-        sstable_path = self.event.sstable.file.path
-        encoded_path_size = struct.pack("B", len(sstable_path))
-        encoded_path = sstable_path.encode(encoding="utf-8")
         encoded_category = struct.pack("B", self.category)
+        manifest_ss_table = ManifestSSTable(sstable=self.event.sstable)
+        encoded_manifest_sstable = manifest_ss_table.to_bytes()
+        encoded_size = struct.pack("B", len(encoded_manifest_sstable))
 
-        return encoded_category + encoded_path_size + encoded_path
+        return encoded_category + encoded_size + encoded_manifest_sstable
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "ManifestFlushRecord":
         category = struct.unpack("B", data[:1])[0]
-        filename_size = struct.unpack("B", data[1:2])[0]
-        file_path = data[2:2 + filename_size].decode("utf-8")
-
         # TODO: move category encoding in ManifestRecord instead (parent class) and then dispatch to children classes
         if category != 0:  # FLUSH
             raise ValueError("PROBLEM NOT HANDLED!!!")
 
-        sstable = SSTable.build_from_path(path=file_path)
+        size = struct.unpack("B", data[1:2])[0]
+        sstable = ManifestSSTable.from_bytes(data=data[2:2 + size]).sstable
         event = FlushEvent(sstable=sstable)
 
         return cls(event=event)
