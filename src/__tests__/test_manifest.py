@@ -1,4 +1,5 @@
-from src.manifest import Manifest, FlushEvent, CompactionEvent
+from src.manifest import Manifest, FlushEvent, CompactionEvent, ManifestFlushRecord
+from src.sstable import SSTable
 
 
 def test_reconstruct_from_empty_events():
@@ -170,3 +171,17 @@ def test_reconstruct_from_two_flush_events_interspaced_with_compaction_events(ss
     assert len(store.ss_tables_levels[0]) == 2  # l1
     assert store.ss_tables_levels[0][1] == sstable3
     assert store.ss_tables_levels[0][0] == sstable4
+
+
+def test_encode_decode_manifest_flush_record(sstable_one_block_1):
+    # GIVEN
+    sstable = sstable_one_block_1
+    flush_event = FlushEvent(sstable=sstable)
+    manifest_flush_record = ManifestFlushRecord(event=flush_event)
+
+    # WHEN
+    encoded_manifest_record = manifest_flush_record.to_bytes()
+    decoded_manifest_record = ManifestFlushRecord.from_bytes(data=encoded_manifest_record)
+
+    # THEN
+    assert manifest_flush_record.event.sstable == decoded_manifest_record.event.sstable
