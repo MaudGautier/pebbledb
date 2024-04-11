@@ -1,14 +1,11 @@
 import os
+from typing import Generator
 
 import pytest
 
+from src.__fixtures__.constants import TEST_SSTABLE_FIXTURES_DIRECTORY
 from src.record import Record
-from src.sstable import SSTableBuilder
-
-TEST_FIXTURES = "./test_fixtures"
-
-if not os.path.exists(TEST_FIXTURES):
-    os.makedirs(TEST_FIXTURES)
+from src.sstable import SSTableBuilder, SSTable, SSTableFile
 
 
 @pytest.fixture
@@ -38,12 +35,12 @@ def records_for_sstable_four_blocks():
 
 
 @pytest.fixture
-def sstable_four_blocks(records_for_sstable_four_blocks):
+def sstable_four_blocks(records_for_sstable_four_blocks) -> Generator[SSTable, None, None]:
     sstable_builder = SSTableBuilder(sstable_size=20000, block_size=150)
     for record in records_for_sstable_four_blocks:
         sstable_builder.add(key=record.key, value=record.value)
 
-    sstable = sstable_builder.build(path=f"{TEST_FIXTURES}/sstable_four_blocks.sst")
+    sstable = sstable_builder.build(path=f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/sstable_four_blocks.sst")
 
     assert len(sstable.meta_blocks) == 4
     assert sstable.meta_blocks[0].first_key == "aaa"
@@ -71,12 +68,12 @@ def records_for_sstable_one_block():
     ]
 
 
-def build_sstable_one_block(records_for_sstable_one_block, file_name):
+def build_sstable_one_block(records_for_sstable_one_block, file_name) -> Generator[SSTable, None, None]:
     sstable_builder = SSTableBuilder(sstable_size=20000, block_size=150)
     for record in records_for_sstable_one_block:
         sstable_builder.add(key=record.key, value=record.value)
 
-    sstable = sstable_builder.build(path=f"{TEST_FIXTURES}/{file_name}.sst")
+    sstable = sstable_builder.build(path=f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/{file_name}.sst")
 
     assert len(sstable.meta_blocks) == 1
     assert sstable.meta_blocks[0].first_key == "key1"
@@ -86,7 +83,6 @@ def build_sstable_one_block(records_for_sstable_one_block, file_name):
 
     # Cleanup code (Delete the file created by the fixture)
     os.remove(sstable.file.path)
-
 
 
 @pytest.fixture

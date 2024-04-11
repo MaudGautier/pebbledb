@@ -3,9 +3,8 @@ import time
 
 import pytest
 
+from src.__fixtures__.constants import TEST_DIRECTORY
 from src.lsm_storage import LsmStorage
-
-TEST_DIRECTORY = "./test_store"
 
 
 @pytest.fixture
@@ -269,26 +268,3 @@ def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_
 @pytest.fixture
 def empty_store():
     return LsmStorage(directory=TEST_DIRECTORY)
-
-
-@pytest.fixture
-def temporary_sstable_path():
-    return f"{TEST_DIRECTORY}/{time.time() * 1_000_000}.sst"
-
-
-@pytest.fixture
-def temporary_sstable_path_2():
-    return f"{TEST_DIRECTORY}/{time.time() * 1_000_000}.sst"
-
-
-def cleanup_files():
-    for filename in os.listdir(TEST_DIRECTORY):
-        os.remove(f"{TEST_DIRECTORY}/{filename}")
-
-
-@pytest.fixture(autouse=True)
-def clean_files(request):
-    yield
-
-    # Cleanup code
-    request.addfinalizer(cleanup_files)

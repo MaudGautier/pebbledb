@@ -12,6 +12,7 @@ errors at https://flake8.pycqa.org/en/latest/user/violations.html#in-line-ignori
 error codes at https://flake8.pycqa.org/en/2.5.5/warnings.html).
 """
 
-from src.__fixtures__.store import *  # noqa: F401
-from src.__fixtures__.sstable import *  # noqa: F401
 from src.__fixtures__.bloom_filter import *  # noqa: F401
+from src.__fixtures__.constants import *  # noqa: F401
+from src.__fixtures__.sstable import *  # noqa: F401
+from src.__fixtures__.store import *  # noqa: F401
