@@ -188,8 +188,8 @@ class ManifestCompactionRecord(ManifestRecord):
         encoded_category = struct.pack("B", self.category)
         encoded_level = struct.pack("B", self.event.level)
 
-        encoded_in_sstables = self.encode_manifest_sstables_block(sstables=self.event.input_sstables)
-        encoded_out_sstables = self.encode_manifest_sstables_block(sstables=self.event.output_sstables)
+        encoded_in_sstables = ManifestSSTablesBlock(sstables=self.event.input_sstables).to_bytes()
+        encoded_out_sstables = ManifestSSTablesBlock(sstables=self.event.output_sstables).to_bytes()
         encoded_size_in_sstables = struct.pack("H", len(encoded_in_sstables))
         encoded_size_out_sstables = struct.pack("H", len(encoded_out_sstables))
 
@@ -213,8 +213,8 @@ class ManifestCompactionRecord(ManifestRecord):
         encoded_input_sstables = data[input_sstables_start:output_sstables_start]
         encoded_output_sstables = data[output_sstables_start:output_sstables_end]
 
-        decoded_input_sstables = cls.decode_manifest_sstables_block(data=encoded_input_sstables)
-        decoded_output_sstables = cls.decode_manifest_sstables_block(data=encoded_output_sstables)
+        decoded_input_sstables = ManifestSSTablesBlock.from_bytes(data=encoded_input_sstables).sstables
+        decoded_output_sstables = ManifestSSTablesBlock.from_bytes(data=encoded_output_sstables).sstables
 
         compaction_event = CompactionEvent(input_sstables=decoded_input_sstables,
                                            output_sstables=decoded_output_sstables,

@@ -7,7 +7,6 @@ from src.manifest import (
     ManifestCompactionRecord,
     ManifestSSTablesBlock,
 )
-from src.sstable import SSTable
 
 
 def test_reconstruct_from_empty_events():
