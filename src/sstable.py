@@ -29,6 +29,11 @@ class SSTableFile:
             raise ValueError(f"Cannot open the file because there is none at {path}")
         return obj
 
+    def __eq__(self, other):
+        if not isinstance(other, SSTableFile):
+            return NotImplemented
+        return self.path == other.path
+
     def _write(self, data: bytes):
         with open(self.path, "wb") as f:
             f.write(data)

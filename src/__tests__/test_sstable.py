@@ -210,3 +210,24 @@ def test_open_sstable_file_object_from_new_path_should_raise_an_error(temporary_
     # WHEN/THEN
     with pytest.raises(ValueError):
         SSTableFile.open(path=path_with_no_file)
+
+
+def test_sstable_files_are_equal(temporary_sstable_path):
+    # GIVEN
+    SSTableFile.create(path=temporary_sstable_path, data=b'')
+    file1 = SSTableFile.open(path=temporary_sstable_path)
+    file2 = SSTableFile.open(path=temporary_sstable_path)
+
+    # WHEN/THEN
+    assert file1 == file2
+
+
+def test_sstable_files_are_not_equal(temporary_sstable_path, temporary_sstable_path_2):
+    # GIVEN
+    SSTableFile.create(path=temporary_sstable_path, data=b'')
+    SSTableFile.create(path=temporary_sstable_path_2, data=b'')
+    file1 = SSTableFile.open(path=temporary_sstable_path)
+    file2 = SSTableFile.open(path=temporary_sstable_path_2)
+
+    # WHEN/THEN
+    assert file1 != file2

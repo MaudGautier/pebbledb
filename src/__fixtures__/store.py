@@ -276,6 +276,11 @@ def temporary_sstable_path():
     return f"{TEST_DIRECTORY}/{time.time() * 1_000_000}.sst"
 
 
+@pytest.fixture
+def temporary_sstable_path_2():
+    return f"{TEST_DIRECTORY}/{time.time() * 1_000_000}.sst"
+
+
 def cleanup_files():
     for filename in os.listdir(TEST_DIRECTORY):
         os.remove(f"{TEST_DIRECTORY}/{filename}")
