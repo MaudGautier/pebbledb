@@ -5,6 +5,7 @@ from src.manifest import (
     CompactionEvent,
     ManifestFlushRecord,
     ManifestCompactionRecord,
+    ManifestSSTablesBlock,
 )
 from src.sstable import SSTable
 
@@ -214,8 +215,8 @@ def test_encode_decode_manifest_sstable_block(sstable_one_block_1, sstable_one_b
     sstables_to_encode = [sstable1, sstable2]
 
     # WHEN
-    encoded_block = ManifestCompactionRecord.encode_manifest_sstables_block(sstables=sstables_to_encode)
-    decoded_sstables = ManifestCompactionRecord.decode_manifest_sstables_block(data=encoded_block)
+    encoded_block = ManifestSSTablesBlock(sstables=sstables_to_encode).to_bytes()
+    decoded_sstables = ManifestSSTablesBlock.from_bytes(data=encoded_block).sstables
 
     # THEN
     assert decoded_sstables == sstables_to_encode

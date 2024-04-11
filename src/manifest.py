@@ -140,6 +140,25 @@ class ManifestSSTable:
         return cls(sstable=sstable)
 
 
+class ManifestSSTablesBlock:
+    def __init__(self, sstables: list[SSTable]):
+        self.sstables = sstables
+
+    def to_bytes(self) -> bytes:
+        return b''.join([ManifestSSTable(sstable).to_bytes() for sstable in self.sstables])
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> "ManifestSSTablesBlock":
+        sstables = []
+
+        while len(data):
+            manifest_sstable = ManifestSSTable.from_bytes(data=data)
+            sstables.append(manifest_sstable.sstable)
+            data = data[manifest_sstable.size:]
+
+        return cls(sstables=sstables)
+
+
 class ManifestCompactionRecord(ManifestRecord):
     """This class handles encoding and decoding of ManifestCompactionRecords.
 
