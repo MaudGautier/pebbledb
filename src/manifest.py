@@ -1,5 +1,6 @@
 import struct
 from collections import deque
+from typing import Dict, Type
 
 from src.lsm_storage import LsmStorage
 from src.sstable import SSTable
@@ -62,35 +63,44 @@ class Manifest:
 
 
 class ManifestRecord:
-    category_encoding = {"FLUSH": 0, "COMPACT": 1}
+    category_encoding: Dict[Type[Event], int] = {FlushEvent: 0, CompactionEvent: 1}
+    category_decoding = {0: 'ManifestFlushRecord', 1: 'ManifestCompactionRecord'}
 
     def __init__(self, event: Event):
         self.event = event
 
-    def to_bytes(self) -> bytes:
-        category_byte = struct.pack("B", self.category_encoding[self.category])
-        if isinstance(self.event, FlushEvent):
-            return category_byte + ManifestFlushRecord(event=self.event).to_bytes()
-        if isinstance(self.event, CompactionEvent):
-            return category_byte + ManifestCompactionRecord(event=self.event).to_bytes()
-        raise ValueError("TO BYTES not handled category")
+    @property
+    def event_type(self):
+        event_type = type(self.event)
+        if event_type not in self.category_encoding.keys():
+            raise ValueError(f"Events of type {event_type} are not handled")
+
+        return event_type
 
     @property
-    def category(self) -> str:
-        if isinstance(self.event, FlushEvent):
-            return "FLUSH"
-        if isinstance(self.event, CompactionEvent):
-            return "COMPACT"
-        raise ValueError("The event cannot be identified")
+    def category(self) -> int:
+        return self.category_encoding[self.event_type]
+
+    @classmethod
+    def get_record_class(cls, category: int):
+        if category not in cls.category_decoding.keys():
+            raise ValueError(f"Category {category} does not map to any known record class. "
+                             f"Possible categories are {cls.category_decoding.keys()}.")
+        return globals()[cls.category_decoding[category]]
+
+    def to_bytes(self) -> bytes:
+        category_byte = struct.pack("B", self.category)
+        record_class = self.get_record_class(category=self.category)
+
+        return category_byte + record_class(event=self.event).to_bytes()
 
     @classmethod
     def from_bytes(cls, data: bytes):
         category = struct.unpack("B", data[:1])[0]
-        if category == 0:
-            return cls(event=ManifestFlushRecord.from_bytes(data[1:]).event)
-        if category == 1:
-            return cls(event=ManifestCompactionRecord.from_bytes(data[1:]).event)
-        raise ValueError("FROM BYTES not handled category")
+        record_class = cls.get_record_class(category=category)
+        event = record_class.from_bytes(data[1:]).event
+
+        return cls(event=event)
 
 
 class ManifestFlushRecord(ManifestRecord):
