@@ -119,6 +119,10 @@ class ManifestSSTable:
     def __init__(self, sstable: SSTable):
         self.sstable = sstable
 
+    @property
+    def size(self):
+        return len(self.to_bytes())
+
     def to_bytes(self) -> bytes:
         sstable_path = self.sstable.file.path
         encoded_path_size = struct.pack("B", len(sstable_path))
@@ -134,3 +138,82 @@ class ManifestSSTable:
         sstable = SSTable.build_from_path(path=file_path)
 
         return cls(sstable=sstable)
+
+
+class ManifestCompactionRecord(ManifestRecord):
+    """This class handles encoding and decoding of ManifestCompactionRecords.
+
+    Each ManifestCompactionRecord has the following format:
+    +----------+---------------------------------+-----------------------+-----------------------+
+    | Category |              Extra              |     Input SSTables    |    Output SSTables    |
+    +----------+---------------------------------+-----------------------+-----------------------+
+    | COMPACT  | level | iSSTs_size | oSSTs_size | iSST_1 | ... | iSST_n | oSST_1 | ... | oSST_n |
+    +----------+---------------------------------+-----------------------+-----------------------+
+    (iSST_k = input SSTable k, oSST_k = output SSTable k - encoded as ManifestSSTable)
+    (Level is encoded with 1 byte)
+
+    With the Extra section having the following format:
+    +--------+------------+------------+
+    | level  | iSSTs_size | oSSTs_size |
+    +--------+------------+------------+
+    | 1 byte |  2 bytes   |  2 bytes   |
+    +--------+------------+------------+
+    """
+
+    def __init__(self, event: CompactionEvent):
+        super().__init__(event=event)
+        self.event = event
+        self.category = self.category_encoding["COMPACT"]
+
+    def to_bytes(self) -> bytes:
+        encoded_category = struct.pack("B", self.category)
+        encoded_level = struct.pack("B", self.event.level)
+
+        encoded_in_sstables = self.encode_manifest_sstables_block(sstables=self.event.input_sstables)
+        encoded_out_sstables = self.encode_manifest_sstables_block(sstables=self.event.output_sstables)
+        encoded_size_in_sstables = struct.pack("H", len(encoded_in_sstables))
+        encoded_size_out_sstables = struct.pack("H", len(encoded_out_sstables))
+
+        return encoded_category + encoded_level + encoded_size_in_sstables + encoded_size_out_sstables + encoded_in_sstables + encoded_out_sstables
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> "ManifestCompactionRecord":
+        category_start, extra_start = 0, 1
+        category = struct.unpack("B", data[category_start:extra_start])[0]
+        # TODO: move category encoding in ManifestRecord instead (parent class) and then dispatch to children classes
+        if category != 1:  # COMPACT
+            raise ValueError("PROBLEM NOT HANDLED!!!")
+
+        level = struct.unpack("B", data[extra_start:extra_start + 1])[0]
+        size_in_sstables = struct.unpack("H", data[extra_start + 1: extra_start + 3])[0]
+        size_out_sstables = struct.unpack("H", data[extra_start + 3: extra_start + 5])[0]
+
+        input_sstables_start = extra_start + 5
+        output_sstables_start = input_sstables_start + size_in_sstables
+        output_sstables_end = output_sstables_start + size_out_sstables
+        encoded_input_sstables = data[input_sstables_start:output_sstables_start]
+        encoded_output_sstables = data[output_sstables_start:output_sstables_end]
+
+        decoded_input_sstables = cls.decode_manifest_sstables_block(data=encoded_input_sstables)
+        decoded_output_sstables = cls.decode_manifest_sstables_block(data=encoded_output_sstables)
+
+        compaction_event = CompactionEvent(input_sstables=decoded_input_sstables,
+                                           output_sstables=decoded_output_sstables,
+                                           level=level)
+
+        return cls(event=compaction_event)
+
+    @staticmethod
+    def decode_manifest_sstables_block(data: bytes) -> list[SSTable]:
+        sstables = []
+
+        while len(data):
+            manifest_sstable = ManifestSSTable.from_bytes(data=data)
+            sstables.append(manifest_sstable.sstable)
+            data = data[manifest_sstable.size:]
+
+        return sstables
+
+    @staticmethod
+    def encode_manifest_sstables_block(sstables: list[SSTable]) -> bytes:
+        return b''.join([ManifestSSTable(sstable).to_bytes() for sstable in sstables])

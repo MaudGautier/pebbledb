@@ -4,7 +4,9 @@ from src.manifest import (
     FlushEvent,
     CompactionEvent,
     ManifestFlushRecord,
+    ManifestCompactionRecord,
 )
+from src.sstable import SSTable
 
 
 def test_reconstruct_from_empty_events():
@@ -203,3 +205,35 @@ def test_encode_decode_manifest_flush_record(sstable_one_block_1):
 
     # THEN
     assert manifest_flush_record.event.sstable == decoded_manifest_record.event.sstable
+
+
+def test_encode_decode_manifest_sstable_block(sstable_one_block_1, sstable_one_block_2):
+    # GIVEN
+    sstable1 = sstable_one_block_1
+    sstable2 = sstable_one_block_2
+    sstables_to_encode = [sstable1, sstable2]
+
+    # WHEN
+    encoded_block = ManifestCompactionRecord.encode_manifest_sstables_block(sstables=sstables_to_encode)
+    decoded_sstables = ManifestCompactionRecord.decode_manifest_sstables_block(data=encoded_block)
+
+    # THEN
+    assert decoded_sstables == sstables_to_encode
+
+
+def test_encode_decode_manifest_compaction_record(sstable_one_block_1, sstable_one_block_2):
+    # GIVEN
+    sstable1 = sstable_one_block_1
+    sstable2 = sstable_one_block_2
+    compaction_event = CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0)
+
+    manifest_compaction_record = ManifestCompactionRecord(event=compaction_event)
+
+    # WHEN
+    encoded_manifest_record = manifest_compaction_record.to_bytes()
+    decoded_manifest_record = ManifestCompactionRecord.from_bytes(data=encoded_manifest_record)
+
+    # THEN
+    assert manifest_compaction_record.event.input_sstables == decoded_manifest_record.event.input_sstables
+    assert manifest_compaction_record.event.output_sstables == decoded_manifest_record.event.output_sstables
+    assert manifest_compaction_record.event.level == decoded_manifest_record.event.level
