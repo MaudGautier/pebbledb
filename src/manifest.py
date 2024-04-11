@@ -28,6 +28,13 @@ class CompactionEvent(Event):
         self.output_sstables = output_sstables
         self.level = level
 
+    def __eq__(self, other):
+        if not isinstance(other, CompactionEvent):
+            return NotImplemented
+        return (self.input_sstables == other.input_sstables
+                and self.output_sstables == other.output_sstables
+                and self.level == other.level)
+
 
 class Manifest:
     def __init__(self, events, nb_levels):  # TODO stop passing events and nb_levels - read them from file at some point

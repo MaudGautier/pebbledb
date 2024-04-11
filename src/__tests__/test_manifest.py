@@ -201,6 +201,38 @@ def test_flush_events_are_not_equal_if_different_sstables(sstable_one_block_1, s
     assert flush_event_1 != flush_event_2
 
 
+def test_compaction_events_are_equal(sstable_one_block_1, sstable_one_block_2):
+    # GIVEN
+    sstable1 = sstable_one_block_1
+    sstable2 = sstable_one_block_2
+    compaction_event_1 = CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=1)
+    compaction_event_2 = CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=1)
+
+    # WHEN
+    are_equal = compaction_event_1 == compaction_event_2
+
+    # THEN
+    assert are_equal is True
+
+
+def test_compaction_events_are_not_equal_if_different_attributes(sstable_one_block_1, sstable_one_block_2,
+                                                                 sstable_one_block_3, sstable_one_block_4):
+    # GIVEN
+    sstable1 = sstable_one_block_1
+    sstable2 = sstable_one_block_2
+    sstable3 = sstable_one_block_3
+    sstable4 = sstable_one_block_4
+    compaction_event = CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable3], level=1)
+    compaction_event_input = CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable3], level=1)
+    compaction_event_output = CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable4], level=1)
+    compaction_event_level = CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable3], level=2)
+
+    # WHEN/THEN
+    assert compaction_event != compaction_event_input
+    assert compaction_event != compaction_event_output
+    assert compaction_event != compaction_event_level
+
+
 def test_encode_decode_manifest_sstable(sstable_one_block_1):
     # GIVEN
     sstable = sstable_one_block_1
