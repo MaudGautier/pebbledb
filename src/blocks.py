@@ -121,6 +121,11 @@ class MetaBlock:
         self.last_key = last_key
         self.offset = offset
 
+    def __eq__(self, other):
+        if not isinstance(other, MetaBlock):
+            return NotImplemented
+        return self.first_key == other.first_key and self.last_key == other.last_key and self.offset == other.offset
+
     @property
     def size(self) -> int:
         return len(self.to_bytes())

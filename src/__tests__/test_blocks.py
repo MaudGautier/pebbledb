@@ -129,3 +129,42 @@ def test_get_record():
     assert record_key3 == Record(key=kv_pairs[2][0], value=kv_pairs[2][1])
     assert record_key4 == Record(key=kv_pairs[3][0], value=kv_pairs[3][1])
     assert record_missing_key is None
+
+
+def test_meta_blocks_are_equal():
+    # GIVEN
+    meta_block_1 = MetaBlock(first_key="key1", last_key="key2", offset=10)
+    meta_block_2 = MetaBlock(first_key="key1", last_key="key2", offset=10)
+
+    # WHEN
+    are_equal = meta_block_1 == meta_block_2
+
+    # THEN
+    assert are_equal is True
+
+
+def test_meta_blocks_are_not_equal_if_different_keys():
+    # GIVEN
+    meta_block_1 = MetaBlock(first_key="key1", last_key="key2", offset=10)
+    meta_block_2 = MetaBlock(first_key="key0", last_key="key2", offset=10)
+    meta_block_3 = MetaBlock(first_key="key1", last_key="key3", offset=10)
+
+    # WHEN
+    are_equal_1_2 = meta_block_1 == meta_block_2
+    are_equal_1_3 = meta_block_1 == meta_block_3
+
+    # THEN
+    assert are_equal_1_2 is False
+    assert are_equal_1_3 is False
+
+
+def test_meta_blocks_are_not_equal_if_different_offsets():
+    # GIVEN
+    meta_block_1 = MetaBlock(first_key="key1", last_key="key2", offset=10)
+    meta_block_2 = MetaBlock(first_key="key1", last_key="key2", offset=11)
+
+    # WHEN
+    are_equal = meta_block_1 == meta_block_2
+
+    # THEN
+    assert are_equal is False
