@@ -16,7 +16,9 @@ class LsmStorage:
                  block_size: Optional[int] = 65_536,
                  levels_ratio: float = 0.1,
                  max_l0_sstables: int = 10,
+                 nb_levels: int = 6,
                  directory: Optional[str] = "."):
+        self.nb_levels = nb_levels
         self._levels_ratio = levels_ratio
         self._max_l0_sstables = max_l0_sstables
         self.memtable = self._create_memtable()
@@ -27,7 +29,7 @@ class LsmStorage:
         self._max_sstable_size = max_sstable_size
         self._block_size = block_size
         self.ss_tables: Deque[SSTable] = deque()
-        self.ss_tables_levels: list[Deque[SSTable]] = []
+        self.ss_tables_levels: list[Deque[SSTable]] = [deque() for _ in range(self.nb_levels)]
         self.directory = directory
         self._create_directory()
 
@@ -185,10 +187,6 @@ class LsmStorage:
         return new_ss_tables
 
     def force_compaction_l0(self):
-        # For now: compacts all L0 sstables into L1 sstables
-        if len(self.ss_tables_levels) == 0:
-            self.ss_tables_levels.append(deque())
-
         with self._read_write_lock.read():
             sstables_to_compact = [sstable for sstable in self.ss_tables]
             l0_ss_table_iterator = MergingIterator(iterators=[
@@ -205,11 +203,9 @@ class LsmStorage:
 
     def force_compaction_l1_or_more_level(self, level: int):
         level_index = level - 1
-        if len(self.ss_tables_levels) < level:
-            raise ValueError(f"Level {level} does not exist")
-
-        if len(self.ss_tables_levels) == level:
-            self.ss_tables_levels.append(deque())
+        next_level_index = level
+        if self.nb_levels < level:
+            next_level_index = level - 1
 
         with self._read_write_lock.read():
             sstables_to_compact = [sstable for sstable in self.ss_tables_levels[level_index]]
@@ -221,7 +217,7 @@ class LsmStorage:
 
         with self._state_lock:
             with self._read_write_lock.write():
-                self.ss_tables_levels[level_index + 1].extendleft(reversed(new_ss_tables))
+                self.ss_tables_levels[next_level_index].extendleft(reversed(new_ss_tables))
                 for sstable in sstables_to_compact:
                     self.ss_tables_levels[level_index].remove(sstable)
 
@@ -242,7 +238,7 @@ class LsmStorage:
             self.force_compaction_l0()
 
         # Try to compact other levels
-        for level_index in range(len(self.ss_tables_levels) - 1):
+        for level_index in range(self.nb_levels - 1):
             current_level = self.ss_tables_levels[level_index]
             next_level = self.ss_tables_levels[level_index + 1]
             if len(current_level) >= self._levels_ratio * len(next_level):

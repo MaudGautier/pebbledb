@@ -193,11 +193,19 @@ def test_freeze_waits_for_flush(empty_store):
     times = {}
 
     original_freeze_memtable = storage._freeze_memtable
+    original_try_compact = storage._try_compact
 
     def _freeze_memtable_with_timing():
         times['freeze_memtable_start'] = time.time()
         original_freeze_memtable()  # Ensure this calls the real implementation
         times['freeze_memtable_end'] = time.time()
+
+    # _try_compact is called outside the mutex lock => adding times around its execution so that we can track that the
+    # beginning of freeze starts after the end of the flush under lock (i.e. the beginning of _try_compact)
+    def _try_compact_with_timing():
+        times['try_compact_start'] = time.time()
+        original_try_compact()  # Ensures this calls the real implementation
+        times['try_compact_end'] = time.time()
 
     def flush_next_immutable_memtable_with_timing():
         times['flush_start'] = time.time()
@@ -211,6 +219,7 @@ def test_freeze_waits_for_flush(empty_store):
 
     # Replace or wrap the original _freeze_memtable method with the timing version
     storage._freeze_memtable = _freeze_memtable_with_timing
+    storage._try_compact = _try_compact_with_timing  # Do nothing in try compact
 
     # WHEN
     # Start threads
@@ -224,8 +233,10 @@ def test_freeze_waits_for_flush(empty_store):
     freeze_thread.join()
 
     # THEN
-    # Assert that flush ended before freeze memtable starts
-    assert times['flush_end'] < times['freeze_memtable_start']
+    # Assert that the portion of flush under locking (everything before compact) ended before freeze memtable starts
+    assert times['try_compact_start'] < times['freeze_memtable_start']
+    # Note: assert times['flush_end'] < times['freeze_memtable_start'] fails because the last part of the flush
+    # (_try_compact) is not under a mutex lock
 
 
 def test_flush_memtables_prepends_sstables_in_l0_level(store_with_multiple_immutable_memtables,
@@ -333,7 +344,7 @@ def test_trigger_l0_compaction(store_with_multiple_l0_sstables, records_for_stor
     store.force_compaction_l0()
 
     # THEN
-    assert len(store.ss_tables_levels) == 1
+    assert len(store.ss_tables_levels) == store.nb_levels
     assert len(store.ss_tables_levels[0]) == 2
     assert store.ss_tables_levels[0][0].first_key == "key1"
     assert store.ss_tables_levels[0][0].last_key == "key3"
@@ -363,7 +374,7 @@ def test_trigger_l1_compaction_to_l2(store_with_multiple_l1_sstables, records_fo
     store.force_compaction_l1_or_more_level(level=1)
 
     # THEN
-    assert len(store.ss_tables_levels) == 2
+    assert len(store.ss_tables_levels) == store.nb_levels
     assert len(store.ss_tables_levels[0]) == 0
     assert len(store.ss_tables_levels[1]) == 4
     assert store.ss_tables_levels[1][0].first_key == "key1"

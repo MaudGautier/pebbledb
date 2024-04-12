@@ -124,7 +124,8 @@ def records_for_store_with_multiple_l1_sstables():
 
 @pytest.fixture
 def store_with_multiple_l1_sstables(records_for_store_with_multiple_l1_sstables):
-    store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY)
+    nb_levels = 2
+    store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
     for record in records_for_store_with_multiple_l1_sstables:
         store.put(key=record[0], value=record[1])
     assert len(store.immutable_memtables) == 4
@@ -137,7 +138,7 @@ def store_with_multiple_l1_sstables(records_for_store_with_multiple_l1_sstables)
     store.force_compaction_l0()
 
     assert len(store.ss_tables) == 0
-    assert len(store.ss_tables_levels) == 1
+    assert len(store.ss_tables_levels) == nb_levels
     assert len(store.ss_tables_levels[0]) == 4
 
     return store
@@ -166,7 +167,8 @@ def records_for_store_with_four_l1_and_one_l2_sstables():
 
 @pytest.fixture
 def store_with_four_l1_and_one_l2_sstables(records_for_store_with_four_l1_and_one_l2_sstables):
-    store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY)
+    nb_levels = 2
+    store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
     for record in records_for_store_with_four_l1_and_one_l2_sstables:
         store.put(key=record[0], value=record[1])
     assert len(store.immutable_memtables) == 5
@@ -187,7 +189,7 @@ def store_with_four_l1_and_one_l2_sstables(records_for_store_with_four_l1_and_on
     store.flush_next_immutable_memtable()
 
     assert len(store.ss_tables) == 1
-    assert len(store.ss_tables_levels) == 2
+    assert len(store.ss_tables_levels) == nb_levels
     assert len(store.ss_tables_levels[0]) == 0
     assert len(store.ss_tables_levels[1]) == 4
 
@@ -224,7 +226,8 @@ def records_for_store_with_one_sstable_at_five_levels():
 
 @pytest.fixture
 def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_five_levels):
-    store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY)
+    nb_levels = 4
+    store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
     store._levels_ratio = 10  # High value (which makes no sense) to be able to build the desired mocked store
     for record in records_for_store_with_one_sstable_at_five_levels:
         store.put(key=record[0], value=record[1])
@@ -256,7 +259,7 @@ def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_
 
     # Assertions
     assert len(store.ss_tables) == 1
-    assert len(store.ss_tables_levels) == 4
+    assert len(store.ss_tables_levels) == nb_levels
     assert len(store.ss_tables_levels[0]) == 1
     assert len(store.ss_tables_levels[1]) == 1
     assert len(store.ss_tables_levels[2]) == 1
