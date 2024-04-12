@@ -17,3 +17,4 @@ from src.__fixtures__.constants import *  # noqa: F401
 from src.__fixtures__.memtable import *  # noqa: F401
 from src.__fixtures__.sstable import *  # noqa: F401
 from src.__fixtures__.store import *  # noqa: F401
+from src.__fixtures__.wal import *  # noqa: F401

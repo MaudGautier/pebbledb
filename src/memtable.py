@@ -22,6 +22,8 @@ class MemTable:
 
     @classmethod
     def recover_from_wal(cls, wal_path: str):
+        wal = WriteAheadLog.open(path=wal_path)
+
         red_black_tree = RedBlackTree()
         with open(wal_path, "rb") as f:
             data = f.read()
@@ -33,7 +35,6 @@ class MemTable:
             approximate_size += record.size
 
         directory = os.path.dirname(wal_path)
-        wal = WriteAheadLog(path=wal_path)
 
         return cls(directory=directory, approximate_size=approximate_size, map=red_black_tree, wal=wal)
 
@@ -41,7 +42,7 @@ class MemTable:
     def _create_wal(directory) -> WriteAheadLog:
         timestamp_in_us = time.time()
 
-        return WriteAheadLog(path=f"{directory}/{timestamp_in_us}.wal")
+        return WriteAheadLog.create(path=f"{directory}/{timestamp_in_us}.wal")
 
     def scan(self, lower: Record.Key, upper: Record.Key) -> MemTableIterator:
         return MemTableIterator(memtable=self, start_key=lower, end_key=upper)
