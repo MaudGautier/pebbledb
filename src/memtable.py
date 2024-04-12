@@ -6,10 +6,15 @@ from src.red_black_tree import RedBlackTree
 
 
 class MemTable:
-    def __init__(self):
-        self.id: int = 0
-        self.map = RedBlackTree()
-        self.approximate_size: int = 0
+    def __init__(self, map, approximate_size, directory):
+        self.map = map
+        self.approximate_size: int = approximate_size
+        self.directory = directory
+
+    @classmethod
+    def create(cls, directory: str):
+        # wal = self._create_wal()
+        return cls(map=RedBlackTree(), directory=directory, approximate_size=0)  # TODO pass wal
 
     def scan(self, lower: Record.Key, upper: Record.Key) -> MemTableIterator:
         return MemTableIterator(memtable=self, start_key=lower, end_key=upper)

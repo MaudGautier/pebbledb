@@ -7,9 +7,9 @@ from src.memtable import MemTable
 from src.record import Record
 
 
-def test_iterate_on_memtable():
+def test_iterate_on_memtable(empty_memtable):
     # GIVEN
-    memtable = MemTable()
+    memtable = empty_memtable
     keys = ["1", "6", "9", "4"]
     for key in keys:
         memtable.put(key=key, value=key.encode(encoding="utf-8"))
@@ -23,9 +23,9 @@ def test_iterate_on_memtable():
     assert records == expected_records
 
 
-def test_iterate_on_empty_memtable_raises_stop_iteration():
+def test_iterate_on_empty_memtable_raises_stop_iteration(empty_memtable):
     # GIVEN
-    memtable = MemTable()
+    memtable = empty_memtable
     memtable_iterator = MemTableIterator(memtable=memtable)
 
     # WHEN/THEN
@@ -33,9 +33,9 @@ def test_iterate_on_empty_memtable_raises_stop_iteration():
         next(memtable_iterator)
 
 
-def test_iterate_on_memtable_with_boundaries():
+def test_iterate_on_memtable_with_boundaries(empty_memtable):
     # GIVEN
-    memtable = MemTable()
+    memtable = empty_memtable
     for key in ["1", "4", "6", "9"]:
         memtable.put(key=key, value=key.encode(encoding="utf-8"))
     memtable_iterator = MemTableIterator(memtable=memtable, start_key="0", end_key="5")

@@ -18,6 +18,8 @@ class LsmStorage:
                  max_l0_sstables: int = 10,
                  nb_levels: int = 6,
                  directory: Optional[str] = "."):
+        self.directory = directory
+        self._create_directory()
         self.nb_levels = nb_levels
         self._levels_ratio = levels_ratio
         self._max_l0_sstables = max_l0_sstables
@@ -33,9 +35,8 @@ class LsmStorage:
         self.directory = directory
         self._create_directory()
 
-    @staticmethod
-    def _create_memtable():
-        return MemTable()
+    def _create_memtable(self):
+        return MemTable.create(directory=self.directory)
 
     def _try_freeze(self):
         """Checks if the memtable should be frozen or not.

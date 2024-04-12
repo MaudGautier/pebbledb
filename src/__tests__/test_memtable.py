@@ -2,9 +2,9 @@ from src.memtable import MemTable
 from src.record import Record
 
 
-def test_can_put_and_retrieve():
+def test_can_put_and_retrieve(empty_memtable):
     # GIVEN
-    memtable = MemTable()
+    memtable = empty_memtable
 
     # WHEN
     memtable.put(key="key", value=b"value")
@@ -14,9 +14,9 @@ def test_can_put_and_retrieve():
     assert retrieved_value == b'value'
 
 
-def test_returns_none_if_not_found():
+def test_returns_none_if_not_found(empty_memtable):
     # GIVEN
-    memtable = MemTable()
+    memtable = empty_memtable
 
     # WHEN
     memtable.put(key="key", value=b"value")
@@ -26,9 +26,9 @@ def test_returns_none_if_not_found():
     assert retrieved_value is None
 
 
-def test_scan():
+def test_scan(empty_memtable):
     # GIVEN
-    memtable = MemTable()
+    memtable = empty_memtable
     for key in ["1", "4", "6", "9"]:
         memtable.put(key=key, value=key.encode(encoding="utf-8"))
 

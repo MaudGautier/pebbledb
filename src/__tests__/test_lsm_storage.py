@@ -181,11 +181,11 @@ def test_flush_waits_for_freeze(empty_store):
     assert times['freeze_end'] < times['flush_start']
 
 
-def test_freeze_waits_for_flush(empty_store):
+def test_freeze_waits_for_flush(empty_store, empty_memtable):
     # GIVEN
     storage = empty_store
     storage.memtable.approximate_size = storage._max_sstable_size + 1
-    memtable_to_flush = MemTable()
+    memtable_to_flush = empty_memtable
     memtable_to_flush.put("key", b'value')
     storage.immutable_memtables.append(memtable_to_flush)
 

@@ -3,6 +3,8 @@ import time
 
 import pytest
 
+from src.memtable import MemTable
+
 TEST_SSTABLE_FIXTURES_DIRECTORY = "./test_sstable_fixtures"
 TEST_DIRECTORY = "./test_store"
 
@@ -21,6 +23,7 @@ def temporary_sstable_path():
 @pytest.fixture
 def temporary_sstable_path_2():
     return f"{TEST_DIRECTORY}/{time.time() * 1_000_000}.sst"
+
 
 @pytest.fixture
 def temporary_manifest_file_name():
