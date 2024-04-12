@@ -22,6 +22,10 @@ def temporary_sstable_path():
 def temporary_sstable_path_2():
     return f"{TEST_DIRECTORY}/{time.time() * 1_000_000}.sst"
 
+@pytest.fixture
+def temporary_manifest_file_name():
+    return f"{TEST_DIRECTORY}/manifest.sst"
+
 
 def cleanup_files():
     for filename in os.listdir(TEST_DIRECTORY):

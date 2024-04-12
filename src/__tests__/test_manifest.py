@@ -10,10 +10,10 @@ from src.manifest import (
 )
 
 
-def test_reconstruct_from_empty_events():
+def test_reconstruct_from_empty_events(temporary_manifest_file_name):
     # GIVEN
     events = []
-    manifest = Manifest(events=events, nb_levels=3)
+    manifest = Manifest(events=events, nb_levels=3, path=temporary_manifest_file_name)
 
     # WHEN
     store = manifest.reconstruct()
@@ -24,11 +24,11 @@ def test_reconstruct_from_empty_events():
         assert len(level) == 0
 
 
-def test_reconstruct_from_one_flush_event(sstable_four_blocks):
+def test_reconstruct_from_one_flush_event(sstable_four_blocks, temporary_manifest_file_name):
     # GIVEN
     sstable = sstable_four_blocks
     events = [FlushEvent(sstable=sstable)]
-    manifest = Manifest(events=events, nb_levels=3)
+    manifest = Manifest(events=events, nb_levels=3, path=temporary_manifest_file_name)
 
     # WHEN
     store = manifest.reconstruct()
@@ -39,7 +39,7 @@ def test_reconstruct_from_one_flush_event(sstable_four_blocks):
         assert len(level) == 0
 
 
-def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_block_1):
+def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_block_1, temporary_manifest_file_name):
     # GIVEN
     sstable1 = sstable_four_blocks
     sstable2 = sstable_one_block_1
@@ -47,7 +47,7 @@ def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_bloc
         FlushEvent(sstable=sstable1),
         FlushEvent(sstable=sstable2)
     ]
-    manifest = Manifest(events=events, nb_levels=3)
+    manifest = Manifest(events=events, nb_levels=3, path=temporary_manifest_file_name)
 
     # WHEN
     store = manifest.reconstruct()
@@ -60,7 +60,8 @@ def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_bloc
         assert len(level) == 0
 
 
-def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_blocks, sstable_one_block_1):
+def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_blocks, sstable_one_block_1,
+                                                                   temporary_manifest_file_name):
     # GIVEN
     sstable1 = sstable_four_blocks
     sstable2 = sstable_one_block_1
@@ -68,7 +69,7 @@ def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_
         FlushEvent(sstable=sstable1),
         CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0)
     ]
-    manifest = Manifest(events=events, nb_levels=3)
+    manifest = Manifest(events=events, nb_levels=3, path=temporary_manifest_file_name)
 
     # WHEN
     store = manifest.reconstruct()
@@ -81,7 +82,8 @@ def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_
 
 def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four_blocks,
                                                                     sstable_one_block_1,
-                                                                    sstable_one_block_2):
+                                                                    sstable_one_block_2,
+                                                                    temporary_manifest_file_name):
     # GIVEN
     sstable1 = sstable_four_blocks
     sstable2 = sstable_one_block_1
@@ -91,7 +93,7 @@ def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four
         CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0),
         CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], level=1)
     ]
-    manifest = Manifest(events=events, nb_levels=3)
+    manifest = Manifest(events=events, nb_levels=3, path=temporary_manifest_file_name)
 
     # WHEN
     store = manifest.reconstruct()
@@ -106,7 +108,8 @@ def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four
 def test_reconstruct_from_one_flush_event_and_three_compaction_events(sstable_one_block_1,
                                                                       sstable_one_block_2,
                                                                       sstable_one_block_3,
-                                                                      sstable_one_block_4):
+                                                                      sstable_one_block_4,
+                                                                      temporary_manifest_file_name):
     # GIVEN
     sstable1 = sstable_one_block_1
     sstable2 = sstable_one_block_2
@@ -118,7 +121,7 @@ def test_reconstruct_from_one_flush_event_and_three_compaction_events(sstable_on
         CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], level=1),
         CompactionEvent(input_sstables=[sstable3], output_sstables=[sstable4], level=2),
     ]
-    manifest = Manifest(events=events, nb_levels=3)
+    manifest = Manifest(events=events, nb_levels=3, path=temporary_manifest_file_name)
 
     # WHEN
     store = manifest.reconstruct()
@@ -133,7 +136,8 @@ def test_reconstruct_from_one_flush_event_and_three_compaction_events(sstable_on
 
 def test_reconstruct_from_two_flush_events_and_one_compaction_event(sstable_one_block_1,
                                                                     sstable_one_block_2,
-                                                                    sstable_one_block_3):
+                                                                    sstable_one_block_3,
+                                                                    temporary_manifest_file_name):
     # GIVEN
     sstable1 = sstable_one_block_1
     sstable2 = sstable_one_block_2
@@ -143,7 +147,7 @@ def test_reconstruct_from_two_flush_events_and_one_compaction_event(sstable_one_
         FlushEvent(sstable=sstable2),
         CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable3], level=0),
     ]
-    manifest = Manifest(events=events, nb_levels=3)
+    manifest = Manifest(events=events, nb_levels=3, path=temporary_manifest_file_name)
 
     # WHEN
     store = manifest.reconstruct()
@@ -157,7 +161,8 @@ def test_reconstruct_from_two_flush_events_and_one_compaction_event(sstable_one_
 def test_reconstruct_from_two_flush_events_interspaced_with_compaction_events(sstable_one_block_1,
                                                                               sstable_one_block_2,
                                                                               sstable_one_block_3,
-                                                                              sstable_one_block_4):
+                                                                              sstable_one_block_4,
+                                                                              temporary_manifest_file_name):
     # GIVEN
     sstable1 = sstable_one_block_1
     sstable2 = sstable_one_block_2
@@ -169,7 +174,7 @@ def test_reconstruct_from_two_flush_events_interspaced_with_compaction_events(ss
         FlushEvent(sstable=sstable2),
         CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable4], level=0),
     ]
-    manifest = Manifest(events=events, nb_levels=3)
+    manifest = Manifest(events=events, nb_levels=3, path=temporary_manifest_file_name)
 
     # WHEN
     store = manifest.reconstruct()
