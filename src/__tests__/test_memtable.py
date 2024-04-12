@@ -41,3 +41,15 @@ def test_scan(empty_memtable):
         Record(key="4", value="4".encode(encoding="utf-8"))
     ]
     assert scanned_records == expected_records
+def test_can_recover(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    for key in ["1", "4", "6", "9"]:
+        memtable.put(key=key, value=key.encode(encoding="utf-8"))
+    wal_path = memtable.wal.path
+
+    # WHEN
+    resulting_memtable = memtable.recover_from_wal(wal_path=wal_path)
+
+    # THEN
+    assert [record for record in resulting_memtable.map] == [record for record in memtable.map]
