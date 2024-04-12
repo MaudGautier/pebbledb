@@ -334,3 +334,6 @@ def test_encode_decode_manifest_record_which_is_a_compaction_record(sstable_one_
     assert isinstance(manifest_record.event, CompactionEvent)
     assert isinstance(decoded_manifest_record.event, CompactionEvent)
     assert manifest_record.event == decoded_manifest_record.event
+
+# ManifestFile.create() # returns the expected manifest + test create on existing and new path
+# ManifestFile.open() # returns the expected manifest + test open on existing and new path

@@ -38,11 +38,8 @@ class CompactionEvent(Event):
                 and self.level == other.level)
 
 
-class Manifest:
-    def __init__(self, path: str, events=None, nb_levels=None):
-        # TODO stop passing events and nb_levels - read them from file at some point
-        self.events = events
-        self.nb_levels = nb_levels
+class ManifestFile:
+    def __init__(self, path: str):
         self.path = path
 
     @classmethod
@@ -53,25 +50,30 @@ class Manifest:
                max_l0_sstables,
                max_sstable_size,
                block_size):
-        manifest = cls(path=path, nb_levels=nb_levels)
+        manifest = cls(path=path)
         if manifest._exists():
             raise ValueError(f"Cannot create the file because there is already one at {path}")
-        manifest.write_header(levels_ratio=levels_ratio,
+        manifest.write_header(nb_levels=nb_levels,
+                              levels_ratio=levels_ratio,
                               max_l0_sstables=max_l0_sstables,
                               max_sstable_size=max_sstable_size,
                               block_size=block_size)
         return manifest
 
     def write_header(self,
+                     nb_levels,
                      levels_ratio,
                      max_l0_sstables,
                      max_sstable_size,
                      block_size):
         # Encode header
-        encoded_header = ("levels_ratio=".encode(encoding="utf-8") + struct.pack("f", levels_ratio) +
-                          "max_l0_sstables=".encode(encoding="utf-8") + struct.pack("i", max_l0_sstables) +
-                          "max_sstable_size=".encode(encoding="utf-8") + struct.pack("i", max_sstable_size) +
-                          "block_size=".encode(encoding="utf-8") + struct.pack("i", block_size))
+        encoded_header = (
+                "nb_levels=".encode(encoding="utf-8") + struct.pack("i", nb_levels) +
+                "levels_ratio=".encode(encoding="utf-8") + struct.pack("f", levels_ratio) +
+                "max_l0_sstables=".encode(encoding="utf-8") + struct.pack("i", max_l0_sstables) +
+                "max_sstable_size=".encode(encoding="utf-8") + struct.pack("i", max_sstable_size) +
+                "block_size=".encode(encoding="utf-8") + struct.pack("i", block_size)
+        )
 
         with open(self.path, "wb") as f:
             f.write(encoded_header)
@@ -85,6 +87,14 @@ class Manifest:
 
     def _exists(self) -> bool:
         return os.path.isfile(self.path)
+
+
+class Manifest:
+    def __init__(self, path: str, events=None, nb_levels=None):
+        # TODO stop passing events and nb_levels - read them from file at some point
+        self.events = events
+        self.nb_levels = nb_levels
+        self.path = path
 
     def reconstruct(self) -> LsmStorage:
         ss_tables_levels = [deque() for _ in range(self.nb_levels + 1)]
