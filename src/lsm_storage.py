@@ -140,27 +140,30 @@ class LsmStorage:
             iterators=[active_memtable_iterator] + immutable_memtables_iterators + sstables_iterators)
         yield from iterator
 
+    def _do_flush(self):
+        # Read the oldest memtable
+        with self._read_write_lock.read():
+            memtable_to_flush = self.immutable_memtables[-1]
+
+        # Flush it to SSTable
+        path = self._compute_path()
+        sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
+        memtable_iterator = MemTableIterator(memtable=memtable_to_flush)
+        for record in memtable_iterator:
+            sstable_builder.add(key=record.key, value=record.value)
+        sstable = sstable_builder.build(path=path)
+
+        # Update state to remove oldest memtable and add new SSTable
+        with self._read_write_lock.write():
+            flushed_memtable = self.immutable_memtables.pop()
+            self.ss_tables.insert(0, sstable)
+
+        # Delete the WAL
+        flushed_memtable.wal.remove_self()
+
     def flush_next_immutable_memtable(self) -> None:
         with self._state_lock:
-            # Read the oldest memtable
-            with self._read_write_lock.read():
-                memtable_to_flush = self.immutable_memtables[-1]
-
-            # Flush it to SSTable
-            path = self._compute_path()
-            sstable_builder = SSTableBuilder(sstable_size=self._max_sstable_size, block_size=self._block_size)
-            memtable_iterator = MemTableIterator(memtable=memtable_to_flush)
-            for record in memtable_iterator:
-                sstable_builder.add(key=record.key, value=record.value)
-            sstable = sstable_builder.build(path=path)
-
-            # Update state to remove oldest memtable and add new SSTable
-            with self._read_write_lock.write():
-                flushed_memtable = self.immutable_memtables.pop()
-                self.ss_tables.insert(0, sstable)
-
-            # Delete the WAL
-            flushed_memtable.wal.remove_self()
+            self._do_flush()
 
         self._try_compact()
 

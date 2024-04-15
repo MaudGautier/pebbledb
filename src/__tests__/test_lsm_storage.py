@@ -157,20 +157,28 @@ def test_flush_waits_for_freeze(empty_store):
     # Original methods with timing
     times = {}
 
-    def _try_freeze_with_timing():
+    # Wrap _do_flush and _do_freeze with timing
+    original_do_flush = storage._do_flush
+    original_freeze = storage._freeze_memtable
+
+    def _do_flush_with_timing():
+        times['flush_start'] = time.time()
+        original_do_flush()
+        times['flush_end'] = time.time()
+
+    def _freeze_with_timing():
         times['freeze_start'] = time.time()
-        storage._try_freeze()
+        original_freeze()
         times['freeze_end'] = time.time()
 
-    def flush_next_immutable_memtable_with_timing():
-        times['flush_start'] = time.time()
-        storage.flush_next_immutable_memtable()
-        times['flush_end'] = time.time()
+    # Replace original methods with timed methods
+    storage._do_flush = _do_flush_with_timing
+    storage._freeze_memtable = _freeze_with_timing
 
     # WHEN
     # Start threads
-    freeze_thread = threading.Thread(target=_try_freeze_with_timing)
-    flush_thread = threading.Thread(target=flush_next_immutable_memtable_with_timing)
+    freeze_thread = threading.Thread(target=storage._try_freeze())
+    flush_thread = threading.Thread(target=storage.flush_next_immutable_memtable())
 
     freeze_thread.start()
     flush_thread.start()
