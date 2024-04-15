@@ -37,9 +37,6 @@ class WriteAheadLog:
     def insert(self, record: Record):
         self.file.write(record.to_bytes())
 
-# def read(self):
-
-# def delete(self):
-
-# WriteAheadLog.create(path)
-# WriteAheadLog.open(path)
+    def remove_self(self) -> None:
+        self.file.close()
+        os.remove(self.path)

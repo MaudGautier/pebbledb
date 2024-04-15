@@ -156,8 +156,11 @@ class LsmStorage:
 
             # Update state to remove oldest memtable and add new SSTable
             with self._read_write_lock.write():
-                self.immutable_memtables.pop()
+                flushed_memtable = self.immutable_memtables.pop()
                 self.ss_tables.insert(0, sstable)
+
+            # Delete the WAL
+            flushed_memtable.wal.remove_self()
 
         self._try_compact()
 

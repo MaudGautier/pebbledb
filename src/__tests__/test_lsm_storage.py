@@ -393,12 +393,12 @@ def test_try_compact_should_force_compact_l0_if_above_the_threshold(store_with_o
     store._max_l0_sstables = 1
 
     # WHEN/THEN
-    with mock.patch.object(store, 'force_compaction_l0', wraps=store.force_compaction_l0) as mocked_freeze:
+    with mock.patch.object(store, 'force_compaction_l0', wraps=store.force_compaction_l0) as mocked_compact:
         # WHEN
         store._try_compact()
 
         # THEN
-        mocked_freeze.assert_called_once()
+        mocked_compact.assert_called_once()
 
 
 def test_try_compact_should_not_force_compact_l0_if_below_the_threshold(store_with_one_l0_sstable):
@@ -407,12 +407,12 @@ def test_try_compact_should_not_force_compact_l0_if_below_the_threshold(store_wi
     store._max_l0_sstables = 2
 
     # WHEN/THEN
-    with mock.patch.object(store, 'force_compaction_l0', wraps=store.force_compaction_l0) as mocked_freeze:
+    with mock.patch.object(store, 'force_compaction_l0', wraps=store.force_compaction_l0) as mocked_compact:
         # WHEN
         store._try_compact()
 
         # THEN
-        mocked_freeze.assert_not_called()
+        mocked_compact.assert_not_called()
 
 
 def test_try_compact_should_force_compact_l1_if_above_the_threshold(store_with_four_l1_and_one_l2_sstables):
@@ -422,12 +422,12 @@ def test_try_compact_should_force_compact_l1_if_above_the_threshold(store_with_f
 
     # WHEN/THEN
     with mock.patch.object(store, 'force_compaction_l1_or_more_level',
-                           wraps=store.force_compaction_l1_or_more_level) as mocked_freeze:
+                           wraps=store.force_compaction_l1_or_more_level) as mocked_compact:
         # WHEN
         store._try_compact()
 
         # THEN
-        mocked_freeze.assert_called_once()
+        mocked_compact.assert_called_once()
 
 
 def test_try_compact_should_not_force_compact_l1_if_below_the_threshold(store_with_four_l1_and_one_l2_sstables):
@@ -437,12 +437,12 @@ def test_try_compact_should_not_force_compact_l1_if_below_the_threshold(store_wi
 
     # WHEN/THEN
     with mock.patch.object(store, 'force_compaction_l1_or_more_level',
-                           wraps=store.force_compaction_l1_or_more_level) as mocked_freeze:
+                           wraps=store.force_compaction_l1_or_more_level) as mocked_compact:
         # WHEN
         store._try_compact()
 
         # THEN
-        mocked_freeze.assert_not_called()
+        mocked_compact.assert_not_called()
 
 
 def test_try_compact_should_compact_in_cascade(store_with_one_sstable_at_five_levels):
@@ -453,12 +453,12 @@ def test_try_compact_should_compact_in_cascade(store_with_one_sstable_at_five_le
 
     # WHEN/THEN
     with mock.patch.object(store, 'force_compaction_l1_or_more_level',
-                           wraps=store.force_compaction_l1_or_more_level) as mocked_freeze:
+                           wraps=store.force_compaction_l1_or_more_level) as mocked_compact:
         # WHEN
         store._try_compact()
 
         # THEN
-        mocked_freeze.assert_has_calls([mock.call(level=1), mock.call(level=2), mock.call(level=3)])
+        mocked_compact.assert_has_calls([mock.call(level=1), mock.call(level=2), mock.call(level=3)])
         assert len(store.ss_tables_levels[0]) == 0
         assert len(store.ss_tables_levels[1]) == 0
         assert len(store.ss_tables_levels[2]) == 0
@@ -469,11 +469,24 @@ def test_flush_next_immutable_memtable_tries_compacting(store_with_multiple_immu
     # GIVEN
     store = store_with_multiple_immutable_memtables
 
-    # WHEN
-    with mock.patch.object(store, '_try_compact',
-                           wraps=store._try_compact) as mocked_freeze:
+    # WHEN/THEN
+    with mock.patch.object(store, '_try_compact', wraps=store._try_compact) as mocked_compact:
         # WHEN
         store.flush_next_immutable_memtable()
 
         # THEN
-        mocked_freeze.assert_called_once()
+        mocked_compact.assert_called_once()
+
+
+def test_wal_associated_to_flushed_memtable_gets_deleted_upon_flush(store_with_multiple_immutable_memtables):
+    # GIVEN
+    store = store_with_multiple_immutable_memtables
+    next_memtable_wal = store.immutable_memtables[-1].wal
+
+    # WHEN/THEN
+    with mock.patch.object(next_memtable_wal, 'remove_self') as mocked_remove_self:
+        # WHEN
+        store.flush_next_immutable_memtable()
+
+        # THEN
+        mocked_remove_self.assert_called_once()
