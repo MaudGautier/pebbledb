@@ -116,13 +116,15 @@ class SSTableIterator(BaseIterator):
         super().__init__()
         self._index = 0
         self.sstable = sstable
-        self.block_iterator = DataBlockIterator(block=self._get_first_data_block(), start_key=start_key,
-                                                end_key=end_key)
         self.start_key = start_key
         self.end_key = end_key
+        self.block_iterator = self._get_block_iterator(block_id=0)
 
-    def _get_first_data_block(self) -> "DataBlock":
-        return self.sstable.read_data_block(block_id=0)
+    def _get_block_iterator(self, block_id: int):
+        return DataBlockIterator(
+            block=self.sstable.read_data_block(block_id=block_id),
+            start_key=self.start_key,
+            end_key=self.end_key)
 
     def __iter__(self) -> "SSTableIterator":
         return self
@@ -135,9 +137,7 @@ class SSTableIterator(BaseIterator):
             if self._index >= len(self.sstable.meta_blocks):
                 raise StopIteration()
 
-            self.block_iterator = DataBlockIterator(block=self.sstable.read_data_block(block_id=self._index),
-                                                    start_key=self.start_key,
-                                                    end_key=self.end_key)
+            self.block_iterator = self._get_block_iterator(block_id=self._index)
             return next(self)
 
 
