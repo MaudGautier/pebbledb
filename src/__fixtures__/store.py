@@ -49,7 +49,7 @@ def store_with_duplicated_keys_records():
 
 @pytest.fixture
 def store_with_duplicated_keys(store_with_duplicated_keys_records):
-    store = LsmStorage(max_sstable_size=30)
+    store = LsmStorage(max_sstable_size=30, directory=TEST_DIRECTORY)
     for record in store_with_duplicated_keys_records:
         store.put(key=record[0], value=record[1])
 

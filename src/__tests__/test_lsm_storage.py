@@ -10,9 +10,9 @@ from src.record import Record
 from src.sstable import SSTable, SSTableFile
 
 
-def test_can_read_a_value_inserted():
+def test_can_read_a_value_inserted(empty_store):
     # GIVEN
-    store = LsmStorage()
+    store = empty_store
 
     # WHEN
     store.put(key="key", value=b'value')
@@ -23,9 +23,10 @@ def test_can_read_a_value_inserted():
     assert store.get(key="key2") == b'value2'
 
 
-def test_try_freeze():
+def test_try_freeze(empty_store):
     # GIVEN
-    store = LsmStorage(max_sstable_size=50)
+    store = empty_store
+    store._max_sstable_size = 50
 
     # WHEN/THEN
     with mock.patch.object(store, '_freeze_memtable', wraps=store._freeze_memtable) as mocked_freeze:
@@ -50,9 +51,10 @@ def test_try_freeze():
         mocked_freeze.assert_called_once()
 
 
-def test_freeze_memtable():
+def test_freeze_memtable(empty_store):
     # GIVEN
-    store = LsmStorage(max_sstable_size=1000)
+    store = empty_store
+    store.max_sstable_size = 1000
     store.put(key="key1", value=b'value1')
     store.put(key="key2", value=b'value2')
     store.put(key="key3", value=b'value3')
@@ -274,7 +276,7 @@ def test_get_value_from_store(store_with_multiple_immutable_memtables):
     assert store.get(key="key6") == b'value6'
 
 
-def test_dont_look_in_bloom_filter_if_key_absent(temporary_sstable_path):
+def test_dont_look_in_bloom_filter_if_key_absent(temporary_sstable_path, empty_store):
     # GIVEN
     bloom_filter = BloomFilter(nb_bytes=2, nb_hash_functions=3)
     inserted_keys = ["foo", "bar"]
@@ -287,7 +289,7 @@ def test_dont_look_in_bloom_filter_if_key_absent(temporary_sstable_path):
                       first_key="foo",
                       last_key="bar"
                       )
-    store = LsmStorage()
+    store = empty_store
     store.ss_tables.append(sstable)
 
     # WHEN/THEN
