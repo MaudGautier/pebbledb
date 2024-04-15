@@ -13,7 +13,7 @@ class WriteAheadLog:
         if cls._exists(path):
             raise ValueError(f"Cannot create the WAL because there is already one at {path}")
 
-        file = open(path, "ab", buffering=0)  # setting the buffer size to 0 so that it flushes right after writing)
+        file = open(path, "ab", buffering=0)  # setting the buffer size to 0 so that it flushes right after writing
 
         return cls(path, file=file)
 
@@ -25,6 +25,10 @@ class WriteAheadLog:
         file = open(path, "rb")
 
         return cls(path=path, file=file)
+
+    def read_records(self) -> list[Record]:
+        data = self.file.read()
+        return Record.list_from_bytes(data=data)
 
     @staticmethod
     def _exists(path: str) -> bool:

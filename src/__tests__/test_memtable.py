@@ -49,7 +49,7 @@ def test_can_recover(empty_memtable):
     wal_path = memtable.wal.path
 
     # WHEN
-    resulting_memtable = memtable.recover_from_wal(wal_path=wal_path)
+    resulting_memtable = memtable.create_from_wal(wal_path=wal_path)
 
     # THEN
     assert [record for record in resulting_memtable.map] == [record for record in memtable.map]

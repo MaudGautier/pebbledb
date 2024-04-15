@@ -21,20 +21,29 @@ class MemTable:
         return cls(map=RedBlackTree(), directory=directory, approximate_size=0, wal=wal)
 
     @classmethod
-    def recover_from_wal(cls, wal_path: str):
-        wal = WriteAheadLog.open(path=wal_path)
+    def create_from_wal(cls, wal_path: str):
+        """Creates a memtable and fills it with the records that the associated Write-Ahead Log (WAL) file contains.
 
-        red_black_tree = RedBlackTree()
-        with open(wal_path, "rb") as f:
-            data = f.read()
+        WARNING:
+            When creating a memtable from a WAL, the memtable is expected to be immutable (i.e. we never want to write
+            in it again).
+            Therefore, the WAL associated to it is opened in "read-only" mode (we will never write to it if the
+            memtable is immutable).
 
-        all_records = Record.list_from_bytes(data=data)
-        approximate_size = 0
-        for record in all_records:
-            red_black_tree.insert(key=record.key, data=record.to_bytes())
-            approximate_size += record.size
+            As of today (2024-04-15), I have no checks to enforce this explicitly.
+            Note, however, that it is somehow enforced indirectly: upon trying to insert a record in the memtable, an
+            error should be raised when adding it to the WAL since it is opened in "read-only" mode.
+        """
 
         directory = os.path.dirname(wal_path)
+        wal = WriteAheadLog.open(path=wal_path)
+        records = wal.read_records()
+
+        red_black_tree = RedBlackTree()
+        approximate_size = 0
+        for record in records:
+            red_black_tree.insert(key=record.key, data=record.to_bytes())
+            approximate_size += record.size
 
         return cls(directory=directory, approximate_size=approximate_size, map=red_black_tree, wal=wal)
 
