@@ -1,3 +1,5 @@
+from unittest import mock
+
 from src.memtable import MemTable
 from src.record import Record
 
@@ -41,6 +43,21 @@ def test_scan(empty_memtable):
         Record(key="4", value="4".encode(encoding="utf-8"))
     ]
     assert scanned_records == expected_records
+
+
+def test_writes_to_wal_when_inserting(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+
+    # WHEN/THEN
+    with mock.patch.object(memtable.wal, 'insert') as mocked_insert_in_wal:
+        # WHEN
+        memtable.put(key="key", value=b'value')
+
+        # THEN
+        mocked_insert_in_wal.assert_called_once()
+
+
 def test_can_recover(empty_memtable):
     # GIVEN
     memtable = empty_memtable
