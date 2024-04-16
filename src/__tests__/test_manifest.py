@@ -433,6 +433,27 @@ def test_encode_compaction_event_calls_uses_compaction_record_encoding(sstable_o
         mocked_compaction_event_to_bytes.assert_called_once()
 
 
+def test_can_write_events_to_manifest(empty_manifest, empty_manifest_configuration,
+                                      sstable_one_block_1, sstable_one_block_2, sstable_one_block_3):
+    #  GIVEN
+    manifest_file = empty_manifest
+    event1 = FlushEvent(sstable=sstable_one_block_1)
+    event2 = CompactionEvent(input_sstables=[sstable_one_block_2], output_sstables=[sstable_one_block_3], level=2)
+
+    # WHEN
+    manifest_file.write_event(event=event1)
+    manifest_file.write_event(event=event2)
+
+    # THEN
+    encoded_header = ManifestHeader(**empty_manifest_configuration).to_bytes()
+    encoded_record1 = ManifestRecord(event=event1).to_bytes()
+    encoded_record2 = ManifestRecord(event=event2).to_bytes()
+    with open(manifest_file.path, "rb") as f:
+        data = f.read()
+    assert data.startswith(encoded_header)
+    assert data == encoded_header + encoded_record1 + encoded_record2
+
+
 def test_can_decode_manifest_file_with_no_events(empty_manifest, empty_manifest_configuration):
     # GIVEN
     manifest_file = empty_manifest

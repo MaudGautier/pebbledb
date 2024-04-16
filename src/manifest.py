@@ -135,6 +135,12 @@ class ManifestFile:
 
         return cls(file=file, path=path)
 
+    def write_event(self, event: Event):
+        record = ManifestRecord(event=event)
+        encoded_record = record.to_bytes()
+        self.file.write(encoded_record)
+        self.file.flush()
+
     def decode(self):
         with open(self.path, "rb") as f:
             data = f.read()
