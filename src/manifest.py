@@ -122,6 +122,7 @@ class ManifestFile:
                                         block_size=block_size).to_bytes()
         file = open(path, "ab")
         file.write(encoded_header)
+        file.flush()
 
         return cls(file=file, path=path)
 
