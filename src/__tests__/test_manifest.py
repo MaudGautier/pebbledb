@@ -464,3 +464,24 @@ def test_can_decode_manifest_file_with_no_events(empty_manifest, empty_manifest_
     # THEN
     assert events == []
     assert header == ManifestHeader(**empty_manifest_configuration)
+
+
+def test_can_decode_manifest_file_with_multiple_events(empty_manifest, empty_manifest_configuration,
+                                                       sstable_one_block_1, sstable_one_block_2,
+                                                       sstable_one_block_3, sstable_one_block_4):
+    # GIVEN
+    manifest_file = empty_manifest
+    events = [
+        FlushEvent(sstable=sstable_one_block_1),
+        CompactionEvent(input_sstables=[sstable_one_block_2, sstable_one_block_3], output_sstables=[], level=3),
+        FlushEvent(sstable=sstable_one_block_4)
+    ]
+    for event in events:
+        manifest_file.write_event(event=event)
+
+    # WHEN
+    header, decoded_events = manifest_file.decode()
+
+    # THEN
+    assert decoded_events == events
+    assert header == ManifestHeader(**empty_manifest_configuration)

@@ -156,7 +156,13 @@ class ManifestFile:
 
     @staticmethod
     def decode_events(data: bytes) -> list[Event]:
-        return []
+        events = []
+        while len(data):
+            manifest_record = ManifestRecord.from_bytes(data=data)
+            event, checkpoint = manifest_record.event, manifest_record.size
+            events.append(event)
+            data = data[checkpoint:]
+        return events
 
 
 class Manifest:
