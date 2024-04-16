@@ -166,11 +166,11 @@ class ManifestFile:
 
 
 class Manifest:
-    def __init__(self, path: str, events=None, nb_levels=None):
+    def __init__(self, file, events=None, nb_levels=None):
+        self.file = file
         # TODO stop passing events and nb_levels - read them from file at some point
         self.events = events
         self.nb_levels = nb_levels
-        self.path = path
 
     def reconstruct(self) -> LsmStorage:
         ss_tables_levels = [deque() for _ in range(self.nb_levels + 1)]
