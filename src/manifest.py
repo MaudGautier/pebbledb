@@ -135,6 +135,23 @@ class ManifestFile:
 
         return cls(file=file, path=path)
 
+    def decode(self):
+        with open(self.path, "rb") as f:
+            data = f.read()
+
+        # Decode header
+        header = ManifestHeader.from_bytes(data=data)
+        checkpoint = header.size
+
+        # Decode events
+        events = self.decode_events(data=data[checkpoint:])
+
+        return header, events
+
+    @staticmethod
+    def decode_events(data: bytes) -> list[Event]:
+        return []
+
 
 class Manifest:
     def __init__(self, path: str, events=None, nb_levels=None):
@@ -169,6 +186,10 @@ class ManifestRecord:
 
     def __init__(self, event: Event):
         self.event = event
+
+    @property
+    def size(self) -> int:
+        return len(self.to_bytes())
 
     @property
     def event_type(self):

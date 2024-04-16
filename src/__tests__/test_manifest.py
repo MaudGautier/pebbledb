@@ -431,3 +431,15 @@ def test_encode_compaction_event_calls_uses_compaction_record_encoding(sstable_o
 
         # THEN
         mocked_compaction_event_to_bytes.assert_called_once()
+
+
+def test_can_decode_manifest_file_with_no_events(empty_manifest, empty_manifest_configuration):
+    # GIVEN
+    manifest_file = empty_manifest
+
+    # WHEN
+    header, events = manifest_file.decode()
+
+    # THEN
+    assert events == []
+    assert header == ManifestHeader(**empty_manifest_configuration)
