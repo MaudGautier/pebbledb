@@ -1,4 +1,5 @@
 from contextlib import nullcontext as does_not_raise
+from unittest import mock
 
 import pytest
 
@@ -399,3 +400,34 @@ def test_open_manifest_file_from_new_path_should_raise_an_error(manifest_path_wi
     # GIVEN/WHEN/THEN
     with pytest.raises(ValueError):
         ManifestFile.open(path=manifest_path_with_no_file)
+
+
+def test_encode_flush_event_calls_uses_flush_record_encoding(sstable_four_blocks):
+    # GIVEN
+    sstable = sstable_four_blocks
+    event = FlushEvent(sstable=sstable)
+    record = ManifestRecord(event=event)
+
+    # WHEN/THEN
+    with mock.patch.object(ManifestFlushRecord, 'to_bytes') as mocked_flush_event_to_bytes:
+        # WHEN
+        record.to_bytes()
+
+        # THEN
+        mocked_flush_event_to_bytes.assert_called_once()
+
+
+def test_encode_compaction_event_calls_uses_compaction_record_encoding(sstable_one_block_1, sstable_one_block_2):
+    # GIVEN
+    sstable1 = sstable_one_block_1
+    sstable2 = sstable_one_block_2
+    event = CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0)
+    record = ManifestRecord(event=event)
+
+    # WHEN/THEN
+    with mock.patch.object(ManifestCompactionRecord, 'to_bytes') as mocked_compaction_event_to_bytes:
+        # WHEN
+        record.to_bytes()
+
+        # THEN
+        mocked_compaction_event_to_bytes.assert_called_once()
