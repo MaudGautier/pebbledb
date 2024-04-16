@@ -1,3 +1,7 @@
+from contextlib import nullcontext as does_not_raise
+
+import pytest
+
 from src.manifest import (
     Manifest,
     ManifestSSTable,
@@ -8,6 +12,7 @@ from src.manifest import (
     ManifestSSTablesBlock,
     ManifestRecord,
     ManifestHeader,
+    ManifestFile,
 )
 
 
@@ -349,5 +354,48 @@ def test_encode_decode_header():
     # THEN
     assert decoded_header == header
 
-# ManifestFile.create() # returns the expected manifest + test create on existing and new path
-# ManifestFile.open() # returns the expected manifest + test open on existing and new path
+
+def test_create_manifest_file_from_existing_path_should_raise_an_error(empty_manifest):
+    # GIVEN
+    path_with_file = empty_manifest.path
+    configuration = {
+        "nb_levels": 10,
+        "levels_ratio": 0.1,
+        "max_l0_sstables": 10,
+        "max_sstable_size": 1000,
+        "block_size": 100,
+    }
+
+    # WHEN/THEN
+    with pytest.raises(ValueError):
+        ManifestFile.create(path=path_with_file, **configuration)
+
+
+def test_open_manifest_file_from_existing_path_should_not_raise_an_error(empty_manifest):
+    # GIVEN
+    path_with_file = empty_manifest.path
+
+    # WHEN/THEN
+    with does_not_raise():
+        ManifestFile.open(path=path_with_file)
+
+
+def test_create_manifest_file_from_new_path_should_not_raise_an_error(manifest_path_with_no_file):
+    # GIVEN
+    configuration = {
+        "nb_levels": 10,
+        "levels_ratio": 0.1,
+        "max_l0_sstables": 10,
+        "max_sstable_size": 1000,
+        "block_size": 100,
+    }
+
+    # WHEN/THEN
+    with does_not_raise():
+        ManifestFile.create(path=manifest_path_with_no_file, **configuration)
+
+
+def test_open_manifest_file_from_new_path_should_raise_an_error(manifest_path_with_no_file):
+    # GIVEN/WHEN/THEN
+    with pytest.raises(ValueError):
+        ManifestFile.open(path=manifest_path_with_no_file)

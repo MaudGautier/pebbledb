@@ -1,7 +1,7 @@
 import os
 import struct
 from collections import deque
-from typing import Dict, Type
+from typing import Dict, Type, BinaryIO
 
 from src.lsm_storage import LsmStorage
 from src.sstable import SSTable
@@ -95,54 +95,44 @@ class ManifestHeader:
 
 
 class ManifestFile:
-    def __init__(self, path: str):
+    def __init__(self, file: BinaryIO, path: str):
+        self.file = file
         self.path = path
+
+    @staticmethod
+    def _file_exists(path) -> bool:
+        return os.path.isfile(path)
 
     @classmethod
     def create(cls,
                path: str,
                nb_levels: int,
-               levels_ratio,
-               max_l0_sstables,
-               max_sstable_size,
-               block_size):
-        manifest = cls(path=path)
-        if manifest._exists():
+               levels_ratio: float,
+               max_l0_sstables: int,
+               max_sstable_size: int,
+               block_size: int):
+
+        if cls._file_exists(path=path):
             raise ValueError(f"Cannot create the file because there is already one at {path}")
-        manifest.write_header(nb_levels=nb_levels,
-                              levels_ratio=levels_ratio,
-                              max_l0_sstables=max_l0_sstables,
-                              max_sstable_size=max_sstable_size,
-                              block_size=block_size)
-        return manifest
 
-    def write_header(self,
-                     nb_levels,
-                     levels_ratio,
-                     max_l0_sstables,
-                     max_sstable_size,
-                     block_size):
-        # Encode header
-        encoded_header = (
-                "nb_levels=".encode(encoding="utf-8") + struct.pack("i", nb_levels) +
-                "levels_ratio=".encode(encoding="utf-8") + struct.pack("f", levels_ratio) +
-                "max_l0_sstables=".encode(encoding="utf-8") + struct.pack("i", max_l0_sstables) +
-                "max_sstable_size=".encode(encoding="utf-8") + struct.pack("i", max_sstable_size) +
-                "block_size=".encode(encoding="utf-8") + struct.pack("i", block_size)
-        )
+        encoded_header = ManifestHeader(nb_levels=nb_levels,
+                                        levels_ratio=levels_ratio,
+                                        max_l0_sstables=max_l0_sstables,
+                                        max_sstable_size=max_sstable_size,
+                                        block_size=block_size).to_bytes()
+        file = open(path, "ab")
+        file.write(encoded_header)
 
-        with open(self.path, "wb") as f:
-            f.write(encoded_header)
+        return cls(file=file, path=path)
 
     @classmethod
     def open(cls, path: str):
-        manifest = cls(path)
-        if not manifest._exists():
+        if not cls._file_exists(path=path):
             raise ValueError(f"Cannot open the file because there is none at {path}")
-        return manifest
 
-    def _exists(self) -> bool:
-        return os.path.isfile(self.path)
+        file = open(path, "ab")
+
+        return cls(file=file, path=path)
 
 
 class Manifest:
