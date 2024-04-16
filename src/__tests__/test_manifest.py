@@ -7,6 +7,7 @@ from src.manifest import (
     ManifestCompactionRecord,
     ManifestSSTablesBlock,
     ManifestRecord,
+    ManifestHeader,
 )
 
 
@@ -334,6 +335,19 @@ def test_encode_decode_manifest_record_which_is_a_compaction_record(sstable_one_
     assert isinstance(manifest_record.event, CompactionEvent)
     assert isinstance(decoded_manifest_record.event, CompactionEvent)
     assert manifest_record.event == decoded_manifest_record.event
+
+
+def test_encode_decode_header():
+    # GIVEN
+    header = ManifestHeader(nb_levels=6, levels_ratio=0.10, max_l0_sstables=10,
+                            block_size=65_536, max_sstable_size=262_144_000)
+
+    # WHEN
+    encoded_header = header.to_bytes()
+    decoded_header = ManifestHeader.from_bytes(data=encoded_header)
+
+    # THEN
+    assert decoded_header == header
 
 # ManifestFile.create() # returns the expected manifest + test create on existing and new path
 # ManifestFile.open() # returns the expected manifest + test open on existing and new path

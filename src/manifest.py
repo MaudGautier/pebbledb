@@ -38,6 +38,62 @@ class CompactionEvent(Event):
                 and self.level == other.level)
 
 
+class ManifestHeader:
+    def __init__(
+            self,
+            nb_levels: int,
+            levels_ratio: float,
+            max_l0_sstables: int,
+            max_sstable_size: int,
+            block_size: int):
+        self.nb_levels = nb_levels
+        self.levels_ratio = levels_ratio
+        self.max_l0_sstables = max_l0_sstables
+        self.max_sstable_size = max_sstable_size
+        self.block_size = block_size
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, ManifestHeader):
+            return NotImplemented
+        return (
+                self.nb_levels == other.nb_levels and
+                self.levels_ratio == other.levels_ratio and
+                self.max_l0_sstables == other.max_l0_sstables and
+                self.max_sstable_size == other.max_sstable_size and
+                self.block_size == other.block_size
+        )
+
+    @property
+    def size(self) -> int:
+        return len(self.to_bytes())
+
+    def to_bytes(self) -> bytes:
+        encoded_nb_levels = struct.pack("i", self.nb_levels)
+        encoded_levels_ratio = struct.pack("d", self.levels_ratio)
+        encoded_max_l0_sstables = struct.pack("i", self.max_l0_sstables)
+        encoded_max_sstable_size = struct.pack("i", self.max_sstable_size)
+        encoded_block_size = struct.pack("i", self.block_size)
+
+        return (
+                encoded_nb_levels +
+                encoded_levels_ratio +
+                encoded_max_l0_sstables +
+                encoded_max_sstable_size +
+                encoded_block_size)
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> "ManifestHeader":
+        decoded_nb_levels = struct.unpack("i", data[:4])[0]
+        decoded_levels_ratio = struct.unpack("d", data[4:12])[0]
+        decoded_max_l0_sstables = struct.unpack("i", data[12:16])[0]
+        decoded_max_sstable_size = struct.unpack("i", data[16:20])[0]
+        decoded_block_size = struct.unpack("i", data[20:24])[0]
+
+        return cls(nb_levels=decoded_nb_levels, levels_ratio=decoded_levels_ratio,
+                   max_l0_sstables=decoded_max_l0_sstables, max_sstable_size=decoded_max_sstable_size,
+                   block_size=decoded_block_size)
+
+
 class ManifestFile:
     def __init__(self, path: str):
         self.path = path
