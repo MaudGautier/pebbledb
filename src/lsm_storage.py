@@ -5,6 +5,7 @@ from typing import Optional, Iterator, Deque
 
 from src.iterators import MemTableIterator, MergingIterator, SSTableIterator, ConcatenatingIterator, BaseIterator
 from src.locks import ReadWriteLock, Mutex
+from src.manifest import Manifest
 from src.memtable import MemTable
 from src.record import Record
 from src.sstable import SSTableBuilder, SSTable
@@ -271,3 +272,17 @@ class LsmStorage:
                 self.force_compaction_l1_or_more_level(level=level_index + 1)
 
         return
+
+    @classmethod
+    def reconstruct_from_manifest(cls, manifest_path: str) -> "LsmStorage":
+        manifest = Manifest.build(manifest_path)
+        directory = os.path.dirname(manifest_path)
+
+        return cls(
+            max_sstable_size=manifest.configuration.max_sstable_size,
+            block_size=manifest.configuration.block_size,
+            levels_ratio=manifest.configuration.levels_ratio,
+            max_l0_sstables=manifest.configuration.max_l0_sstables,
+            nb_levels=manifest.configuration.nb_levels,
+            directory=directory,
+        )

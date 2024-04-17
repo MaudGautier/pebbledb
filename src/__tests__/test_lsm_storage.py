@@ -500,3 +500,20 @@ def test_wal_associated_to_flushed_memtable_gets_deleted_upon_flush(store_with_m
 
         # THEN
         mocked_remove_self.assert_called_once()
+
+
+def test_reconstruct_from_manifest_has_same_configuration(sample_manifest_0_without_events,
+                                                          configuration_for_sample_manifest_0):
+    # GIVEN
+    manifest = sample_manifest_0_without_events
+
+    # WHEN
+    reconstructed_store = LsmStorage.reconstruct_from_manifest(manifest_path=manifest.file.path)
+
+    # THEN
+    # Assert same configuration
+    assert reconstructed_store.nb_levels == configuration_for_sample_manifest_0.nb_levels
+    assert reconstructed_store._levels_ratio == configuration_for_sample_manifest_0.levels_ratio
+    assert reconstructed_store._max_l0_sstables == configuration_for_sample_manifest_0.max_l0_sstables
+    assert reconstructed_store._max_sstable_size == configuration_for_sample_manifest_0.max_sstable_size
+    assert reconstructed_store._block_size == configuration_for_sample_manifest_0.block_size

@@ -77,15 +77,20 @@ def sample_manifest_file_1(events_for_sample_manifest_file_1, configuration_for_
 
 
 @pytest.fixture
-def sample_manifest_0_without_events():
-    path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/manifest_0.txt"
-    configuration = Configuration(
+def configuration_for_sample_manifest_0():
+    return Configuration(
         nb_levels=6,
         levels_ratio=0.1,
         max_l0_sstables=10,
         max_sstable_size=1000,
         block_size=100,
     )
+
+
+@pytest.fixture
+def sample_manifest_0_without_events(configuration_for_sample_manifest_0):
+    path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/manifest_0.txt"
+    configuration = configuration_for_sample_manifest_0
     manifest = Manifest.create(path=path, configuration=configuration)
 
     yield manifest
