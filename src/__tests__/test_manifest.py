@@ -498,3 +498,4 @@ def test_build_manifest_from_file(sample_manifest_file_1, events_for_sample_mani
     # THEN
     assert manifest.events == events_for_sample_manifest_file_1
     assert manifest.nb_levels == configuration_for_sample_manifest_file_1["nb_levels"]
+    assert manifest.file == manifest_file

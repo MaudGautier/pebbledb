@@ -99,6 +99,14 @@ class ManifestFile:
         self.file = file
         self.path = path
 
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, ManifestFile):
+            return NotImplemented
+
+        # If it is the same path, then the content is the same.
+        # Thus, there is no need to check for the content of file on top.
+        return self.path == other.path
+
     @staticmethod
     def _file_exists(path) -> bool:
         return os.path.isfile(path)
