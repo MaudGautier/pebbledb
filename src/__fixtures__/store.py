@@ -24,7 +24,7 @@ def store_with_multiple_immutable_memtables_records():
 
 @pytest.fixture
 def store_with_multiple_immutable_memtables(store_with_multiple_immutable_memtables_records):
-    store = LsmStorage(max_sstable_size=30, block_size=20, directory=TEST_DIRECTORY)
+    store = LsmStorage.create(max_sstable_size=30, block_size=20, directory=TEST_DIRECTORY)
     for record in store_with_multiple_immutable_memtables_records:
         store.put(key=record[0], value=record[1])
 
@@ -49,7 +49,7 @@ def store_with_duplicated_keys_records():
 
 @pytest.fixture
 def store_with_duplicated_keys(store_with_duplicated_keys_records):
-    store = LsmStorage(max_sstable_size=30, directory=TEST_DIRECTORY)
+    store = LsmStorage.create(max_sstable_size=30, directory=TEST_DIRECTORY)
     for record in store_with_duplicated_keys_records:
         store.put(key=record[0], value=record[1])
 
@@ -60,7 +60,7 @@ def store_with_duplicated_keys(store_with_duplicated_keys_records):
 
 @pytest.fixture
 def store_with_one_l0_sstable(store_with_multiple_immutable_memtables_records):
-    store = LsmStorage(max_sstable_size=30, block_size=20, directory=TEST_DIRECTORY)
+    store = LsmStorage.create(max_sstable_size=30, block_size=20, directory=TEST_DIRECTORY)
     for record in store_with_multiple_immutable_memtables_records:
         store.put(key=record[0], value=record[1])
     store.flush_next_immutable_memtable()
@@ -91,7 +91,7 @@ def records_for_store_with_multiple_l0_sstables():
 
 @pytest.fixture
 def store_with_multiple_l0_sstables(records_for_store_with_multiple_l0_sstables):
-    store = LsmStorage(max_sstable_size=35, block_size=30, directory=TEST_DIRECTORY)
+    store = LsmStorage.create(max_sstable_size=35, block_size=30, directory=TEST_DIRECTORY)
     for record in records_for_store_with_multiple_l0_sstables:
         store.put(key=record[0], value=record[1])
     assert len(store.immutable_memtables) == 4
@@ -125,7 +125,7 @@ def records_for_store_with_multiple_l1_sstables():
 @pytest.fixture
 def store_with_multiple_l1_sstables(records_for_store_with_multiple_l1_sstables):
     nb_levels = 2
-    store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
+    store = LsmStorage.create(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
     for record in records_for_store_with_multiple_l1_sstables:
         store.put(key=record[0], value=record[1])
     assert len(store.immutable_memtables) == 4
@@ -168,7 +168,7 @@ def records_for_store_with_four_l1_and_one_l2_sstables():
 @pytest.fixture
 def store_with_four_l1_and_one_l2_sstables(records_for_store_with_four_l1_and_one_l2_sstables):
     nb_levels = 2
-    store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
+    store = LsmStorage.create(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
     for record in records_for_store_with_four_l1_and_one_l2_sstables:
         store.put(key=record[0], value=record[1])
     assert len(store.immutable_memtables) == 5
@@ -227,7 +227,7 @@ def records_for_store_with_one_sstable_at_five_levels():
 @pytest.fixture
 def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_five_levels):
     nb_levels = 4
-    store = LsmStorage(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
+    store = LsmStorage.create(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
     store._levels_ratio = 10  # High value (which makes no sense) to be able to build the desired mocked store
     for record in records_for_store_with_one_sstable_at_five_levels:
         store.put(key=record[0], value=record[1])
@@ -270,4 +270,4 @@ def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_
 
 @pytest.fixture
 def empty_store():
-    return LsmStorage(directory=TEST_DIRECTORY)
+    return LsmStorage.create(directory=TEST_DIRECTORY)

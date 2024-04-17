@@ -12,12 +12,13 @@ from src.sstable import SSTableBuilder, SSTable
 
 class LsmStorage:
     def __init__(self,
-                 max_sstable_size: Optional[int] = 262_144_000,
-                 block_size: Optional[int] = 65_536,
-                 levels_ratio: float = 0.1,
-                 max_l0_sstables: int = 10,
-                 nb_levels: int = 6,
-                 directory: Optional[str] = "."):
+                 max_sstable_size: int,
+                 block_size: int,
+                 levels_ratio: float,
+                 max_l0_sstables: int,
+                 nb_levels: int,
+                 directory: str,
+                 ):
         self.directory = directory
         self._create_directory()
         self.nb_levels = nb_levels
@@ -34,6 +35,24 @@ class LsmStorage:
         self.ss_tables_levels: list[Deque[SSTable]] = [deque() for _ in range(self.nb_levels)]
         self.directory = directory
         self._create_directory()
+
+    @classmethod
+    def create(cls,
+               max_sstable_size: Optional[int] = 262_144_000,
+               block_size: Optional[int] = 65_536,
+               levels_ratio: float = 0.1,
+               max_l0_sstables: int = 10,
+               nb_levels: int = 6,
+               directory: Optional[str] = ".",
+               ):
+        return cls(
+            max_sstable_size=max_sstable_size,
+            block_size=block_size,
+            levels_ratio=levels_ratio,
+            max_l0_sstables=max_l0_sstables,
+            nb_levels=nb_levels,
+            directory=directory,
+        )
 
     def _create_memtable(self):
         return MemTable.create(directory=self.directory)
