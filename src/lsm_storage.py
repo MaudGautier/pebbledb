@@ -22,7 +22,7 @@ class LsmStorage:
                  ):
         self.directory = directory
         self._create_directory()
-        self.nb_levels = nb_levels
+        self._nb_levels = nb_levels
         self._levels_ratio = levels_ratio
         self._max_l0_sstables = max_l0_sstables
         self.memtable = self._create_memtable()
@@ -33,7 +33,7 @@ class LsmStorage:
         self._max_sstable_size = max_sstable_size
         self._block_size = block_size
         self.ss_tables: Deque[SSTable] = deque()
-        self.ss_tables_levels: list[Deque[SSTable]] = [deque() for _ in range(self.nb_levels)]
+        self.ss_tables_levels: list[Deque[SSTable]] = [deque() for _ in range(self._nb_levels)]
         self.directory = directory
         self._create_directory()
 
@@ -231,7 +231,7 @@ class LsmStorage:
     def force_compaction_l1_or_more_level(self, level: int):
         level_index = level - 1
         next_level_index = level
-        if self.nb_levels < level:
+        if self._nb_levels < level:
             next_level_index = level - 1
 
         with self._read_write_lock.read():
@@ -265,7 +265,7 @@ class LsmStorage:
             self.force_compaction_l0()
 
         # Try to compact other levels
-        for level_index in range(self.nb_levels - 1):
+        for level_index in range(self._nb_levels - 1):
             current_level = self.ss_tables_levels[level_index]
             next_level = self.ss_tables_levels[level_index + 1]
             if len(current_level) >= self._levels_ratio * len(next_level):

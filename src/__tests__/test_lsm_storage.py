@@ -354,7 +354,7 @@ def test_trigger_l0_compaction(store_with_multiple_l0_sstables, records_for_stor
     store.force_compaction_l0()
 
     # THEN
-    assert len(store.ss_tables_levels) == store.nb_levels
+    assert len(store.ss_tables_levels) == store._nb_levels
     assert len(store.ss_tables_levels[0]) == 2
     assert store.ss_tables_levels[0][0].first_key == "key1"
     assert store.ss_tables_levels[0][0].last_key == "key3"
@@ -384,7 +384,7 @@ def test_trigger_l1_compaction_to_l2(store_with_multiple_l1_sstables, records_fo
     store.force_compaction_l1_or_more_level(level=1)
 
     # THEN
-    assert len(store.ss_tables_levels) == store.nb_levels
+    assert len(store.ss_tables_levels) == store._nb_levels
     assert len(store.ss_tables_levels[0]) == 0
     assert len(store.ss_tables_levels[1]) == 4
     assert store.ss_tables_levels[1][0].first_key == "key1"
@@ -512,7 +512,7 @@ def test_reconstruct_from_manifest_has_same_configuration(sample_manifest_0_with
 
     # THEN
     # Assert same configuration
-    assert reconstructed_store.nb_levels == configuration_for_sample_manifest_0.nb_levels
+    assert reconstructed_store._nb_levels == configuration_for_sample_manifest_0.nb_levels
     assert reconstructed_store._levels_ratio == configuration_for_sample_manifest_0.levels_ratio
     assert reconstructed_store._max_l0_sstables == configuration_for_sample_manifest_0.max_l0_sstables
     assert reconstructed_store._max_sstable_size == configuration_for_sample_manifest_0.max_sstable_size
