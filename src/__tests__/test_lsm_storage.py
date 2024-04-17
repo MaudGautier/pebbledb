@@ -511,9 +511,27 @@ def test_reconstruct_from_manifest_has_same_configuration(sample_manifest_0_with
     reconstructed_store = LsmStorage.reconstruct_from_manifest(manifest_path=manifest.file.path)
 
     # THEN
-    # Assert same configuration
     assert reconstructed_store._nb_levels == configuration_for_sample_manifest_0.nb_levels
     assert reconstructed_store._levels_ratio == configuration_for_sample_manifest_0.levels_ratio
     assert reconstructed_store._max_l0_sstables == configuration_for_sample_manifest_0.max_l0_sstables
     assert reconstructed_store._max_sstable_size == configuration_for_sample_manifest_0.max_sstable_size
     assert reconstructed_store._block_size == configuration_for_sample_manifest_0.block_size
+
+
+def test_reconstruct_from_manifest_has_same_components(sample_manifest_1_with_events,
+                                                       expected_state_of_manifest_1):
+    # GIVEN
+    manifest = sample_manifest_1_with_events
+
+    # WHEN
+    reconstructed_store = LsmStorage.reconstruct_from_manifest(manifest_path=manifest.file.path)
+
+    # THEN
+    expected_memtable = expected_state_of_manifest_1[0]
+    expected_immutable_memtables = expected_state_of_manifest_1[1]
+    expected_sstables_level0 = expected_state_of_manifest_1[2]
+    expected_sstables_levels = expected_state_of_manifest_1[3]
+    assert reconstructed_store.memtable == expected_memtable
+    assert reconstructed_store.immutable_memtables == expected_immutable_memtables
+    assert reconstructed_store.ss_tables == expected_sstables_level0
+    assert reconstructed_store.ss_tables_levels == expected_sstables_levels

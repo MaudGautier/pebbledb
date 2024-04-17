@@ -1,9 +1,11 @@
 import os
+from collections import deque
 
 import pytest
 
 from src.__fixtures__.constants import TEST_SSTABLE_FIXTURES_DIRECTORY, TEST_DIRECTORY
 from src.manifest import ManifestFile, FlushEvent, CompactionEvent, Configuration, Manifest
+from src.memtable import MemTable
 
 
 @pytest.fixture
@@ -100,6 +102,11 @@ def sample_manifest_0_without_events(configuration_for_sample_manifest_0):
 
 
 @pytest.fixture
+def path_to_manifest_1():
+    return f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/manifest_1.txt"
+
+
+@pytest.fixture
 def sample_manifest_1_with_events(events_for_sample_manifest_file_1, configuration_for_sample_manifest_file_1):
     path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/manifest_1.txt"
     configuration = configuration_for_sample_manifest_file_1
@@ -114,3 +121,16 @@ def sample_manifest_1_with_events(events_for_sample_manifest_file_1, configurati
 
     # Cleanup code (Delete the file created by the fixture)
     os.remove(path)
+
+
+@pytest.fixture
+def expected_state_of_manifest_1(sstable_one_block_3, sstable_one_block_4,
+                                 path_to_manifest_1, configuration_for_sample_manifest_file_1):
+    directory = os.path.dirname(path_to_manifest_1)
+    memtables = MemTable.create(directory=directory)
+    immutable_memtables = deque()
+    sstables_level0 = deque([sstable_one_block_4])
+    sstables_levels = [deque() for _ in range(configuration_for_sample_manifest_file_1.nb_levels)]
+    sstables_levels[0] = deque([sstable_one_block_3])
+
+    return memtables, immutable_memtables, sstables_level0, sstables_levels

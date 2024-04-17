@@ -19,6 +19,8 @@ class LsmStorage:
                  max_l0_sstables: int,
                  nb_levels: int,
                  directory: str,
+                 sstables_level0: Deque[SSTable],
+                 sstables_levels: list[Deque[SSTable]]
                  ):
         self.directory = directory
         self._create_directory()
@@ -32,8 +34,8 @@ class LsmStorage:
         self._state_lock = Mutex()
         self._max_sstable_size = max_sstable_size
         self._block_size = block_size
-        self.ss_tables: Deque[SSTable] = deque()
-        self.ss_tables_levels: list[Deque[SSTable]] = [deque() for _ in range(self._nb_levels)]
+        self.ss_tables = sstables_level0
+        self.ss_tables_levels = sstables_levels
         self.directory = directory
         self._create_directory()
 
@@ -53,6 +55,8 @@ class LsmStorage:
             max_l0_sstables=max_l0_sstables,
             nb_levels=nb_levels,
             directory=directory,
+            sstables_level0=deque(),
+            sstables_levels=[deque() for _ in range(nb_levels)]
         )
 
     def _create_memtable(self):
@@ -276,6 +280,7 @@ class LsmStorage:
     @classmethod
     def reconstruct_from_manifest(cls, manifest_path: str) -> "LsmStorage":
         manifest = Manifest.build(manifest_path)
+        ss_tables_levels = manifest.reconstruct_sstables()
         directory = os.path.dirname(manifest_path)
 
         return cls(
@@ -285,4 +290,6 @@ class LsmStorage:
             max_l0_sstables=manifest.configuration.max_l0_sstables,
             nb_levels=manifest.configuration.nb_levels,
             directory=directory,
+            sstables_level0=ss_tables_levels[0],
+            sstables_levels=ss_tables_levels[1:]
         )
