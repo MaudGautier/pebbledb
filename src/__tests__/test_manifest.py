@@ -23,11 +23,13 @@ def test_reconstruct_from_empty_events(empty_manifest):
     manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
 
     # WHEN
-    store = manifest.reconstruct()
+    all_ss_tables_levels = manifest.reconstruct_sstables()
+    level0 = all_ss_tables_levels[0]
+    ss_tables_levels = all_ss_tables_levels[1:]
 
     # THEN
-    assert len(store.ss_tables) == 0
-    for level in store.ss_tables_levels:
+    assert len(level0) == 0
+    for level in ss_tables_levels:
         assert len(level) == 0
 
 
@@ -38,11 +40,13 @@ def test_reconstruct_from_one_flush_event(sstable_four_blocks, empty_manifest):
     manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
 
     # WHEN
-    store = manifest.reconstruct()
+    all_ss_tables_levels = manifest.reconstruct_sstables()
+    level0 = all_ss_tables_levels[0]
+    ss_tables_levels = all_ss_tables_levels[1:]
 
     # THEN
-    assert len(store.ss_tables) == 1
-    for level in store.ss_tables_levels:
+    assert len(level0) == 1
+    for level in ss_tables_levels:
         assert len(level) == 0
 
 
@@ -57,13 +61,15 @@ def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_bloc
     manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
 
     # WHEN
-    store = manifest.reconstruct()
+    all_ss_tables_levels = manifest.reconstruct_sstables()
+    level0 = all_ss_tables_levels[0]
+    ss_tables_levels = all_ss_tables_levels[1:]
 
     # THEN
-    assert len(store.ss_tables) == 2
-    assert store.ss_tables[0] == sstable2
-    assert store.ss_tables[1] == sstable1
-    for level in store.ss_tables_levels:
+    assert len(level0) == 2
+    assert level0[0] == sstable2
+    assert level0[1] == sstable1
+    for level in ss_tables_levels:
         assert len(level) == 0
 
 
@@ -79,12 +85,15 @@ def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_
     manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
 
     # WHEN
-    store = manifest.reconstruct()
+    all_ss_tables_levels = manifest.reconstruct_sstables()
+    level0 = all_ss_tables_levels[0]
+    ss_tables_levels = all_ss_tables_levels[1:]
+
 
     # THEN
-    assert len(store.ss_tables) == 0
-    assert len(store.ss_tables_levels[0]) == 1
-    assert store.ss_tables_levels[0][0] == sstable2
+    assert len(level0) == 0
+    assert len(ss_tables_levels[0]) == 1
+    assert ss_tables_levels[0][0] == sstable2
 
 
 def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four_blocks,
@@ -103,13 +112,15 @@ def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four
     manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
 
     # WHEN
-    store = manifest.reconstruct()
+    all_ss_tables_levels = manifest.reconstruct_sstables()
+    level0 = all_ss_tables_levels[0]
+    ss_tables_levels = all_ss_tables_levels[1:]
 
     # THEN
-    assert len(store.ss_tables) == 0  # l0
-    assert len(store.ss_tables_levels[0]) == 0  # l1
-    assert len(store.ss_tables_levels[1]) == 1  # l2
-    assert store.ss_tables_levels[1][0] == sstable3
+    assert len(level0) == 0  # l0
+    assert len(ss_tables_levels[0]) == 0  # l1
+    assert len(ss_tables_levels[1]) == 1  # l2
+    assert ss_tables_levels[1][0] == sstable3
 
 
 def test_reconstruct_from_one_flush_event_and_three_compaction_events(sstable_one_block_1,
@@ -131,14 +142,16 @@ def test_reconstruct_from_one_flush_event_and_three_compaction_events(sstable_on
     manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
 
     # WHEN
-    store = manifest.reconstruct()
+    all_ss_tables_levels = manifest.reconstruct_sstables()
+    level0 = all_ss_tables_levels[0]
+    ss_tables_levels = all_ss_tables_levels[1:]
 
     # THEN
-    assert len(store.ss_tables) == 0  # l0
-    assert len(store.ss_tables_levels[0]) == 0  # l1
-    assert len(store.ss_tables_levels[1]) == 0  # l2
-    assert len(store.ss_tables_levels[2]) == 1  # l3
-    assert store.ss_tables_levels[2][0] == sstable4
+    assert len(level0) == 0  # l0
+    assert len(ss_tables_levels[0]) == 0  # l1
+    assert len(ss_tables_levels[1]) == 0  # l2
+    assert len(ss_tables_levels[2]) == 1  # l3
+    assert ss_tables_levels[2][0] == sstable4
 
 
 def test_reconstruct_from_two_flush_events_and_one_compaction_event(sstable_one_block_1,
@@ -157,12 +170,14 @@ def test_reconstruct_from_two_flush_events_and_one_compaction_event(sstable_one_
     manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
 
     # WHEN
-    store = manifest.reconstruct()
+    all_ss_tables_levels = manifest.reconstruct_sstables()
+    level0 = all_ss_tables_levels[0]
+    ss_tables_levels = all_ss_tables_levels[1:]
 
     # THEN
-    assert len(store.ss_tables) == 0  # l0
-    assert len(store.ss_tables_levels[0]) == 1  # l1
-    assert store.ss_tables_levels[0][0] == sstable3
+    assert len(level0) == 0  # l0
+    assert len(ss_tables_levels[0]) == 1  # l1
+    assert ss_tables_levels[0][0] == sstable3
 
 
 def test_reconstruct_from_two_flush_events_interspaced_with_compaction_events(sstable_one_block_1,
@@ -184,13 +199,15 @@ def test_reconstruct_from_two_flush_events_interspaced_with_compaction_events(ss
     manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
 
     # WHEN
-    store = manifest.reconstruct()
+    all_ss_tables_levels = manifest.reconstruct_sstables()
+    level0 = all_ss_tables_levels[0]
+    ss_tables_levels = all_ss_tables_levels[1:]
 
     # THEN
-    assert len(store.ss_tables) == 0  # l0
-    assert len(store.ss_tables_levels[0]) == 2  # l1
-    assert store.ss_tables_levels[0][1] == sstable3
-    assert store.ss_tables_levels[0][0] == sstable4
+    assert len(level0) == 0  # l0
+    assert len(ss_tables_levels[0]) == 2  # l1
+    assert ss_tables_levels[0][1] == sstable3
+    assert ss_tables_levels[0][0] == sstable4
 
 
 def test_flush_events_are_equal(sstable_one_block_1):

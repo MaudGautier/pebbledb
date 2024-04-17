@@ -1,9 +1,8 @@
 import os
 import struct
 from collections import deque
-from typing import Dict, Type, BinaryIO
+from typing import Dict, Type, BinaryIO, Deque
 
-from src.lsm_storage import LsmStorage
 from src.sstable import SSTable
 
 
@@ -190,7 +189,7 @@ class Manifest:
 
         return cls(events=events, nb_levels=header.nb_levels, file=file)
 
-    def reconstruct(self) -> LsmStorage:
+    def reconstruct_sstables(self) -> list[Deque[SSTable]]:
         ss_tables_levels = [deque() for _ in range(self.nb_levels + 1)]
 
         for event in self.events:
@@ -203,11 +202,8 @@ class Manifest:
                 for sstable in event.input_sstables:
                     ss_tables_levels[level].remove(sstable)
 
-        store = LsmStorage()
-        store.ss_tables = ss_tables_levels[0]
-        store.ss_tables_levels = ss_tables_levels[1:]
+        return ss_tables_levels
 
-        return store
 
 
 class ManifestRecord:
