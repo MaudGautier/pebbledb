@@ -1019,3 +1019,35 @@ def test_in_order_traversal_gets_all_nodes():
     # THEN
     expected_items = [str(i).encode(encoding="utf-8") for i in sorted(all_keys)]
     assert items == expected_items
+
+
+def test_equal():
+    # GIVEN
+    tree1 = RedBlackTree()
+    tree2 = RedBlackTree()
+    all_keys = [27, 0, 2, 30, 45, 3, 12, 25, 4, 5, 8, 50]
+    for key in all_keys:
+        tree1.insert(key=key, data=str(key).encode(encoding="utf-8"))
+        tree2.insert(key=key, data=str(key).encode(encoding="utf-8"))
+
+    # WHEN/THEN
+    assert tree1 == tree2
+
+
+def test_not_equal_if_different_nodes():
+    # GIVEN
+    tree1 = RedBlackTree()
+    tree2 = RedBlackTree()
+    tree3 = RedBlackTree()
+    keys1 = [3, 5]
+    keys2 = [3, 6]
+    for key in keys1:
+        tree1.insert(key=key, data=str(key).encode(encoding="utf-8"))
+    for key in keys2:
+        tree2.insert(key=key, data=str(key).encode(encoding="utf-8"))
+    for key in keys1:
+        tree3.insert(key=key, data=b'3')
+
+    # WHEN/THEN
+    assert tree1 != tree2
+    assert tree1 != tree3

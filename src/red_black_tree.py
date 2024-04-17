@@ -75,6 +75,11 @@ class RedBlackTree:
     def __init__(self):
         self.root = self.NIL_LEAF
 
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, RedBlackTree):
+            return NotImplemented
+        return self.read_data(with_value=True) == other.read_data(with_value=True)
+
     def _get_lower_bound_node(self, key: Node.Key) -> Node:
         node = self.root
         # Find start node
