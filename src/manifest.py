@@ -37,22 +37,24 @@ class CompactionEvent(Event):
                 and self.level == other.level)
 
 
-class ManifestHeader:
+
+class Configuration:
     def __init__(
             self,
             nb_levels: int,
             levels_ratio: float,
             max_l0_sstables: int,
             max_sstable_size: int,
-            block_size: int):
+            block_size: int
+    ):
         self.nb_levels = nb_levels
         self.levels_ratio = levels_ratio
         self.max_l0_sstables = max_l0_sstables
         self.max_sstable_size = max_sstable_size
         self.block_size = block_size
 
-    def __eq__(self, other) -> bool:
-        if not isinstance(other, ManifestHeader):
+    def __eq__(self, other):
+        if not isinstance(other, Configuration):
             return NotImplemented
         return (
                 self.nb_levels == other.nb_levels and
@@ -62,16 +64,26 @@ class ManifestHeader:
                 self.block_size == other.block_size
         )
 
+
+class ManifestHeader:
+    def __init__(self, configuration: Configuration):
+        self.configuration = configuration
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, ManifestHeader):
+            return NotImplemented
+        return self.configuration == other.configuration
+
     @property
     def size(self) -> int:
         return len(self.to_bytes())
 
     def to_bytes(self) -> bytes:
-        encoded_nb_levels = struct.pack("i", self.nb_levels)
-        encoded_levels_ratio = struct.pack("d", self.levels_ratio)
-        encoded_max_l0_sstables = struct.pack("i", self.max_l0_sstables)
-        encoded_max_sstable_size = struct.pack("i", self.max_sstable_size)
-        encoded_block_size = struct.pack("i", self.block_size)
+        encoded_nb_levels = struct.pack("i", self.configuration.nb_levels)
+        encoded_levels_ratio = struct.pack("d", self.configuration.levels_ratio)
+        encoded_max_l0_sstables = struct.pack("i", self.configuration.max_l0_sstables)
+        encoded_max_sstable_size = struct.pack("i", self.configuration.max_sstable_size)
+        encoded_block_size = struct.pack("i", self.configuration.block_size)
 
         return (
                 encoded_nb_levels +
@@ -88,9 +100,12 @@ class ManifestHeader:
         decoded_max_sstable_size = struct.unpack("i", data[16:20])[0]
         decoded_block_size = struct.unpack("i", data[20:24])[0]
 
-        return cls(nb_levels=decoded_nb_levels, levels_ratio=decoded_levels_ratio,
-                   max_l0_sstables=decoded_max_l0_sstables, max_sstable_size=decoded_max_sstable_size,
-                   block_size=decoded_block_size)
+        configuration = Configuration(nb_levels=decoded_nb_levels, levels_ratio=decoded_levels_ratio,
+                                      max_l0_sstables=decoded_max_l0_sstables,
+                                      max_sstable_size=decoded_max_sstable_size,
+                                      block_size=decoded_block_size)
+
+        return cls(configuration=configuration)
 
 
 class ManifestFile:
@@ -111,22 +126,12 @@ class ManifestFile:
         return os.path.isfile(path)
 
     @classmethod
-    def create(cls,
-               path: str,
-               nb_levels: int,
-               levels_ratio: float,
-               max_l0_sstables: int,
-               max_sstable_size: int,
-               block_size: int):
+    def create(cls, path: str, configuration: Configuration):
 
         if cls._file_exists(path=path):
             raise ValueError(f"Cannot create the file because there is already one at {path}")
 
-        encoded_header = ManifestHeader(nb_levels=nb_levels,
-                                        levels_ratio=levels_ratio,
-                                        max_l0_sstables=max_l0_sstables,
-                                        max_sstable_size=max_sstable_size,
-                                        block_size=block_size).to_bytes()
+        encoded_header = ManifestHeader(configuration=configuration).to_bytes()
         file = open(path, "ab")
         file.write(encoded_header)
         file.flush()
@@ -173,12 +178,12 @@ class ManifestFile:
 
 
 class Manifest:
-    def __init__(self, file, events=None, nb_levels=None):
+
+    def __init__(self, file: ManifestFile, events=None, configuration: Configuration = None):
         self.file = file
         # TODO stop passing events and nb_levels - read them from file at some point
         self.events = events
-        self.nb_levels = nb_levels
-
+        self.configuration = configuration
 
     @classmethod
     def build(cls, manifest_path: str):
@@ -187,10 +192,10 @@ class Manifest:
 
         file = ManifestFile.open(path=manifest_path)
 
-        return cls(events=events, nb_levels=header.nb_levels, file=file)
+        return cls(events=events, configuration=header.configuration, file=file)
 
     def reconstruct_sstables(self) -> list[Deque[SSTable]]:
-        ss_tables_levels = [deque() for _ in range(self.nb_levels + 1)]
+        ss_tables_levels = [deque() for _ in range(self.configuration.nb_levels + 1)]
 
         for event in self.events:
             if isinstance(event, FlushEvent):
@@ -203,7 +208,6 @@ class Manifest:
                     ss_tables_levels[level].remove(sstable)
 
         return ss_tables_levels
-
 
 
 class ManifestRecord:

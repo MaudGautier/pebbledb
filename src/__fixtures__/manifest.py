@@ -3,25 +3,25 @@ import os
 import pytest
 
 from src.__fixtures__.constants import TEST_SSTABLE_FIXTURES_DIRECTORY, TEST_DIRECTORY
-from src.manifest import ManifestFile, FlushEvent, CompactionEvent
+from src.manifest import ManifestFile, FlushEvent, CompactionEvent, Configuration
 
 
 @pytest.fixture
 def empty_manifest_configuration():
-    return {
-        "nb_levels": 10,
-        "levels_ratio": 0.1,
-        "max_l0_sstables": 10,
-        "max_sstable_size": 1000,
-        "block_size": 100,
-    }
+    return Configuration(
+        nb_levels=10,
+        levels_ratio=0.1,
+        max_l0_sstables=10,
+        max_sstable_size=1000,
+        block_size=100,
+    )
 
 
 @pytest.fixture
 def empty_manifest(empty_manifest_configuration):
     path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/empty_manifest.txt"
 
-    yield ManifestFile.create(path=path, **empty_manifest_configuration)
+    yield ManifestFile.create(path=path, configuration=empty_manifest_configuration)
 
     # Cleanup code (Delete the file created by the fixture)
     os.remove(path)
@@ -49,13 +49,13 @@ def events_for_sample_manifest_file_1(sstable_one_block_1, sstable_one_block_2,
 
 @pytest.fixture
 def configuration_for_sample_manifest_file_1():
-    return {
-        "nb_levels": 6,
-        "levels_ratio": 0.1,
-        "max_l0_sstables": 10,
-        "max_sstable_size": 1000,
-        "block_size": 100,
-    }
+    return Configuration(
+        nb_levels=6,
+        levels_ratio=0.1,
+        max_l0_sstables=10,
+        max_sstable_size=1000,
+        block_size=100,
+    )
 
 
 @pytest.fixture
@@ -63,7 +63,7 @@ def sample_manifest_file_1(events_for_sample_manifest_file_1, configuration_for_
     # Configure manifest
     configuration = configuration_for_sample_manifest_file_1
     path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/sample_manifest_1.txt"
-    manifest_file = ManifestFile.create(path=path, **configuration)
+    manifest_file = ManifestFile.create(path=path, configuration=configuration)
 
     # Add events
     for event in events_for_sample_manifest_file_1:

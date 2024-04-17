@@ -14,13 +14,14 @@ from src.manifest import (
     ManifestRecord,
     ManifestHeader,
     ManifestFile,
+    Configuration,
 )
 
 
-def test_reconstruct_from_empty_events(empty_manifest):
+def test_reconstruct_from_empty_events(empty_manifest, empty_manifest_configuration):
     # GIVEN
     events = []
-    manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
+    manifest = Manifest(events=events, configuration=empty_manifest_configuration, file=empty_manifest)
 
     # WHEN
     all_ss_tables_levels = manifest.reconstruct_sstables()
@@ -33,11 +34,11 @@ def test_reconstruct_from_empty_events(empty_manifest):
         assert len(level) == 0
 
 
-def test_reconstruct_from_one_flush_event(sstable_four_blocks, empty_manifest):
+def test_reconstruct_from_one_flush_event(sstable_four_blocks, empty_manifest, empty_manifest_configuration):
     # GIVEN
     sstable = sstable_four_blocks
     events = [FlushEvent(sstable=sstable)]
-    manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
+    manifest = Manifest(events=events, configuration=empty_manifest_configuration, file=empty_manifest)
 
     # WHEN
     all_ss_tables_levels = manifest.reconstruct_sstables()
@@ -50,7 +51,8 @@ def test_reconstruct_from_one_flush_event(sstable_four_blocks, empty_manifest):
         assert len(level) == 0
 
 
-def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_block_1, empty_manifest):
+def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_block_1, empty_manifest,
+                                           empty_manifest_configuration):
     # GIVEN
     sstable1 = sstable_four_blocks
     sstable2 = sstable_one_block_1
@@ -58,7 +60,7 @@ def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_bloc
         FlushEvent(sstable=sstable1),
         FlushEvent(sstable=sstable2)
     ]
-    manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
+    manifest = Manifest(events=events, configuration=empty_manifest_configuration, file=empty_manifest)
 
     # WHEN
     all_ss_tables_levels = manifest.reconstruct_sstables()
@@ -74,7 +76,7 @@ def test_reconstruct_from_two_flush_events(sstable_four_blocks, sstable_one_bloc
 
 
 def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_blocks, sstable_one_block_1,
-                                                                   empty_manifest):
+                                                                   empty_manifest, empty_manifest_configuration):
     # GIVEN
     sstable1 = sstable_four_blocks
     sstable2 = sstable_one_block_1
@@ -82,13 +84,12 @@ def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_
         FlushEvent(sstable=sstable1),
         CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0)
     ]
-    manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
+    manifest = Manifest(events=events, configuration=empty_manifest_configuration, file=empty_manifest)
 
     # WHEN
     all_ss_tables_levels = manifest.reconstruct_sstables()
     level0 = all_ss_tables_levels[0]
     ss_tables_levels = all_ss_tables_levels[1:]
-
 
     # THEN
     assert len(level0) == 0
@@ -99,7 +100,7 @@ def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_
 def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four_blocks,
                                                                     sstable_one_block_1,
                                                                     sstable_one_block_2,
-                                                                    empty_manifest):
+                                                                    empty_manifest, empty_manifest_configuration):
     # GIVEN
     sstable1 = sstable_four_blocks
     sstable2 = sstable_one_block_1
@@ -109,7 +110,7 @@ def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four
         CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0),
         CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], level=1)
     ]
-    manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
+    manifest = Manifest(events=events, configuration=empty_manifest_configuration, file=empty_manifest)
 
     # WHEN
     all_ss_tables_levels = manifest.reconstruct_sstables()
@@ -127,7 +128,7 @@ def test_reconstruct_from_one_flush_event_and_three_compaction_events(sstable_on
                                                                       sstable_one_block_2,
                                                                       sstable_one_block_3,
                                                                       sstable_one_block_4,
-                                                                      empty_manifest):
+                                                                      empty_manifest, empty_manifest_configuration):
     # GIVEN
     sstable1 = sstable_one_block_1
     sstable2 = sstable_one_block_2
@@ -139,7 +140,7 @@ def test_reconstruct_from_one_flush_event_and_three_compaction_events(sstable_on
         CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], level=1),
         CompactionEvent(input_sstables=[sstable3], output_sstables=[sstable4], level=2),
     ]
-    manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
+    manifest = Manifest(events=events, configuration=empty_manifest_configuration, file=empty_manifest)
 
     # WHEN
     all_ss_tables_levels = manifest.reconstruct_sstables()
@@ -157,7 +158,7 @@ def test_reconstruct_from_one_flush_event_and_three_compaction_events(sstable_on
 def test_reconstruct_from_two_flush_events_and_one_compaction_event(sstable_one_block_1,
                                                                     sstable_one_block_2,
                                                                     sstable_one_block_3,
-                                                                    empty_manifest):
+                                                                    empty_manifest, empty_manifest_configuration):
     # GIVEN
     sstable1 = sstable_one_block_1
     sstable2 = sstable_one_block_2
@@ -167,7 +168,7 @@ def test_reconstruct_from_two_flush_events_and_one_compaction_event(sstable_one_
         FlushEvent(sstable=sstable2),
         CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable3], level=0),
     ]
-    manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
+    manifest = Manifest(events=events, configuration=empty_manifest_configuration, file=empty_manifest)
 
     # WHEN
     all_ss_tables_levels = manifest.reconstruct_sstables()
@@ -184,7 +185,8 @@ def test_reconstruct_from_two_flush_events_interspaced_with_compaction_events(ss
                                                                               sstable_one_block_2,
                                                                               sstable_one_block_3,
                                                                               sstable_one_block_4,
-                                                                              empty_manifest):
+                                                                              empty_manifest,
+                                                                              empty_manifest_configuration):
     # GIVEN
     sstable1 = sstable_one_block_1
     sstable2 = sstable_one_block_2
@@ -196,7 +198,7 @@ def test_reconstruct_from_two_flush_events_interspaced_with_compaction_events(ss
         FlushEvent(sstable=sstable2),
         CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable4], level=0),
     ]
-    manifest = Manifest(events=events, nb_levels=3, file=empty_manifest)
+    manifest = Manifest(events=events, configuration=empty_manifest_configuration, file=empty_manifest)
 
     # WHEN
     all_ss_tables_levels = manifest.reconstruct_sstables()
@@ -362,8 +364,9 @@ def test_encode_decode_manifest_record_which_is_a_compaction_record(sstable_one_
 
 def test_encode_decode_header():
     # GIVEN
-    header = ManifestHeader(nb_levels=6, levels_ratio=0.10, max_l0_sstables=10,
-                            block_size=65_536, max_sstable_size=262_144_000)
+    configuration = Configuration(nb_levels=6, levels_ratio=0.10, max_l0_sstables=10,
+                                  block_size=65_536, max_sstable_size=262_144_000)
+    header = ManifestHeader(configuration=configuration)
 
     # WHEN
     encoded_header = header.to_bytes()
@@ -376,17 +379,17 @@ def test_encode_decode_header():
 def test_create_manifest_file_from_existing_path_should_raise_an_error(empty_manifest):
     # GIVEN
     path_with_file = empty_manifest.path
-    configuration = {
-        "nb_levels": 10,
-        "levels_ratio": 0.1,
-        "max_l0_sstables": 10,
-        "max_sstable_size": 1000,
-        "block_size": 100,
-    }
+    configuration = Configuration(
+        nb_levels=10,
+        levels_ratio=0.1,
+        max_l0_sstables=10,
+        max_sstable_size=1000,
+        block_size=100,
+    )
 
     # WHEN/THEN
     with pytest.raises(ValueError):
-        ManifestFile.create(path=path_with_file, **configuration)
+        ManifestFile.create(path=path_with_file, configuration=configuration)
 
 
 def test_open_manifest_file_from_existing_path_should_not_raise_an_error(empty_manifest):
@@ -400,17 +403,17 @@ def test_open_manifest_file_from_existing_path_should_not_raise_an_error(empty_m
 
 def test_create_manifest_file_from_new_path_should_not_raise_an_error(manifest_path_with_no_file):
     # GIVEN
-    configuration = {
-        "nb_levels": 10,
-        "levels_ratio": 0.1,
-        "max_l0_sstables": 10,
-        "max_sstable_size": 1000,
-        "block_size": 100,
-    }
+    configuration = Configuration(
+        nb_levels=10,
+        levels_ratio=0.1,
+        max_l0_sstables=10,
+        max_sstable_size=1000,
+        block_size=100,
+    )
 
     # WHEN/THEN
     with does_not_raise():
-        ManifestFile.create(path=manifest_path_with_no_file, **configuration)
+        ManifestFile.create(path=manifest_path_with_no_file, configuration=configuration)
 
 
 def test_open_manifest_file_from_new_path_should_raise_an_error(manifest_path_with_no_file):
@@ -462,7 +465,7 @@ def test_can_write_events_to_manifest(empty_manifest, empty_manifest_configurati
     manifest_file.write_event(event=event2)
 
     # THEN
-    encoded_header = ManifestHeader(**empty_manifest_configuration).to_bytes()
+    encoded_header = ManifestHeader(configuration=empty_manifest_configuration).to_bytes()
     encoded_record1 = ManifestRecord(event=event1).to_bytes()
     encoded_record2 = ManifestRecord(event=event2).to_bytes()
     with open(manifest_file.path, "rb") as f:
@@ -480,7 +483,7 @@ def test_can_decode_manifest_file_with_no_events(empty_manifest, empty_manifest_
 
     # THEN
     assert events == []
-    assert header == ManifestHeader(**empty_manifest_configuration)
+    assert header == ManifestHeader(configuration=empty_manifest_configuration)
 
 
 def test_can_decode_manifest_file_with_multiple_events(empty_manifest, empty_manifest_configuration,
@@ -501,7 +504,7 @@ def test_can_decode_manifest_file_with_multiple_events(empty_manifest, empty_man
 
     # THEN
     assert decoded_events == events
-    assert header == ManifestHeader(**empty_manifest_configuration)
+    assert header == ManifestHeader(configuration=empty_manifest_configuration)
 
 
 def test_build_manifest_from_file(sample_manifest_file_1, events_for_sample_manifest_file_1,
@@ -514,5 +517,5 @@ def test_build_manifest_from_file(sample_manifest_file_1, events_for_sample_mani
 
     # THEN
     assert manifest.events == events_for_sample_manifest_file_1
-    assert manifest.nb_levels == configuration_for_sample_manifest_file_1["nb_levels"]
+    assert manifest.configuration == configuration_for_sample_manifest_file_1
     assert manifest.file == manifest_file
