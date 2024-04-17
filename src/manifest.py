@@ -179,11 +179,19 @@ class ManifestFile:
 
 class Manifest:
 
-    def __init__(self, file: ManifestFile, events=None, configuration: Configuration = None):
+    def __init__(self, file: ManifestFile, events, configuration: Configuration):
         self.file = file
-        # TODO stop passing events and nb_levels - read them from file at some point
         self.events = events
         self.configuration = configuration
+
+    @classmethod
+    def create(cls, path: str, configuration: Configuration):
+        manifest_file = ManifestFile.create(path=path, configuration=configuration)
+        return cls(file=manifest_file, events=[], configuration=configuration)
+
+    def add_event(self, event: Event):
+        self.file.write_event(event=event)
+        self.events.append(event)
 
     @classmethod
     def build(cls, manifest_path: str):

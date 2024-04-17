@@ -3,7 +3,7 @@ import os
 import pytest
 
 from src.__fixtures__.constants import TEST_SSTABLE_FIXTURES_DIRECTORY, TEST_DIRECTORY
-from src.manifest import ManifestFile, FlushEvent, CompactionEvent, Configuration
+from src.manifest import ManifestFile, FlushEvent, CompactionEvent, Configuration, Manifest
 
 
 @pytest.fixture
@@ -71,6 +71,41 @@ def sample_manifest_file_1(events_for_sample_manifest_file_1, configuration_for_
 
     # Yield
     yield manifest_file
+
+    # Cleanup code (Delete the file created by the fixture)
+    os.remove(path)
+
+
+@pytest.fixture
+def sample_manifest_0_without_events():
+    path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/manifest_0.txt"
+    configuration = Configuration(
+        nb_levels=6,
+        levels_ratio=0.1,
+        max_l0_sstables=10,
+        max_sstable_size=1000,
+        block_size=100,
+    )
+    manifest = Manifest.create(path=path, configuration=configuration)
+
+    yield manifest
+
+    # Cleanup code (Delete the file created by the fixture)
+    os.remove(path)
+
+
+@pytest.fixture
+def sample_manifest_1_with_events(events_for_sample_manifest_file_1, configuration_for_sample_manifest_file_1):
+    path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/manifest_1.txt"
+    configuration = configuration_for_sample_manifest_file_1
+    events = events_for_sample_manifest_file_1
+    manifest = Manifest.create(path=path, configuration=configuration)
+
+    # Add events
+    for event in events:
+        manifest.add_event(event=event)
+
+    yield manifest
 
     # Cleanup code (Delete the file created by the fixture)
     os.remove(path)

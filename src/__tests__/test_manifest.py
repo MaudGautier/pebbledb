@@ -523,3 +523,20 @@ def test_build_manifest_from_file(sample_manifest_file_1, events_for_sample_mani
     assert manifest.events == events_for_sample_manifest_file_1
     assert manifest.configuration == configuration_for_sample_manifest_file_1
     assert manifest.file == manifest_file
+
+
+def test_add_events_to_manifest(sample_manifest_0_without_events,
+                                sstable_one_block_1, sstable_one_block_2, sstable_one_block_3):
+    # GIVEN
+    manifest = sample_manifest_0_without_events
+    assert len(manifest.events) == 0
+    event1 = FlushEvent(sstable=sstable_one_block_1)
+    event2 = CompactionEvent(input_sstables=[sstable_one_block_2], output_sstables=[sstable_one_block_3], level=2)
+    events = [event1, event2]
+
+    # WHEN
+    for event in events:
+        manifest.add_event(event=event)
+
+    # THEN
+    assert manifest.events == events
