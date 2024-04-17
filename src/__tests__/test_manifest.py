@@ -485,3 +485,16 @@ def test_can_decode_manifest_file_with_multiple_events(empty_manifest, empty_man
     # THEN
     assert decoded_events == events
     assert header == ManifestHeader(**empty_manifest_configuration)
+
+
+def test_build_manifest_from_file(sample_manifest_file_1, events_for_sample_manifest_file_1,
+                                  configuration_for_sample_manifest_file_1):
+    # GIVEN
+    manifest_file = sample_manifest_file_1
+
+    # WHEN
+    manifest = Manifest.build(manifest_path=manifest_file.path)
+
+    # THEN
+    assert manifest.events == events_for_sample_manifest_file_1
+    assert manifest.nb_levels == configuration_for_sample_manifest_file_1["nb_levels"]

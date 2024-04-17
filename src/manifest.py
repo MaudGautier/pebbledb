@@ -172,6 +172,16 @@ class Manifest:
         self.events = events
         self.nb_levels = nb_levels
 
+
+    @classmethod
+    def build(cls, manifest_path: str):
+        manifest_file = ManifestFile.open(path=manifest_path)
+        header, events = manifest_file.decode()
+
+        file = ManifestFile.open(path=manifest_path)
+
+        return cls(events=events, nb_levels=header.nb_levels, file=file)
+
     def reconstruct(self) -> LsmStorage:
         ss_tables_levels = [deque() for _ in range(self.nb_levels + 1)]
 
