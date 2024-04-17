@@ -70,3 +70,31 @@ def test_can_recover(empty_memtable):
 
     # THEN
     assert [record for record in resulting_memtable.map] == [record for record in memtable.map]
+
+
+def test_equal(empty_memtable, empty_memtable2):
+    # GIVEN
+    memtable1 = empty_memtable
+    memtable2 = empty_memtable2
+    all_keys = [27, 0, 2, 30, 45, 3, 12, 25, 4, 5, 8, 50]
+    for key in all_keys:
+        memtable1.put(key=str(key), value=str(key).encode(encoding="utf-8"))
+        memtable2.put(key=str(key), value=str(key).encode(encoding="utf-8"))
+
+    # WHEN/THEN
+    assert memtable1 == memtable2
+
+
+def test_not_equal_if_different_nodes(empty_memtable, empty_memtable2):
+    # GIVEN
+    memtable1 = empty_memtable
+    memtable2 = empty_memtable2
+    keys1 = [3, 5]
+    keys2 = [3, 6]
+    for key in keys1:
+        memtable1.put(key=str(key), value=str(key).encode(encoding="utf-8"))
+    for key in keys2:
+        memtable2.put(key=str(key), value=str(key).encode(encoding="utf-8"))
+
+    # WHEN/THEN
+    assert memtable1 != memtable2

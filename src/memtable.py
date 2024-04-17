@@ -15,6 +15,11 @@ class MemTable:
         self.directory = directory
         self.wal = wal
 
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, MemTable):
+            return NotImplemented
+        return self.map == other.map
+
     @classmethod
     def create(cls, directory: str):
         wal = cls._create_wal(directory=directory)
