@@ -7,7 +7,7 @@ from src.manifest import ManifestFile, FlushEvent, CompactionEvent, Configuratio
 
 
 @pytest.fixture
-def empty_manifest_configuration():
+def empty_manifest_file_configuration():
     return Configuration(
         nb_levels=10,
         levels_ratio=0.1,
@@ -18,10 +18,10 @@ def empty_manifest_configuration():
 
 
 @pytest.fixture
-def empty_manifest(empty_manifest_configuration):
+def empty_manifest_file(empty_manifest_file_configuration):
     path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/empty_manifest.txt"
 
-    yield ManifestFile.create(path=path, configuration=empty_manifest_configuration)
+    yield ManifestFile.create(path=path, configuration=empty_manifest_file_configuration)
 
     # Cleanup code (Delete the file created by the fixture)
     os.remove(path)
