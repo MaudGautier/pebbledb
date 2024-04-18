@@ -5,7 +5,7 @@ from typing import Optional, Iterator, Deque
 
 from src.iterators import MemTableIterator, MergingIterator, SSTableIterator, ConcatenatingIterator, BaseIterator
 from src.locks import ReadWriteLock, Mutex
-from src.manifest import Manifest, Configuration
+from src.manifest import Manifest, Configuration, FlushEvent, CompactionEvent
 from src.memtable import MemTable
 from src.record import Record
 from src.sstable import SSTableBuilder, SSTable
@@ -202,6 +202,10 @@ class LsmStorage:
             flushed_memtable = self.state.immutable_memtables.pop()
             self.state.sstables_level0.insert(0, sstable)
 
+        # Write to manifest
+        event = FlushEvent(sstable=sstable)
+        self.manifest.add_event(event=event)
+
         # Delete the WAL
         flushed_memtable.wal.remove_self()
 
@@ -254,6 +258,10 @@ class LsmStorage:
                 for sstable in sstables_to_compact:
                     self.state.sstables_level0.remove(sstable)
 
+        # Write to manifest
+        event = CompactionEvent(input_sstables=sstables_to_compact, output_sstables=new_ss_tables, level=0)
+        self.manifest.add_event(event=event)
+
     def force_compaction_l1_or_more_level(self, level: int) -> None:
         level_index = level - 1
         next_level_index = level
@@ -273,6 +281,10 @@ class LsmStorage:
                 self.state.sstables_levels[next_level_index].extendleft(reversed(new_ss_tables))
                 for sstable in sstables_to_compact:
                     self.state.sstables_levels[level_index].remove(sstable)
+
+        # Write to manifest
+        event = CompactionEvent(input_sstables=sstables_to_compact, output_sstables=new_ss_tables, level=level)
+        self.manifest.add_event(event=event)
 
     def _try_compact(self) -> None:
         """Checks if a level should be compacted or not and compacts it if so.

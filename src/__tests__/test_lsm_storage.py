@@ -5,7 +5,7 @@ from unittest import mock
 from src.bloom_filter import BloomFilter
 from src.iterators import MergingIterator, SSTableIterator
 from src.lsm_storage import LsmStorage
-from src.memtable import MemTable
+from src.manifest import CompactionEvent, FlushEvent
 from src.record import Record
 from src.sstable import SSTable, SSTableFile
 
@@ -554,3 +554,53 @@ def test_reconstruct_from_manifest_has_same_components(sample_manifest_1_with_ev
     assert reconstructed_store.state.immutable_memtables == expected_immutable_memtables
     assert reconstructed_store.state.sstables_level0 == expected_sstables_level0
     assert reconstructed_store.state.sstables_levels == expected_sstables_levels
+
+
+def test_compact_l0_writes_to_manifest(store_with_multiple_l0_sstables):
+    # GIVEN
+    store = store_with_multiple_l0_sstables
+    manifest = store.manifest
+
+    # WHEN/THEN
+    with mock.patch.object(manifest, 'add_event') as mocked_add_event_to_manifest:
+        # WHEN
+        store.force_compaction_l0()
+
+        # THEN
+        mocked_add_event_to_manifest.assert_called_once()
+        called_with_event = mocked_add_event_to_manifest.call_args[1]['event']
+        assert isinstance(called_with_event, CompactionEvent)
+
+
+def test_compact_l1_writes_to_manifest(store_with_four_l1_and_one_l2_sstables):
+    # GIVEN
+    store = store_with_four_l1_and_one_l2_sstables
+    manifest = store.manifest
+
+    # WHEN/THEN
+    with mock.patch.object(manifest, 'add_event') as mocked_add_event_to_manifest:
+        # WHEN
+        store.force_compaction_l1_or_more_level(level=1)
+
+        # THEN
+        mocked_add_event_to_manifest.assert_called_once()
+        called_with_event = mocked_add_event_to_manifest.call_args[1]['event']
+        assert isinstance(called_with_event, CompactionEvent)
+
+
+def test_flush_writes_to_manifest(store_with_multiple_immutable_memtables):
+    # GIVEN
+    store = store_with_multiple_immutable_memtables
+    store._configuration.max_l0_sstables = 10
+    store._configuration.levels_ratio = 10
+    manifest = store.manifest
+
+    # WHEN/THEN
+    with mock.patch.object(manifest, 'add_event') as mocked_add_event_to_manifest:
+        # WHEN
+        store.flush_next_immutable_memtable()
+
+        # THEN
+        mocked_add_event_to_manifest.assert_called()
+        called_with_event = mocked_add_event_to_manifest.call_args[1]['event']
+        assert isinstance(called_with_event, FlushEvent)
