@@ -23,6 +23,12 @@ class LsmState:
         self.sstables_levels = sstables_levels
 
 
+class LsmLocks:
+    def __init__(self):
+        self.read_write = ReadWriteLock()
+        self.state = Mutex()
+
+
 class LsmStorage:
     def __init__(self,
                  max_sstable_size: int,
@@ -55,8 +61,7 @@ class LsmStorage:
         )
 
         # Concurrency handling
-        self._read_write_lock = ReadWriteLock()
-        self._state_lock = Mutex()
+        self._locks = LsmLocks()
 
     @classmethod
     def create(cls,
@@ -86,23 +91,23 @@ class LsmStorage:
         The memtable should be frozen if it is bigger than the `self._configuration.max_sstable_size` threshold.
 
         Further explanations on the details of this method:
-        - It acquires the `self._state_lock` to ensure that only one freeze operation occurs at any given time
+        - It acquires the `self._locks.state` to ensure that only one freeze operation occurs at any given time
           (necessary because concurrency is allowed => two concurrent insert operations could end up doing a freeze)
-        - The size of the memtable is checked twice: once before acquiring the `self._state_lock` and a second time
+        - The size of the memtable is checked twice: once before acquiring the `self._locks.state` and a second time
           after acquiring it. This is to avoid taking a lock unnecessarily the first time and thus to avoid impacting
           performance (preventing other operations needing this lock when it is not necessary). Once the condition is
-          true and the `self._state_lock` is acquired, it is important to check the condition a second time because the
+          true and the `self._locks.state` is acquired, it is important to check the condition a second time because the
           memtable might have been frozen by another operation while this one was checking the condition and acquiring
           the lock.
         - It acquires a read lock on the state before reading the memtable's size. This is in order to comply to the
-          concurrency protocol here: the mutex `self._state_lock` is for freeze operations (and other operations
-          modifying the state), the ReadWriteLock `self._read_write_lock` is for reading/writing on one element.
+          concurrency protocol here: the mutex `self._locks.state` is for freeze operations (and other operations
+          modifying the state), the ReadWriteLock `self._locks.read_write` is for reading/writing on one element.
 
         Note: another approach would have been to do the following:
         ```
         if approximate_size >= self._configuration.max_sstable_size:
-            with self._state_lock:
-                state_read_lock = self._read_write_lock.read()
+            with self._locks.state:
+                state_read_lock = self._locks.read_write.read()
                 state_read_lock.__enter__()
                 latest_approximate_size = self.state.memtable.approximate_size
                 if latest_approximate_size >= self._configuration.max_sstable_size:
@@ -123,18 +128,18 @@ class LsmStorage:
         opted for better concurrency here (it is no big deal if the size is a bit bigger or smaller when freezing than
         when checked).
         """
-        with self._read_write_lock.read():
+        with self._locks.read_write.read():
             approximate_size = self.state.memtable.approximate_size
 
         if approximate_size >= self._configuration.max_sstable_size:
-            with self._state_lock:
-                with self._read_write_lock.read():
+            with self._locks.state:
+                with self._locks.read_write.read():
                     latest_approximate_size = self.state.memtable.approximate_size
                 if latest_approximate_size >= self._configuration.max_sstable_size:
                     self._freeze_memtable()
 
     def _freeze_memtable(self):
-        with self._read_write_lock.write():
+        with self._locks.read_write.write():
             new_memtable = self._create_memtable()
             self.state.immutable_memtables.insert(0, self.state.memtable)
             self.state.memtable = new_memtable
@@ -185,7 +190,7 @@ class LsmStorage:
 
     def _do_flush(self):
         # Read the oldest memtable
-        with self._read_write_lock.read():
+        with self._locks.read_write.read():
             memtable_to_flush = self.state.immutable_memtables[-1]
 
         # Flush it to SSTable
@@ -198,7 +203,7 @@ class LsmStorage:
         sstable = sstable_builder.build(path=path)
 
         # Update state to remove oldest memtable and add new SSTable
-        with self._read_write_lock.write():
+        with self._locks.read_write.write():
             flushed_memtable = self.state.immutable_memtables.pop()
             self.state.sstables_level0.insert(0, sstable)
 
@@ -206,7 +211,7 @@ class LsmStorage:
         flushed_memtable.wal.remove_self()
 
     def flush_next_immutable_memtable(self) -> None:
-        with self._state_lock:
+        with self._locks.state:
             self._do_flush()
 
         self._try_compact()
@@ -240,7 +245,7 @@ class LsmStorage:
         return new_ss_tables
 
     def force_compaction_l0(self):
-        with self._read_write_lock.read():
+        with self._locks.read_write.read():
             sstables_to_compact = [sstable for sstable in self.state.sstables_level0]
             l0_ss_table_iterator = MergingIterator(iterators=[
                 SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
@@ -248,8 +253,8 @@ class LsmStorage:
 
         new_ss_tables = self._compact(records_iterator=l0_ss_table_iterator)
 
-        with self._state_lock:
-            with self._read_write_lock.write():
+        with self._locks.state:
+            with self._locks.read_write.write():
                 self.state.sstables_levels[0].extendleft(reversed(new_ss_tables))
                 for sstable in sstables_to_compact:
                     self.state.sstables_level0.remove(sstable)
@@ -260,7 +265,7 @@ class LsmStorage:
         if self._configuration.nb_levels < level:
             next_level_index = level - 1
 
-        with self._read_write_lock.read():
+        with self._locks.read_write.read():
             sstables_to_compact = [sstable for sstable in self.state.sstables_levels[level_index]]
             l0_ss_table_iterator = ConcatenatingIterator(iterators=[
                 SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
@@ -268,8 +273,8 @@ class LsmStorage:
 
         new_ss_tables = self._compact(records_iterator=l0_ss_table_iterator)
 
-        with self._state_lock:
-            with self._read_write_lock.write():
+        with self._locks.state:
+            with self._locks.read_write.write():
                 self.state.sstables_levels[next_level_index].extendleft(reversed(new_ss_tables))
                 for sstable in sstables_to_compact:
                     self.state.sstables_levels[level_index].remove(sstable)
