@@ -49,6 +49,13 @@ class LsmStorage:
         # Concurrency handling
         self._locks = LsmLocks()
 
+    def close(self) -> None:
+        if self.state.memtable.approximate_size > 0:
+            self._freeze_memtable()
+
+        while len(self.state.immutable_memtables):
+            self.flush_next_immutable_memtable()
+
     @classmethod
     def create(cls,
                max_sstable_size: Optional[int] = 262_144_000,

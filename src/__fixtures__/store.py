@@ -8,6 +8,33 @@ from src.lsm_storage import LsmStorage
 
 
 @pytest.fixture
+def records_for_store_with_multiple_immutable_memtables_and_one_memtable():
+    return [
+        # Table 1
+        ("key1", b'value1'),
+        ("key2", b'value2'),
+        # Table 2
+        ("key3", b'value3'),
+        ("key4", b'value4'),
+        # Table 3
+        ("key5", b'value5'),
+    ]
+
+
+@pytest.fixture
+def store_with_multiple_immutable_memtables_and_one_memtable(
+        records_for_store_with_multiple_immutable_memtables_and_one_memtable):
+    store = LsmStorage.create(max_sstable_size=30, block_size=20, directory=TEST_DIRECTORY)
+    for record in records_for_store_with_multiple_immutable_memtables_and_one_memtable:
+        store.put(key=record[0], value=record[1])
+
+    assert len(store.state.immutable_memtables) == 2
+    assert store.state.memtable.approximate_size > 0
+
+    return store
+
+
+@pytest.fixture
 def store_with_multiple_immutable_memtables_records():
     return [
         # Table 1

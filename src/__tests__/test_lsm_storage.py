@@ -604,3 +604,19 @@ def test_flush_writes_to_manifest(store_with_multiple_immutable_memtables):
         mocked_add_event_to_manifest.assert_called()
         called_with_event = mocked_add_event_to_manifest.call_args[1]['event']
         assert isinstance(called_with_event, FlushEvent)
+
+
+def test_close_flushes_everything(store_with_multiple_immutable_memtables_and_one_memtable):
+    # GIVEN
+    store = store_with_multiple_immutable_memtables_and_one_memtable
+    assert len(store.state.immutable_memtables) > 0
+    assert store.state.memtable.approximate_size > 0
+    assert len(store.state.sstables_level0) == 0
+
+    # WHEN
+    store.close()
+
+    # THEN
+    assert store.state.memtable.approximate_size == 0
+    assert len(store.state.immutable_memtables) == 0
+    assert len(store.state.sstables_level0) == 3
