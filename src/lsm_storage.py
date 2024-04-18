@@ -31,34 +31,18 @@ class LsmLocks:
 
 class LsmStorage:
     def __init__(self,
-                 max_sstable_size: int,
-                 block_size: int,
-                 levels_ratio: float,
-                 max_l0_sstables: int,
-                 nb_levels: int,
+                 configuration: Configuration,
                  directory: str,
-                 sstables_level0: Deque[SSTable],
-                 sstables_levels: list[Deque[SSTable]]
+                 state: LsmState
                  ):
         self.directory = directory
         self._create_directory()
 
         # Configuration
-        self._configuration = Configuration(
-            nb_levels=nb_levels,
-            levels_ratio=levels_ratio,
-            max_l0_sstables=max_l0_sstables,
-            max_sstable_size=max_sstable_size,
-            block_size=block_size,
-        )
+        self._configuration = configuration
 
         # State
-        self.state = LsmState(
-            memtable=self._create_memtable(),
-            immutable_memtables=deque(),
-            sstables_level0=sstables_level0,
-            sstables_levels=sstables_levels,
-        )
+        self.state = state
 
         # Concurrency handling
         self._locks = LsmLocks()
@@ -72,19 +56,27 @@ class LsmStorage:
                nb_levels: int = 6,
                directory: Optional[str] = ".",
                ):
-        return cls(
-            max_sstable_size=max_sstable_size,
-            block_size=block_size,
+
+        configuration = Configuration(
+            nb_levels=nb_levels,
             levels_ratio=levels_ratio,
             max_l0_sstables=max_l0_sstables,
-            nb_levels=nb_levels,
-            directory=directory,
-            sstables_level0=deque(),
-            sstables_levels=[deque() for _ in range(nb_levels)]
+            max_sstable_size=max_sstable_size,
+            block_size=block_size,
         )
 
-    def _create_memtable(self):
-        return MemTable.create(directory=self.directory)
+        state = LsmState(
+            memtable=MemTable.create(directory=directory),
+            immutable_memtables=deque(),
+            sstables_level0=deque(),
+            sstables_levels=[deque() for _ in range(nb_levels)],
+        )
+
+        return cls(
+            directory=directory,
+            configuration=configuration,
+            state=state
+        )
 
     def _try_freeze(self):
         """Checks if the memtable should be frozen or not.
@@ -140,7 +132,7 @@ class LsmStorage:
 
     def _freeze_memtable(self):
         with self._locks.read_write.write():
-            new_memtable = self._create_memtable()
+            new_memtable = MemTable.create(directory=self.directory)
             self.state.immutable_memtables.insert(0, self.state.memtable)
             self.state.memtable = new_memtable
 
@@ -311,13 +303,15 @@ class LsmStorage:
         ss_tables_levels = manifest.reconstruct_sstables()
         directory = os.path.dirname(manifest_path)
 
-        return cls(
-            max_sstable_size=manifest.configuration.max_sstable_size,
-            block_size=manifest.configuration.block_size,
-            levels_ratio=manifest.configuration.levels_ratio,
-            max_l0_sstables=manifest.configuration.max_l0_sstables,
-            nb_levels=manifest.configuration.nb_levels,
-            directory=directory,
+        state = LsmState(
+            memtable=MemTable.create(directory=directory),
+            immutable_memtables=deque(),
             sstables_level0=ss_tables_levels[0],
             sstables_levels=ss_tables_levels[1:]
+        )
+
+        return cls(
+            configuration=manifest.configuration,
+            directory=directory,
+            state=state,
         )
