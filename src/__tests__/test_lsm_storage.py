@@ -26,7 +26,7 @@ def test_can_read_a_value_inserted(empty_store):
 def test_try_freeze(empty_store):
     # GIVEN
     store = empty_store
-    store._max_sstable_size = 50
+    store._configuration.max_sstable_size = 50
 
     # WHEN/THEN
     with mock.patch.object(store, '_freeze_memtable', wraps=store._freeze_memtable) as mocked_freeze:
@@ -152,7 +152,7 @@ def test_flush_waits_for_freeze(empty_store):
     # GIVEN
     storage = empty_store
     storage.put("key", b'value')
-    storage.memtable.approximate_size = storage._max_sstable_size + 1
+    storage.memtable.approximate_size = storage._configuration.max_sstable_size + 1
 
     # Original methods with timing
     times = {}
@@ -194,7 +194,7 @@ def test_flush_waits_for_freeze(empty_store):
 def test_freeze_waits_for_flush(empty_store, empty_memtable):
     # GIVEN
     storage = empty_store
-    storage.memtable.approximate_size = storage._max_sstable_size + 1
+    storage.memtable.approximate_size = storage._configuration.max_sstable_size + 1
     memtable_to_flush = empty_memtable
     memtable_to_flush.put("key", b'value')
     storage.immutable_memtables.append(memtable_to_flush)
@@ -354,7 +354,7 @@ def test_trigger_l0_compaction(store_with_multiple_l0_sstables, records_for_stor
     store.force_compaction_l0()
 
     # THEN
-    assert len(store.ss_tables_levels) == store._nb_levels
+    assert len(store.ss_tables_levels) == store._configuration.nb_levels
     assert len(store.ss_tables_levels[0]) == 2
     assert store.ss_tables_levels[0][0].first_key == "key1"
     assert store.ss_tables_levels[0][0].last_key == "key3"
@@ -384,7 +384,7 @@ def test_trigger_l1_compaction_to_l2(store_with_multiple_l1_sstables, records_fo
     store.force_compaction_l1_or_more_level(level=1)
 
     # THEN
-    assert len(store.ss_tables_levels) == store._nb_levels
+    assert len(store.ss_tables_levels) == store._configuration.nb_levels
     assert len(store.ss_tables_levels[0]) == 0
     assert len(store.ss_tables_levels[1]) == 4
     assert store.ss_tables_levels[1][0].first_key == "key1"
@@ -400,7 +400,7 @@ def test_trigger_l1_compaction_to_l2(store_with_multiple_l1_sstables, records_fo
 def test_try_compact_should_force_compact_l0_if_above_the_threshold(store_with_one_l0_sstable):
     # GIVEN
     store = store_with_one_l0_sstable
-    store._max_l0_sstables = 1
+    store._configuration.max_l0_sstables = 1
 
     # WHEN/THEN
     with mock.patch.object(store, 'force_compaction_l0', wraps=store.force_compaction_l0) as mocked_compact:
@@ -414,7 +414,7 @@ def test_try_compact_should_force_compact_l0_if_above_the_threshold(store_with_o
 def test_try_compact_should_not_force_compact_l0_if_below_the_threshold(store_with_one_l0_sstable):
     # GIVEN
     store = store_with_one_l0_sstable
-    store._max_l0_sstables = 2
+    store._configuration.max_l0_sstables = 2
 
     # WHEN/THEN
     with mock.patch.object(store, 'force_compaction_l0', wraps=store.force_compaction_l0) as mocked_compact:
@@ -428,7 +428,7 @@ def test_try_compact_should_not_force_compact_l0_if_below_the_threshold(store_wi
 def test_try_compact_should_force_compact_l1_if_above_the_threshold(store_with_four_l1_and_one_l2_sstables):
     # GIVEN
     store = store_with_four_l1_and_one_l2_sstables
-    store._levels_ratio = 0.2
+    store._configuration.levels_ratio = 0.2
 
     # WHEN/THEN
     with mock.patch.object(store, 'force_compaction_l1_or_more_level',
@@ -443,7 +443,7 @@ def test_try_compact_should_force_compact_l1_if_above_the_threshold(store_with_f
 def test_try_compact_should_not_force_compact_l1_if_below_the_threshold(store_with_four_l1_and_one_l2_sstables):
     # GIVEN
     store = store_with_four_l1_and_one_l2_sstables
-    store._levels_ratio = 0.3
+    store._configuration.levels_ratio = 0.3
 
     # WHEN/THEN
     with mock.patch.object(store, 'force_compaction_l1_or_more_level',
@@ -458,8 +458,8 @@ def test_try_compact_should_not_force_compact_l1_if_below_the_threshold(store_wi
 def test_try_compact_should_compact_in_cascade(store_with_one_sstable_at_five_levels):
     # GIVEN
     store = store_with_one_sstable_at_five_levels
-    store._levels_ratio = 2
-    store._max_l0_sstables = 1
+    store._configuration.levels_ratio = 2
+    store._configuration.max_l0_sstables = 1
 
     # WHEN/THEN
     with mock.patch.object(store, 'force_compaction_l1_or_more_level',
@@ -511,11 +511,11 @@ def test_reconstruct_from_manifest_has_same_configuration(sample_manifest_0_with
     reconstructed_store = LsmStorage.reconstruct_from_manifest(manifest_path=manifest.file.path)
 
     # THEN
-    assert reconstructed_store._nb_levels == configuration_for_sample_manifest_0.nb_levels
-    assert reconstructed_store._levels_ratio == configuration_for_sample_manifest_0.levels_ratio
-    assert reconstructed_store._max_l0_sstables == configuration_for_sample_manifest_0.max_l0_sstables
-    assert reconstructed_store._max_sstable_size == configuration_for_sample_manifest_0.max_sstable_size
-    assert reconstructed_store._block_size == configuration_for_sample_manifest_0.block_size
+    assert reconstructed_store._configuration.nb_levels == configuration_for_sample_manifest_0.nb_levels
+    assert reconstructed_store._configuration.levels_ratio == configuration_for_sample_manifest_0.levels_ratio
+    assert reconstructed_store._configuration.max_l0_sstables == configuration_for_sample_manifest_0.max_l0_sstables
+    assert reconstructed_store._configuration.max_sstable_size == configuration_for_sample_manifest_0.max_sstable_size
+    assert reconstructed_store._configuration.block_size == configuration_for_sample_manifest_0.block_size
 
 
 def test_reconstruct_from_manifest_has_same_components(sample_manifest_1_with_events,

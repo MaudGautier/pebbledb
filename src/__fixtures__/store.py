@@ -228,7 +228,7 @@ def records_for_store_with_one_sstable_at_five_levels():
 def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_five_levels):
     nb_levels = 4
     store = LsmStorage.create(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
-    store._levels_ratio = 10  # High value (which makes no sense) to be able to build the desired mocked store
+    store._configuration.levels_ratio = 10  # High value (that makes no sense) to build the target mocked store
     for record in records_for_store_with_one_sstable_at_five_levels:
         store.put(key=record[0], value=record[1])
 
