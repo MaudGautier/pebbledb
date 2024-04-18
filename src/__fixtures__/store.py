@@ -28,7 +28,7 @@ def store_with_multiple_immutable_memtables(store_with_multiple_immutable_memtab
     for record in store_with_multiple_immutable_memtables_records:
         store.put(key=record[0], value=record[1])
 
-    assert len(store.immutable_memtables) == 3
+    assert len(store.state.immutable_memtables) == 3
 
     return store
 
@@ -53,7 +53,7 @@ def store_with_duplicated_keys(store_with_duplicated_keys_records):
     for record in store_with_duplicated_keys_records:
         store.put(key=record[0], value=record[1])
 
-    assert len(store.immutable_memtables) == 4
+    assert len(store.state.immutable_memtables) == 4
 
     return store
 
@@ -65,8 +65,8 @@ def store_with_one_l0_sstable(store_with_multiple_immutable_memtables_records):
         store.put(key=record[0], value=record[1])
     store.flush_next_immutable_memtable()
 
-    assert len(store.immutable_memtables) == 2
-    assert len(store.ss_tables) == 1
+    assert len(store.state.immutable_memtables) == 2
+    assert len(store.state.sstables_level0) == 1
 
     return store
 
@@ -94,12 +94,12 @@ def store_with_multiple_l0_sstables(records_for_store_with_multiple_l0_sstables)
     store = LsmStorage.create(max_sstable_size=35, block_size=30, directory=TEST_DIRECTORY)
     for record in records_for_store_with_multiple_l0_sstables:
         store.put(key=record[0], value=record[1])
-    assert len(store.immutable_memtables) == 4
-    for i in range(len(store.immutable_memtables)):
+    assert len(store.state.immutable_memtables) == 4
+    for i in range(len(store.state.immutable_memtables)):
         store.flush_next_immutable_memtable()
 
-    assert len(store.immutable_memtables) == 0
-    assert len(store.ss_tables) == 4
+    assert len(store.state.immutable_memtables) == 0
+    assert len(store.state.sstables_level0) == 4
 
     return store
 
@@ -128,18 +128,18 @@ def store_with_multiple_l1_sstables(records_for_store_with_multiple_l1_sstables)
     store = LsmStorage.create(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
     for record in records_for_store_with_multiple_l1_sstables:
         store.put(key=record[0], value=record[1])
-    assert len(store.immutable_memtables) == 4
-    for i in range(len(store.immutable_memtables)):
+    assert len(store.state.immutable_memtables) == 4
+    for i in range(len(store.state.immutable_memtables)):
         store.flush_next_immutable_memtable()
 
-    assert len(store.immutable_memtables) == 0
-    assert len(store.ss_tables) == 4
+    assert len(store.state.immutable_memtables) == 0
+    assert len(store.state.sstables_level0) == 4
 
     store.force_compaction_l0()
 
-    assert len(store.ss_tables) == 0
-    assert len(store.ss_tables_levels) == nb_levels
-    assert len(store.ss_tables_levels[0]) == 4
+    assert len(store.state.sstables_level0) == 0
+    assert len(store.state.sstables_levels) == nb_levels
+    assert len(store.state.sstables_levels[0]) == 4
 
     return store
 
@@ -171,34 +171,34 @@ def store_with_four_l1_and_one_l2_sstables(records_for_store_with_four_l1_and_on
     store = LsmStorage.create(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
     for record in records_for_store_with_four_l1_and_one_l2_sstables:
         store.put(key=record[0], value=record[1])
-    assert len(store.immutable_memtables) == 5
+    assert len(store.state.immutable_memtables) == 5
     for i in range(4):
         store.flush_next_immutable_memtable()
 
-    assert len(store.immutable_memtables) == 1
-    assert len(store.ss_tables) == 4
+    assert len(store.state.immutable_memtables) == 1
+    assert len(store.state.sstables_level0) == 4
 
     store.force_compaction_l0()
     store.force_compaction_l1_or_more_level(level=1)
 
-    assert len(store.ss_tables) == 0
-    assert len(store.ss_tables_levels) == 2
-    assert len(store.ss_tables_levels[0]) == 0
-    assert len(store.ss_tables_levels[1]) == 4
+    assert len(store.state.sstables_level0) == 0
+    assert len(store.state.sstables_levels) == 2
+    assert len(store.state.sstables_levels[0]) == 0
+    assert len(store.state.sstables_levels[1]) == 4
 
     store.flush_next_immutable_memtable()
 
-    assert len(store.ss_tables) == 1
-    assert len(store.ss_tables_levels) == nb_levels
-    assert len(store.ss_tables_levels[0]) == 0
-    assert len(store.ss_tables_levels[1]) == 4
+    assert len(store.state.sstables_level0) == 1
+    assert len(store.state.sstables_levels) == nb_levels
+    assert len(store.state.sstables_levels[0]) == 0
+    assert len(store.state.sstables_levels[1]) == 4
 
     store.force_compaction_l0()
 
-    assert len(store.ss_tables) == 0
-    assert len(store.ss_tables_levels) == 2
-    assert len(store.ss_tables_levels[0]) == 1
-    assert len(store.ss_tables_levels[1]) == 4
+    assert len(store.state.sstables_level0) == 0
+    assert len(store.state.sstables_levels) == 2
+    assert len(store.state.sstables_levels[0]) == 1
+    assert len(store.state.sstables_levels[1]) == 4
 
     return store
 
@@ -258,12 +258,12 @@ def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_
     store.flush_next_immutable_memtable()
 
     # Assertions
-    assert len(store.ss_tables) == 1
-    assert len(store.ss_tables_levels) == nb_levels
-    assert len(store.ss_tables_levels[0]) == 1
-    assert len(store.ss_tables_levels[1]) == 1
-    assert len(store.ss_tables_levels[2]) == 1
-    assert len(store.ss_tables_levels[3]) == 1
+    assert len(store.state.sstables_level0) == 1
+    assert len(store.state.sstables_levels) == nb_levels
+    assert len(store.state.sstables_levels[0]) == 1
+    assert len(store.state.sstables_levels[1]) == 1
+    assert len(store.state.sstables_levels[2]) == 1
+    assert len(store.state.sstables_levels[3]) == 1
 
     return store
 

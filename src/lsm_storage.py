@@ -11,6 +11,18 @@ from src.record import Record
 from src.sstable import SSTableBuilder, SSTable
 
 
+class LsmState:
+    def __init__(self,
+                 memtable: MemTable,
+                 immutable_memtables: Deque[MemTable],
+                 sstables_level0: Deque[SSTable],
+                 sstables_levels: list[Deque[SSTable]]):
+        self.memtable = memtable
+        self.immutable_memtables = immutable_memtables
+        self.sstables_level0 = sstables_level0
+        self.sstables_levels = sstables_levels
+
+
 class LsmStorage:
     def __init__(self,
                  max_sstable_size: int,
@@ -35,11 +47,12 @@ class LsmStorage:
         )
 
         # State
-        self.memtable = self._create_memtable()
-        # Immutable memtables are stored in a linked list because they will always be parsed from most recent to oldest.
-        self.immutable_memtables: Deque[MemTable] = deque()
-        self.ss_tables = sstables_level0
-        self.ss_tables_levels = sstables_levels
+        self.state = LsmState(
+            memtable=self._create_memtable(),
+            immutable_memtables=deque(),
+            sstables_level0=sstables_level0,
+            sstables_levels=sstables_levels,
+        )
 
         # Concurrency handling
         self._read_write_lock = ReadWriteLock()
@@ -91,7 +104,7 @@ class LsmStorage:
             with self._state_lock:
                 state_read_lock = self._read_write_lock.read()
                 state_read_lock.__enter__()
-                latest_approximate_size = self.memtable.approximate_size
+                latest_approximate_size = self.state.memtable.approximate_size
                 if latest_approximate_size >= self._configuration.max_sstable_size:
                     state_read_lock.__exit__()
                     self._force_freeze_memtable()
@@ -111,44 +124,44 @@ class LsmStorage:
         when checked).
         """
         with self._read_write_lock.read():
-            approximate_size = self.memtable.approximate_size
+            approximate_size = self.state.memtable.approximate_size
 
         if approximate_size >= self._configuration.max_sstable_size:
             with self._state_lock:
                 with self._read_write_lock.read():
-                    latest_approximate_size = self.memtable.approximate_size
+                    latest_approximate_size = self.state.memtable.approximate_size
                 if latest_approximate_size >= self._configuration.max_sstable_size:
                     self._freeze_memtable()
 
     def _freeze_memtable(self):
         with self._read_write_lock.write():
             new_memtable = self._create_memtable()
-            self.immutable_memtables.insert(0, self.memtable)
-            self.memtable = new_memtable
+            self.state.immutable_memtables.insert(0, self.state.memtable)
+            self.state.memtable = new_memtable
 
     def put(self, key: Record.Key, value: Record.Value):
-        self.memtable.put(key=key, value=value)
+        self.state.memtable.put(key=key, value=value)
         self._try_freeze()
 
     def get(self, key: Record.Key) -> Optional[Record.Value]:
-        value = self.memtable.get(key=key)
+        value = self.state.memtable.get(key=key)
 
         if value is not None:
             return value
 
-        for memtable in self.immutable_memtables:
+        for memtable in self.state.immutable_memtables:
             value = memtable.get(key=key)
             if value is not None:
                 return value
 
-        for sstable in self.ss_tables:
+        for sstable in self.state.sstables_level0:
             if not sstable.bloom_filter.may_contain(key=key):
                 continue
             value = sstable.get(key=key)
             if value is not None:
                 return value
 
-        for level in self.ss_tables_levels:
+        for level in self.state.sstables_levels:
             for sstable in level:
                 if not sstable.first_key <= key <= sstable.last_key:
                     continue
@@ -161,10 +174,10 @@ class LsmStorage:
         return None
 
     def scan(self, lower: Record.Key, upper: Record.Key) -> Iterator[Record]:
-        active_memtable_iterator = self.memtable.scan(lower=lower, upper=upper)
+        active_memtable_iterator = self.state.memtable.scan(lower=lower, upper=upper)
         immutable_memtables_iterators = [memtable.scan(lower=lower, upper=upper) for memtable in
-                                         self.immutable_memtables]
-        sstables_iterators = [sstable.scan(lower=lower, upper=upper) for sstable in self.ss_tables]
+                                         self.state.immutable_memtables]
+        sstables_iterators = [sstable.scan(lower=lower, upper=upper) for sstable in self.state.sstables_level0]
 
         iterator = MergingIterator(
             iterators=[active_memtable_iterator] + immutable_memtables_iterators + sstables_iterators)
@@ -173,7 +186,7 @@ class LsmStorage:
     def _do_flush(self):
         # Read the oldest memtable
         with self._read_write_lock.read():
-            memtable_to_flush = self.immutable_memtables[-1]
+            memtable_to_flush = self.state.immutable_memtables[-1]
 
         # Flush it to SSTable
         path = self._compute_path()
@@ -186,8 +199,8 @@ class LsmStorage:
 
         # Update state to remove oldest memtable and add new SSTable
         with self._read_write_lock.write():
-            flushed_memtable = self.immutable_memtables.pop()
-            self.ss_tables.insert(0, sstable)
+            flushed_memtable = self.state.immutable_memtables.pop()
+            self.state.sstables_level0.insert(0, sstable)
 
         # Delete the WAL
         flushed_memtable.wal.remove_self()
@@ -228,7 +241,7 @@ class LsmStorage:
 
     def force_compaction_l0(self):
         with self._read_write_lock.read():
-            sstables_to_compact = [sstable for sstable in self.ss_tables]
+            sstables_to_compact = [sstable for sstable in self.state.sstables_level0]
             l0_ss_table_iterator = MergingIterator(iterators=[
                 SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
             ])
@@ -237,9 +250,9 @@ class LsmStorage:
 
         with self._state_lock:
             with self._read_write_lock.write():
-                self.ss_tables_levels[0].extendleft(reversed(new_ss_tables))
+                self.state.sstables_levels[0].extendleft(reversed(new_ss_tables))
                 for sstable in sstables_to_compact:
-                    self.ss_tables.remove(sstable)
+                    self.state.sstables_level0.remove(sstable)
 
     def force_compaction_l1_or_more_level(self, level: int):
         level_index = level - 1
@@ -248,7 +261,7 @@ class LsmStorage:
             next_level_index = level - 1
 
         with self._read_write_lock.read():
-            sstables_to_compact = [sstable for sstable in self.ss_tables_levels[level_index]]
+            sstables_to_compact = [sstable for sstable in self.state.sstables_levels[level_index]]
             l0_ss_table_iterator = ConcatenatingIterator(iterators=[
                 SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
             ])
@@ -257,9 +270,9 @@ class LsmStorage:
 
         with self._state_lock:
             with self._read_write_lock.write():
-                self.ss_tables_levels[next_level_index].extendleft(reversed(new_ss_tables))
+                self.state.sstables_levels[next_level_index].extendleft(reversed(new_ss_tables))
                 for sstable in sstables_to_compact:
-                    self.ss_tables_levels[level_index].remove(sstable)
+                    self.state.sstables_levels[level_index].remove(sstable)
 
     def _try_compact(self):
         """Checks if a level should be compacted or not and compacts it if so.
@@ -275,13 +288,13 @@ class LsmStorage:
         """
 
         # Try to compact level 0
-        if len(self.ss_tables) >= self._configuration.max_l0_sstables:
+        if len(self.state.sstables_level0) >= self._configuration.max_l0_sstables:
             self.force_compaction_l0()
 
         # Try to compact other levels
         for level_index in range(self._configuration.nb_levels - 1):
-            current_level = self.ss_tables_levels[level_index]
-            next_level = self.ss_tables_levels[level_index + 1]
+            current_level = self.state.sstables_levels[level_index]
+            next_level = self.state.sstables_levels[level_index + 1]
             if len(current_level) >= self._configuration.levels_ratio * len(next_level):
                 self.force_compaction_l1_or_more_level(level=level_index + 1)
 

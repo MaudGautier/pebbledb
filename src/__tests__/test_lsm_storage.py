@@ -58,22 +58,22 @@ def test_freeze_memtable(empty_store):
     store.put(key="key1", value=b'value1')
     store.put(key="key2", value=b'value2')
     store.put(key="key3", value=b'value3')
-    assert len(store.immutable_memtables) == 0
-    assert store.memtable.get("key1") == b'value1'
-    assert store.memtable.get("key2") == b'value2'
-    assert store.memtable.get("key3") == b'value3'
+    assert len(store.state.immutable_memtables) == 0
+    assert store.state.memtable.get("key1") == b'value1'
+    assert store.state.memtable.get("key2") == b'value2'
+    assert store.state.memtable.get("key3") == b'value3'
 
     # WHEN
     store._freeze_memtable()
 
     # THEN
-    assert len(store.immutable_memtables) == 1
-    assert store.memtable.get("key1") is None
-    assert store.memtable.get("key2") is None
-    assert store.memtable.get("key3") is None
-    assert store.immutable_memtables[0].get("key1") == b'value1'
-    assert store.immutable_memtables[0].get("key2") == b'value2'
-    assert store.immutable_memtables[0].get("key3") == b'value3'
+    assert len(store.state.immutable_memtables) == 1
+    assert store.state.memtable.get("key1") is None
+    assert store.state.memtable.get("key2") is None
+    assert store.state.memtable.get("key3") is None
+    assert store.state.immutable_memtables[0].get("key1") == b'value1'
+    assert store.state.immutable_memtables[0].get("key2") == b'value2'
+    assert store.state.immutable_memtables[0].get("key3") == b'value3'
 
 
 def test_retrieve_value_from_old_memtable(
@@ -136,14 +136,14 @@ def test_scan_when_duplicates(
 def test_flush_next_immutable_memtable(store_with_multiple_immutable_memtables):
     # GIVEN
     store = store_with_multiple_immutable_memtables
-    nb_memtables = len(store.immutable_memtables)
+    nb_memtables = len(store.state.immutable_memtables)
 
     # WHEN
     store.flush_next_immutable_memtable()
 
     # THEN
-    assert len(store.ss_tables) == 1  # One SSTable has been added
-    assert len(store.immutable_memtables) == nb_memtables - 1  # One memtable has been removed
+    assert len(store.state.sstables_level0) == 1  # One SSTable has been added
+    assert len(store.state.immutable_memtables) == nb_memtables - 1  # One memtable has been removed
 
     # TODO: when iterator on sstable done, check that we have both key1 and key2 in there (or new test)
 
@@ -152,7 +152,7 @@ def test_flush_waits_for_freeze(empty_store):
     # GIVEN
     storage = empty_store
     storage.put("key", b'value')
-    storage.memtable.approximate_size = storage._configuration.max_sstable_size + 1
+    storage.state.memtable.approximate_size = storage._configuration.max_sstable_size + 1
 
     # Original methods with timing
     times = {}
@@ -194,10 +194,10 @@ def test_flush_waits_for_freeze(empty_store):
 def test_freeze_waits_for_flush(empty_store, empty_memtable):
     # GIVEN
     storage = empty_store
-    storage.memtable.approximate_size = storage._configuration.max_sstable_size + 1
+    storage.state.memtable.approximate_size = storage._configuration.max_sstable_size + 1
     memtable_to_flush = empty_memtable
     memtable_to_flush.put("key", b'value')
-    storage.immutable_memtables.append(memtable_to_flush)
+    storage.state.immutable_memtables.append(memtable_to_flush)
 
     # Original methods with timing
     times = {}
@@ -253,19 +253,19 @@ def test_flush_memtables_prepends_sstables_in_l0_level(store_with_multiple_immut
                                                        store_with_multiple_immutable_memtables_records):
     # GIVEN
     store = store_with_multiple_immutable_memtables
-    nb_memtables = len(store.immutable_memtables)
+    nb_memtables = len(store.state.immutable_memtables)
 
     # WHEN
     store.flush_next_immutable_memtable()
     store.flush_next_immutable_memtable()
 
     # THEN
-    assert len(store.ss_tables) == 2  # Two SSTables have been added
-    assert len(store.immutable_memtables) == nb_memtables - 2  # Two memtables have been removed
-    assert store.ss_tables[-1].first_key == store_with_multiple_immutable_memtables_records[0][0]
-    assert store.ss_tables[-1].last_key == store_with_multiple_immutable_memtables_records[1][0]
-    assert store.ss_tables[-2].first_key == store_with_multiple_immutable_memtables_records[2][0]
-    assert store.ss_tables[-2].last_key == store_with_multiple_immutable_memtables_records[3][0]
+    assert len(store.state.sstables_level0) == 2  # Two SSTables have been added
+    assert len(store.state.immutable_memtables) == nb_memtables - 2  # Two memtables have been removed
+    assert store.state.sstables_level0[-1].first_key == store_with_multiple_immutable_memtables_records[0][0]
+    assert store.state.sstables_level0[-1].last_key == store_with_multiple_immutable_memtables_records[1][0]
+    assert store.state.sstables_level0[-2].first_key == store_with_multiple_immutable_memtables_records[2][0]
+    assert store.state.sstables_level0[-2].last_key == store_with_multiple_immutable_memtables_records[3][0]
 
 
 def test_get_value_from_store(store_with_multiple_immutable_memtables):
@@ -298,7 +298,7 @@ def test_dont_look_in_bloom_filter_if_key_absent(temporary_sstable_path, empty_s
                       last_key="bar"
                       )
     store = empty_store
-    store.ss_tables.append(sstable)
+    store.state.sstables_level0.append(sstable)
 
     # WHEN/THEN
     for key in inserted_keys:
@@ -336,7 +336,7 @@ def test_compact(store_with_multiple_l0_sstables, records_for_store_with_multipl
     store = store_with_multiple_l0_sstables
 
     l0_ss_table_iterator = MergingIterator(iterators=[
-        SSTableIterator(sstable=sstable) for sstable in store.ss_tables
+        SSTableIterator(sstable=sstable) for sstable in store.state.sstables_level0
     ])
 
     # WHEN
@@ -354,13 +354,13 @@ def test_trigger_l0_compaction(store_with_multiple_l0_sstables, records_for_stor
     store.force_compaction_l0()
 
     # THEN
-    assert len(store.ss_tables_levels) == store._configuration.nb_levels
-    assert len(store.ss_tables_levels[0]) == 2
-    assert store.ss_tables_levels[0][0].first_key == "key1"
-    assert store.ss_tables_levels[0][0].last_key == "key3"
-    assert store.ss_tables_levels[0][1].first_key == "key4"
-    assert store.ss_tables_levels[0][1].last_key == "key5"
-    assert len(store.ss_tables) == 0
+    assert len(store.state.sstables_levels) == store._configuration.nb_levels
+    assert len(store.state.sstables_levels[0]) == 2
+    assert store.state.sstables_levels[0][0].first_key == "key1"
+    assert store.state.sstables_levels[0][0].last_key == "key3"
+    assert store.state.sstables_levels[0][1].first_key == "key4"
+    assert store.state.sstables_levels[0][1].last_key == "key5"
+    assert len(store.state.sstables_level0) == 0
 
 
 def test_read_path_with_sstables_on_levels_0_and_1(store_with_multiple_l1_sstables,
@@ -384,17 +384,17 @@ def test_trigger_l1_compaction_to_l2(store_with_multiple_l1_sstables, records_fo
     store.force_compaction_l1_or_more_level(level=1)
 
     # THEN
-    assert len(store.ss_tables_levels) == store._configuration.nb_levels
-    assert len(store.ss_tables_levels[0]) == 0
-    assert len(store.ss_tables_levels[1]) == 4
-    assert store.ss_tables_levels[1][0].first_key == "key1"
-    assert store.ss_tables_levels[1][0].last_key == "key2"
-    assert store.ss_tables_levels[1][1].first_key == "key3"
-    assert store.ss_tables_levels[1][1].last_key == "key4"
-    assert store.ss_tables_levels[1][2].first_key == "key5"
-    assert store.ss_tables_levels[1][2].last_key == "key6"
-    assert store.ss_tables_levels[1][3].first_key == "key7"
-    assert store.ss_tables_levels[1][3].last_key == "key8"
+    assert len(store.state.sstables_levels) == store._configuration.nb_levels
+    assert len(store.state.sstables_levels[0]) == 0
+    assert len(store.state.sstables_levels[1]) == 4
+    assert store.state.sstables_levels[1][0].first_key == "key1"
+    assert store.state.sstables_levels[1][0].last_key == "key2"
+    assert store.state.sstables_levels[1][1].first_key == "key3"
+    assert store.state.sstables_levels[1][1].last_key == "key4"
+    assert store.state.sstables_levels[1][2].first_key == "key5"
+    assert store.state.sstables_levels[1][2].last_key == "key6"
+    assert store.state.sstables_levels[1][3].first_key == "key7"
+    assert store.state.sstables_levels[1][3].last_key == "key8"
 
 
 def test_try_compact_should_force_compact_l0_if_above_the_threshold(store_with_one_l0_sstable):
@@ -469,10 +469,10 @@ def test_try_compact_should_compact_in_cascade(store_with_one_sstable_at_five_le
 
         # THEN
         mocked_compact.assert_has_calls([mock.call(level=1), mock.call(level=2), mock.call(level=3)])
-        assert len(store.ss_tables_levels[0]) == 0
-        assert len(store.ss_tables_levels[1]) == 0
-        assert len(store.ss_tables_levels[2]) == 0
-        assert len(store.ss_tables_levels[3]) == 5
+        assert len(store.state.sstables_levels[0]) == 0
+        assert len(store.state.sstables_levels[1]) == 0
+        assert len(store.state.sstables_levels[2]) == 0
+        assert len(store.state.sstables_levels[3]) == 5
 
 
 def test_flush_next_immutable_memtable_tries_compacting(store_with_multiple_immutable_memtables):
@@ -491,7 +491,7 @@ def test_flush_next_immutable_memtable_tries_compacting(store_with_multiple_immu
 def test_wal_associated_to_flushed_memtable_gets_deleted_upon_flush(store_with_multiple_immutable_memtables):
     # GIVEN
     store = store_with_multiple_immutable_memtables
-    next_memtable_wal = store.immutable_memtables[-1].wal
+    next_memtable_wal = store.state.immutable_memtables[-1].wal
 
     # WHEN/THEN
     with mock.patch.object(next_memtable_wal, 'remove_self') as mocked_remove_self:
@@ -531,7 +531,7 @@ def test_reconstruct_from_manifest_has_same_components(sample_manifest_1_with_ev
     expected_immutable_memtables = expected_state_of_manifest_1[1]
     expected_sstables_level0 = expected_state_of_manifest_1[2]
     expected_sstables_levels = expected_state_of_manifest_1[3]
-    assert reconstructed_store.memtable == expected_memtable
-    assert reconstructed_store.immutable_memtables == expected_immutable_memtables
-    assert reconstructed_store.ss_tables == expected_sstables_level0
-    assert reconstructed_store.ss_tables_levels == expected_sstables_levels
+    assert reconstructed_store.state.memtable == expected_memtable
+    assert reconstructed_store.state.immutable_memtables == expected_immutable_memtables
+    assert reconstructed_store.state.sstables_level0 == expected_sstables_level0
+    assert reconstructed_store.state.sstables_levels == expected_sstables_levels
