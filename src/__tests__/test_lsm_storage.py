@@ -475,6 +475,25 @@ def test_try_compact_should_compact_in_cascade(store_with_one_sstable_at_five_le
         assert len(store.state.sstables_levels[3]) == 5
 
 
+def test_try_compact_should_not_compact_an_empty_level(store_with_one_sstable_at_last_level):
+    # GIVEN
+    store = store_with_one_sstable_at_last_level
+    store._configuration.levels_ratio = 2
+    store._configuration.max_l0_sstables = 10
+
+    # WHEN/THEN
+    with mock.patch.object(store, 'force_compaction_l1_or_more_level',
+                           wraps=store.force_compaction_l1_or_more_level) as mocked_compact:
+        # WHEN
+        store._try_compact()
+
+        # THEN
+        mocked_compact.assert_not_called()
+        assert len(store.state.sstables_levels[0]) == 0
+        assert len(store.state.sstables_levels[1]) == 0
+        assert len(store.state.sstables_levels[2]) == 1
+
+
 def test_flush_next_immutable_memtable_tries_compacting(store_with_multiple_immutable_memtables):
     # GIVEN
     store = store_with_multiple_immutable_memtables

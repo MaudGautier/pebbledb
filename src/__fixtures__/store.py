@@ -269,5 +269,41 @@ def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_
 
 
 @pytest.fixture
+def records_for_store_with_one_sstable_at_last_level():
+    return [
+        # Table 0
+        ("keyA", b'valueA'),
+        ("keyB", b'valueB'),
+    ]
+
+
+@pytest.fixture
+def store_with_one_sstable_at_last_level(records_for_store_with_one_sstable_at_last_level):
+    nb_levels = 3
+    store = LsmStorage.create(max_sstable_size=20, block_size=20, directory=TEST_DIRECTORY, nb_levels=nb_levels)
+    store._configuration.levels_ratio = 10  # High value (that makes no sense) to build the target mocked store
+    for record in records_for_store_with_one_sstable_at_last_level:
+        store.put(key=record[0], value=record[1])
+
+    # Table 0 (moves to level 3)
+    store.flush_next_immutable_memtable()
+    store.force_compaction_l0()
+    store.force_compaction_l1_or_more_level(level=1)
+    store.force_compaction_l1_or_more_level(level=2)
+
+    # No SSTable at level 2
+    # No SSTable at level 1
+
+    # Assertions
+    assert len(store.state.sstables_level0) == 0
+    assert len(store.state.sstables_levels) == nb_levels
+    assert len(store.state.sstables_levels[0]) == 0
+    assert len(store.state.sstables_levels[1]) == 0
+    assert len(store.state.sstables_levels[2]) == 1
+
+    return store
+
+
+@pytest.fixture
 def empty_store():
     return LsmStorage.create(directory=TEST_DIRECTORY)

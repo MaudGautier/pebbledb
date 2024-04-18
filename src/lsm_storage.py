@@ -295,10 +295,8 @@ class LsmStorage:
         for level_index in range(self._configuration.nb_levels - 1):
             current_level = self.state.sstables_levels[level_index]
             next_level = self.state.sstables_levels[level_index + 1]
-            if len(current_level) >= self._configuration.levels_ratio * len(next_level):
+            if len(current_level) > 0 and len(current_level) >= self._configuration.levels_ratio * len(next_level):
                 self.force_compaction_l1_or_more_level(level=level_index + 1)
-
-        return
 
     @classmethod
     def reconstruct_from_manifest(cls, manifest_path: str) -> "LsmStorage":
