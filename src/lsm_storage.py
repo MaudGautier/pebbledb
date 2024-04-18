@@ -57,7 +57,7 @@ class LsmStorage:
                max_l0_sstables: int = 10,
                nb_levels: int = 6,
                directory: Optional[str] = ".",
-               ):
+               ) -> "LsmStorage":
 
         configuration = Configuration(
             nb_levels=nb_levels,
@@ -81,7 +81,7 @@ class LsmStorage:
             manifest=Manifest.create(path=f"{directory}/manifest.txt", configuration=configuration)
         )
 
-    def _try_freeze(self):
+    def _try_freeze(self) -> None:
         """Checks if the memtable should be frozen or not.
         The memtable should be frozen if it is bigger than the `self._configuration.max_sstable_size` threshold.
 
@@ -133,13 +133,13 @@ class LsmStorage:
                 if latest_approximate_size >= self._configuration.max_sstable_size:
                     self._freeze_memtable()
 
-    def _freeze_memtable(self):
+    def _freeze_memtable(self) -> None:
         with self._locks.read_write.write():
             new_memtable = MemTable.create(directory=self.directory)
             self.state.immutable_memtables.insert(0, self.state.memtable)
             self.state.memtable = new_memtable
 
-    def put(self, key: Record.Key, value: Record.Value):
+    def put(self, key: Record.Key, value: Record.Value) -> None:
         self.state.memtable.put(key=key, value=value)
         self._try_freeze()
 
@@ -183,7 +183,7 @@ class LsmStorage:
             iterators=[active_memtable_iterator] + immutable_memtables_iterators + sstables_iterators)
         yield from iterator
 
-    def _do_flush(self):
+    def _do_flush(self) -> None:
         # Read the oldest memtable
         with self._locks.read_write.read():
             memtable_to_flush = self.state.immutable_memtables[-1]
@@ -211,11 +211,11 @@ class LsmStorage:
 
         self._try_compact()
 
-    def _compute_path(self):
+    def _compute_path(self) -> str:
         timestamp_in_us = int(time.time() * 1_000_000)
         return f"{self.directory}/{timestamp_in_us}.sst"
 
-    def _create_directory(self):
+    def _create_directory(self) -> None:
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
@@ -239,7 +239,7 @@ class LsmStorage:
 
         return new_ss_tables
 
-    def force_compaction_l0(self):
+    def force_compaction_l0(self) -> None:
         with self._locks.read_write.read():
             sstables_to_compact = [sstable for sstable in self.state.sstables_level0]
             l0_ss_table_iterator = MergingIterator(iterators=[
@@ -254,7 +254,7 @@ class LsmStorage:
                 for sstable in sstables_to_compact:
                     self.state.sstables_level0.remove(sstable)
 
-    def force_compaction_l1_or_more_level(self, level: int):
+    def force_compaction_l1_or_more_level(self, level: int) -> None:
         level_index = level - 1
         next_level_index = level
         if self._configuration.nb_levels < level:
@@ -274,7 +274,7 @@ class LsmStorage:
                 for sstable in sstables_to_compact:
                     self.state.sstables_levels[level_index].remove(sstable)
 
-    def _try_compact(self):
+    def _try_compact(self) -> None:
         """Checks if a level should be compacted or not and compacts it if so.
 
         Compaction should be triggered:
