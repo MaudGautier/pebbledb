@@ -33,10 +33,12 @@ class LsmStorage:
     def __init__(self,
                  configuration: Configuration,
                  directory: str,
-                 state: LsmState
+                 state: LsmState,
+                 manifest: Manifest
                  ):
         self.directory = directory
         self._create_directory()
+        self.manifest = manifest
 
         # Configuration
         self._configuration = configuration
@@ -75,7 +77,8 @@ class LsmStorage:
         return cls(
             directory=directory,
             configuration=configuration,
-            state=state
+            state=state,
+            manifest=Manifest.create(path=f"{directory}/manifest.txt", configuration=configuration)
         )
 
     def _try_freeze(self):
@@ -314,4 +317,5 @@ class LsmStorage:
             configuration=manifest.configuration,
             directory=directory,
             state=state,
+            manifest=manifest
         )

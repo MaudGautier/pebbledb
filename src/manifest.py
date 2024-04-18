@@ -185,16 +185,16 @@ class Manifest:
         self.configuration = configuration
 
     @classmethod
-    def create(cls, path: str, configuration: Configuration):
+    def create(cls, path: str, configuration: Configuration) -> "Manifest":
         manifest_file = ManifestFile.create(path=path, configuration=configuration)
         return cls(file=manifest_file, events=[], configuration=configuration)
 
-    def add_event(self, event: Event):
+    def add_event(self, event: Event) -> None:
         self.file.write_event(event=event)
         self.events.append(event)
 
     @classmethod
-    def build(cls, manifest_path: str):
+    def build(cls, manifest_path: str) -> "Manifest":
         manifest_file = ManifestFile.open(path=manifest_path)
         header, events = manifest_file.decode()
 
