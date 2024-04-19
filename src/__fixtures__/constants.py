@@ -26,16 +26,3 @@ def temporary_sstable_path_2():
 @pytest.fixture
 def temporary_manifest_file_name():
     return f"{TEST_DIRECTORY}/manifest.sst"
-
-
-def cleanup_files():
-    for filename in os.listdir(TEST_DIRECTORY):
-        os.remove(f"{TEST_DIRECTORY}/{filename}")
-
-
-@pytest.fixture(autouse=True)
-def clean_files(request):
-    yield
-
-    # Cleanup code
-    request.addfinalizer(cleanup_files)
