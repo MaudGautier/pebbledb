@@ -1,10 +1,12 @@
+import random
+
 from src.blocks import DataBlockBuilder, DataBlock, MetaBlock
 from src.record import Record
 
 
 def test_block_builder_buffer_and_offsets():
     # GIVEN
-    block_builder = DataBlockBuilder(target_size=100)
+    block_builder = DataBlockBuilder(target_size=150)
 
     # WHEN
     block_builder.add(key=b'key1', value=b'value1')
@@ -13,21 +15,24 @@ def test_block_builder_buffer_and_offsets():
     block_builder.add(key=b'key4', value=b'value4')
 
     # THEN
-    record_size = len(b'keyN') + len(b"valueN") + 4 + 4
+    record_size = len(b'keyN') + len(b"valueN") + 4 + 4 + 8
     expected_offsets = [i * record_size for i in range(4)]
     assert block_builder.offsets == expected_offsets
     expected_data_chunks = [
-        b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1',
-        b'\x04\x00\x00\x00key2\x06\x00\x00\x00value2',
-        b'\x04\x00\x00\x00key3\x06\x00\x00\x00value3',
-        b'\x04\x00\x00\x00key4\x06\x00\x00\x00value4',
+        b'\x04\x00\x00\x00key1\x00\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value1',
+        b'\x04\x00\x00\x00key2\x01\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value2',
+        b'\x04\x00\x00\x00key3\x02\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value3',
+        b'\x04\x00\x00\x00key4\x03\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value4',
     ]
     assert block_builder.data_buffer[:4 * record_size] == b''.join(expected_data_chunks)
 
 
 def test_block_builder_returns_false_when_too_big():
     # GIVEN
-    block_builder = DataBlockBuilder(target_size=20)
+    record_size = len("keyN") + len(b"valueN") + 4 + 4 + 8
+    random_target_size = random.randint(record_size, 2 * record_size - 1)
+    block_builder = DataBlockBuilder(target_size=random_target_size)
+    # Note: As the target size is between that of one and two records, the first one will be added, not the second one
 
     # WHEN
     add_key1_return = block_builder.add(key=b'key1', value=b'value1')
@@ -37,7 +42,8 @@ def test_block_builder_returns_false_when_too_big():
     assert add_key1_return is True
     assert add_key2_return is False
     assert block_builder.offsets == [0]
-    assert block_builder.data_buffer == b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x00\x00'
+    expected_first_record = b'\x04\x00\x00\x00key1\x00\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value1'
+    assert block_builder.data_buffer[:record_size] == expected_first_record
 
 
 def test_encode_data_block():
@@ -105,13 +111,17 @@ def test_decode_meta_block():
 
 def test_get_record():
     # GIVEN
-    block_builder = DataBlockBuilder(target_size=100)
     kv_pairs = [
         (b'key1', b'value1'),
         (b'key2', b'value2'),
         (b'key3', b'value3'),
         (b'key4', b'value4'),
     ]
+    record_size = len("keyN") + len(b"valueN") + 4 + 4 + 8
+    # Note: The target size must be at least the size of the number of kv_pairs inserted
+    random_target_size = random.randint(len(kv_pairs) * record_size, (len(kv_pairs) + 1) * record_size)
+    block_builder = DataBlockBuilder(target_size=random_target_size)
+
     for key, value in kv_pairs:
         block_builder.add(key=key, value=value)
     block = block_builder.create_block()

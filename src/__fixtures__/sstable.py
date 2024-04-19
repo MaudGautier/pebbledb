@@ -1,15 +1,18 @@
 import os
+import random
 from typing import Generator
 
 import pytest
 
 from src.__fixtures__.constants import TEST_SSTABLE_FIXTURES_DIRECTORY
 from src.record import Record
+from src.sequence_number_generator import SequenceNumberGenerator
 from src.sstable import SSTableBuilder, SSTable, SSTableFile
 
 
 @pytest.fixture
 def records_for_sstable_four_blocks():
+    SequenceNumberGenerator.reset()
     return [
         # Goes into Data Block 0
         Record(key=b'aaa', value=b'some_long_value_for_aaa'),
@@ -36,7 +39,10 @@ def records_for_sstable_four_blocks():
 
 @pytest.fixture
 def sstable_four_blocks(records_for_sstable_four_blocks) -> Generator[SSTable, None, None]:
-    sstable_builder = SSTableBuilder(sstable_size=20000, block_size=150)
+    SequenceNumberGenerator.reset()
+    record_size = records_for_sstable_four_blocks[0].size
+    block_size = random.randint(4 * record_size, 5 * record_size - 1)
+    sstable_builder = SSTableBuilder(sstable_size=20000, block_size=block_size)
     for record in records_for_sstable_four_blocks:
         sstable_builder.add(key=record.key, value=record.value)
 
@@ -60,6 +66,7 @@ def sstable_four_blocks(records_for_sstable_four_blocks) -> Generator[SSTable, N
 
 @pytest.fixture
 def records_for_sstable_one_block():
+    SequenceNumberGenerator.reset()
     return [
         # Goes into Data Block 0
         Record(key=b'key1', value=b'value1'),
@@ -69,6 +76,11 @@ def records_for_sstable_one_block():
 
 
 def build_sstable_one_block(records_for_sstable_one_block, file_name) -> Generator[SSTable, None, None]:
+    SequenceNumberGenerator.reset()
+    record_size = records_for_sstable_one_block[0].size
+    block_size = random.randint(len(records_for_sstable_one_block) * record_size,
+                                (len(records_for_sstable_one_block) + 1) * record_size)
+
     sstable_builder = SSTableBuilder(sstable_size=20000, block_size=150)
     for record in records_for_sstable_one_block:
         sstable_builder.add(key=record.key, value=record.value)

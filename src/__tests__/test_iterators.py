@@ -1,3 +1,5 @@
+import random
+
 import pytest
 
 from src.blocks import DataBlock, DataBlockBuilder
@@ -53,7 +55,9 @@ def test_iterate_on_memtable_with_boundaries(empty_memtable):
 
 def test_iterate_on_data_block():
     # GIVEN
-    block_builder = DataBlockBuilder(target_size=100)
+    record_size = Record(key=b'keyN', value=b'valueN').size
+    block_size = random.randint(4 * record_size, 10 * record_size)  # Upper limit does not matter
+    block_builder = DataBlockBuilder(target_size=block_size)
     block_builder.add(key=b'key1', value=b'value1')
     block_builder.add(key=b'key2', value=b'value2')
     block_builder.add(key=b'key3', value=b'value3')
@@ -86,13 +90,14 @@ def test_iterate_on_empty_data_block_raises_stop_iteration():
 
 def test_data_block_select_index():
     # GIVEN
-    encoded_record1 = b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1'
-    encoded_record2 = b'\x04\x00\x00\x00key2\x06\x00\x00\x00value2'
-    encoded_record3 = b'\x04\x00\x00\x00key3\x06\x00\x00\x00value3'
-    encoded_record4 = b'\x04\x00\x00\x00key4\x06\x00\x00\x00value4'
+    encoded_record1 = b'\x04\x00\x00\x00key1\x00\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value1'
+    encoded_record2 = b'\x04\x00\x00\x00key2\x01\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value2'
+    encoded_record3 = b'\x04\x00\x00\x00key3\x02\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value3'
+    encoded_record4 = b'\x04\x00\x00\x00key4\x03\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value4'
+    record_size = len(encoded_record1)
 
     block = DataBlock(data=encoded_record1 + encoded_record2 + encoded_record3 + encoded_record4,
-                      offsets=[0, 18, 36, 54])
+                      offsets=[0, record_size, 2 * record_size, 3 * record_size])
     data_block_iterator = DataBlockIterator(block=block)
 
     # WHEN
@@ -156,7 +161,9 @@ def test_iterate_on_data_block_with_boundaries_after_returns_empty_list():
 
 def test_iterate_on_data_block_with_boundaries_inside_returns_partial_list():
     # GIVEN
-    block_builder = DataBlockBuilder(target_size=100)
+    record_size = Record(key=b'keyN', value=b'valueN').size
+    block_size = random.randint(4 * record_size, 10 * record_size)  # Upper limit does not matter
+    block_builder = DataBlockBuilder(target_size=block_size)
     block_builder.add(key=b'key1', value=b'value1')
     block_builder.add(key=b'key2', value=b'value2')
     block_builder.add(key=b'key3', value=b'value3')

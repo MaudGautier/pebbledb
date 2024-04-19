@@ -2,6 +2,7 @@ from unittest import mock
 
 from src.memtable import MemTable
 from src.record import Record
+from src.sequence_number_generator import SequenceNumberGenerator
 
 
 def test_can_put_and_retrieve(empty_memtable):
@@ -75,10 +76,13 @@ def test_can_recover(empty_memtable):
 def test_equal(empty_memtable, empty_memtable2):
     # GIVEN
     memtable1 = empty_memtable
-    memtable2 = empty_memtable2
     all_keys = [27, 0, 2, 30, 45, 3, 12, 25, 4, 5, 8, 50]
     for key in all_keys:
         memtable1.put(key=str(key).encode("utf-8"), value=str(key).encode(encoding="utf-8"))
+
+    SequenceNumberGenerator.reset()  # Memtables can be equal only if the same sequence numbers
+    memtable2 = empty_memtable2
+    for key in all_keys:
         memtable2.put(key=str(key).encode("utf-8"), value=str(key).encode(encoding="utf-8"))
 
     # WHEN/THEN

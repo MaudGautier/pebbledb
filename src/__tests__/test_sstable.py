@@ -1,45 +1,52 @@
+import random
 from contextlib import nullcontext as does_not_raise
 
 import pytest
 
 from src.blocks import DataBlock, MetaBlock
 from src.bloom_filter import BloomFilter
+from src.record import Record
 from src.sstable import SSTableBuilder, SSTableEncoding, SSTable, SSTableFile
 
 
 def test_add_record_to_current_block():
     # GIVEN
-    sstable_builder = SSTableBuilder(sstable_size=150, block_size=50)
-
-    # WHEN
     kv_pairs = [
         (b'key1', b'value1'),
         (b'key2', b'value2'),
     ]
+    record_size = Record(key=b'keyN', value=b"valueN").size
+    random_block_size = random.randint(len(kv_pairs) * record_size, (len(kv_pairs) + 1) * record_size - 1)
+    sstable_size = random_block_size * 3
+    sstable_builder = SSTableBuilder(sstable_size=sstable_size, block_size=random_block_size)
+
+    # WHEN
     for key, value in kv_pairs:
         sstable_builder.add(key=key, value=value)
 
     # THEN
     assert sstable_builder.current_buffer_position == 0
     assert sstable_builder.data_block_offsets == []
-    assert sstable_builder.data_buffer == bytearray(150)
+    assert sstable_builder.data_buffer == bytearray(sstable_size)
 
 
 def test_adding_record_to_new_block_updates_buffer():
     # GIVEN
-    sstable_builder = SSTableBuilder(sstable_size=150, block_size=50)
-
-    # WHEN
     kv_pairs = [
         (b'key1', b'value1'),
         (b'key2', b'value2'),
         (b'key3', b'value3'),
     ]
+    record_size = Record(key=b'keyN', value=b"valueN").size
+    random_block_size = random.randint((len(kv_pairs) - 1) * record_size, len(kv_pairs) * record_size - 1)
+    sstable_builder = SSTableBuilder(sstable_size=random_block_size * 3, block_size=random_block_size)
+
+    # WHEN
     for key, value in kv_pairs:
+        assert sstable_builder.current_buffer_position == 0
         sstable_builder.add(key=key, value=value)
 
     # THEN
-    record_size = len("keyN") + len(b"valueN") + 4 + 4
     record_index_size = 2  # Number of bytes for a "H" integer (Blocks)
     nb_records = 2
     nb_records_size = 2  # Number of bytes for a "H" integer (Blocks)
@@ -111,7 +118,7 @@ def test_find_block_of_key(sstable_four_blocks):
     assert sstable.find_block_id(b'zzz') is None
 
 
-def test_read_data_block(sstable_four_blocks):
+def test_read_data_block(sstable_four_blocks, records_for_sstable_four_blocks):
     # GIVEN
     sstable = sstable_four_blocks
 
@@ -119,9 +126,15 @@ def test_read_data_block(sstable_four_blocks):
     data_block = sstable.read_data_block(block_id=1)
 
     # THEN
+    record1 = b'\x03\x00\x00\x00eee\x05\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_eee'
+    record2 = b'\x03\x00\x00\x00fff\x06\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_fff'
+    record3 = b'\x03\x00\x00\x00ggg\x07\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_ggg'
+    record4 = b'\x03\x00\x00\x00hhh\x08\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_hhh'
+    record_size = records_for_sstable_four_blocks[0].size
+
     assert data_block.number_records == 4
-    assert data_block.data == b'\x03\x00\x00\x00eee\x17\x00\x00\x00some_long_value_for_eee\x03\x00\x00\x00fff\x17\x00\x00\x00some_long_value_for_fff\x03\x00\x00\x00ggg\x17\x00\x00\x00some_long_value_for_ggg\x03\x00\x00\x00hhh\x17\x00\x00\x00some_long_value_for_hhh'
-    assert data_block.offsets == [0, 34, 68, 102]
+    assert data_block.data == b''.join([record1, record2, record3, record4])
+    assert data_block.offsets == [0, record_size, 2 * record_size, 3 * record_size]
 
 
 def test_get_key(sstable_four_blocks, records_for_sstable_four_blocks):
