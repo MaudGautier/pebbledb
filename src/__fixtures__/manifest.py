@@ -21,7 +21,7 @@ def empty_manifest_file_configuration():
 
 @pytest.fixture
 def empty_manifest_file(empty_manifest_file_configuration):
-    path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/empty_manifest.txt"
+    path = f"{TEST_DIRECTORY}/empty_manifest.txt"
 
     yield ManifestFile.create(path=path, configuration=empty_manifest_file_configuration)
 
@@ -64,7 +64,7 @@ def configuration_for_sample_manifest_file_1():
 def sample_manifest_file_1(events_for_sample_manifest_file_1, configuration_for_sample_manifest_file_1):
     # Configure manifest
     configuration = configuration_for_sample_manifest_file_1
-    path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/sample_manifest_1.txt"
+    path = f"{TEST_DIRECTORY}/sample_manifest_1.txt"
     manifest_file = ManifestFile.create(path=path, configuration=configuration)
 
     # Add events
@@ -91,7 +91,7 @@ def configuration_for_sample_manifest_0():
 
 @pytest.fixture
 def sample_manifest_0_without_events(configuration_for_sample_manifest_0):
-    path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/manifest_0.txt"
+    path = f"{TEST_DIRECTORY}/manifest_0.txt"
     configuration = configuration_for_sample_manifest_0
     manifest = Manifest.create(path=path, configuration=configuration)
 
@@ -103,12 +103,12 @@ def sample_manifest_0_without_events(configuration_for_sample_manifest_0):
 
 @pytest.fixture
 def path_to_manifest_1():
-    return f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/manifest_1.txt"
+    return f"{TEST_DIRECTORY}/manifest_1.txt"
 
 
 @pytest.fixture
 def sample_manifest_1_with_events(events_for_sample_manifest_file_1, configuration_for_sample_manifest_file_1):
-    path = f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/manifest_1.txt"
+    path = f"{TEST_DIRECTORY}/manifest_1.txt"
     configuration = configuration_for_sample_manifest_file_1
     events = events_for_sample_manifest_file_1
     manifest = Manifest.create(path=path, configuration=configuration)
