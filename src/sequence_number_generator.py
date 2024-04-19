@@ -1,12 +1,19 @@
 def singleton(cls):
     instances = {}
 
-    def wrapper(*args, **kwargs):
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
+    class SingletonWrapper(cls):
+        def __new__(cls, *args, **kwargs):
+            if cls not in instances:
+                instances[cls] = super(SingletonWrapper, cls).__new__(cls)
+                instances[cls].__init__(*args, **kwargs)
+            return instances[cls]
 
-    return wrapper
+        @classmethod
+        def reset(cls):
+            if cls in instances:
+                del instances[cls]
+
+    return SingletonWrapper
 
 
 @singleton
@@ -21,3 +28,8 @@ class SequenceNumberGenerator:
         current = self.current
         self.current += 1
         return current
+
+    @classmethod
+    def reset(cls):
+        """Reset method stub for IDE compatibility."""
+        raise NotImplementedError("This method is replaced by the singleton decorator.")
