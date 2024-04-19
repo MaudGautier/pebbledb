@@ -1,17 +1,18 @@
-def singleton(cls):
+def singleton(singleton_cls):
     instances = {}
 
-    class SingletonWrapper(cls):
+    class SingletonWrapper(singleton_cls):
         def __new__(cls, *args, **kwargs):
-            if cls not in instances:
-                instances[cls] = super(SingletonWrapper, cls).__new__(cls)
-                instances[cls].__init__(*args, **kwargs)
-            return instances[cls]
+            if singleton_cls not in instances:
+                # Store instance of the original class
+                instances[singleton_cls] = super(SingletonWrapper, cls).__new__(singleton_cls)
+                instances[singleton_cls].__init__(*args, **kwargs)
+            return instances[singleton_cls]
 
         @classmethod
         def reset(cls):
-            if cls in instances:
-                del instances[cls]
+            if singleton_cls in instances:
+                del instances[singleton_cls]
 
     return SingletonWrapper
 
