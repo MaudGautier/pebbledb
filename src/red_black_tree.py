@@ -253,11 +253,34 @@ class RedBlackTree:
                 grandparent.color = Color.RED
 
     # ---- UTILS FOR TESTS -----
-    def read_data(self, with_value: bool = False) -> list[Node.Key]:
+    def read_data(self, with_value: bool = False) -> list[Node.Key] or list[tuple[Node.Key, Node.Data]]:
         nodes = self.bfs()
         if with_value:
             return [(node.key, node.data) for node in nodes]
         return [node.key for node in nodes]
+
+    def read_in_order(self, with_value: bool = False) -> list[Node.Key] or list[tuple[Node.Key, Node.Data]]:
+        nodes = self.root.in_order_traversal()
+        if with_value:
+            return [(node.key, node.data) for node in nodes]
+        return [node.key for node in nodes]
+
+    def get_depth(self):
+        if self.root is self.NIL_LEAF:
+            return 0
+
+        queue = deque([(self.root, 1)])  # (node, current_depth)
+        max_depth = 0
+
+        while queue:
+            current_node, current_depth = queue.popleft()
+            if current_node is RedBlackTree.NIL_LEAF:
+                continue
+            max_depth = max(max_depth, current_depth)
+            queue.append((current_node.left, current_depth + 1))
+            queue.append((current_node.right, current_depth + 1))
+
+        return max_depth
 
     def bfs(self) -> list[Node]:
         nodes_to_visit = deque()

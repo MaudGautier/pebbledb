@@ -1,3 +1,5 @@
+import math
+import random
 import threading
 import time
 from typing import cast
@@ -1051,3 +1053,68 @@ def test_not_equal_if_different_nodes():
     # WHEN/THEN
     assert tree1 != tree2
     assert tree1 != tree3
+
+
+# -------------------------------------------------------------------------------------------------------------------- #
+#                                      Property-based testing of the RedBlackTree                                      #
+# -------------------------------------------------------------------------------------------------------------------- #
+
+def generate_random_keys_lists(nb_tests=20):
+    nb_nodes = random.randint(5, 200)
+
+    return [random.sample(range(1, 10 ** 6), nb_nodes) for _ in range(nb_tests)]
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~
+# Invariance properties: each node is either red or black, the root is always black, red nodes cannot have red children
+# ~~~~~~~~~~~~~~~~~~~~~~
+@pytest.mark.parametrize("keys", generate_random_keys_lists())
+def test_the_root_is_black_and_red_nodes_do_not_have_red_children(keys):
+    # GIVEN
+    tree = RedBlackTree()
+
+    # WHEN
+    for key in keys:
+        tree.insert(key=key, data=str(key).encode(encoding="utf-8"))
+
+    # THEN
+    assert tree.root.color == Color.BLACK
+    for node in tree.bfs():
+        if node.color == Color.RED:
+            assert node.left.color == Color.BLACK
+            assert node.right.color == Color.BLACK
+        else:
+            assert node.color == Color.BLACK
+
+
+# ~~~~~~~~~~~~~~~~~~~~
+# Structural property: the in-order traversal of the tree should always result in a sorted list of elements
+# ~~~~~~~~~~~~~~~~~~~~
+@pytest.mark.parametrize("keys", generate_random_keys_lists())
+def test_all_nodes_are_in_order(keys):
+    # GIVEN
+    tree = RedBlackTree()
+
+    # WHEN
+    for key in keys:
+        tree.insert(key=key, data=str(key).encode(encoding="utf-8"))
+
+    # THEN
+    assert tree.read_in_order() == sorted(keys)
+
+
+# ~~~~~~~~~~~~~~~~~~~~
+# Structural property: the height of the tree should conform to red-black tree balancing properties (max: 2 * log2(n+1))
+# ~~~~~~~~~~~~~~~~~~~~
+@pytest.mark.parametrize("keys", generate_random_keys_lists())
+def test_tree_is_balanced(keys):
+    # GIVEN
+    tree = RedBlackTree()
+
+    # WHEN
+    for key in keys:
+        tree.insert(key=key, data=str(key).encode(encoding="utf-8"))
+
+    # THEN
+    expected_max_depth = 2 * math.log2(len(keys))
+    assert tree.get_depth() <= expected_max_depth
