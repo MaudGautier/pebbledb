@@ -1,3 +1,4 @@
+import os.path
 import threading
 import time
 from unittest import mock
@@ -620,3 +621,39 @@ def test_close_flushes_everything(store_with_multiple_immutable_memtables_and_on
     assert store.state.memtable.approximate_size == 0
     assert len(store.state.immutable_memtables) == 0
     assert len(store.state.sstables_level0) == 3
+
+
+def test_compaction_on_l0_removes_files(store_with_multiple_l0_sstables):
+    # GIVEN
+    store = store_with_multiple_l0_sstables
+    assert len(store.state.sstables_level0) > 0
+    file_paths = [sstable.file.path for sstable in store.state.sstables_level0]
+    for path in file_paths:
+        assert os.path.exists(path) is True
+        assert os.path.isfile(path)
+
+    # WHEN
+    store.force_compaction_l0()
+
+    # THEN
+    assert len(store.state.sstables_level0) == 0
+    for path in file_paths:
+        assert os.path.exists(path) is False
+
+
+def test_compaction_on_l1_removes_files(store_with_four_l1_and_one_l2_sstables):
+    # GIVEN
+    store = store_with_four_l1_and_one_l2_sstables
+    assert len(store.state.sstables_levels[0]) > 0
+    file_paths = [sstable.file.path for sstable in store.state.sstables_levels[0]]
+    for path in file_paths:
+        assert os.path.exists(path) is True
+        assert os.path.isfile(path)
+
+    # WHEN
+    store.force_compaction_l1_or_more_level(level=1)
+
+    # THEN
+    assert len(store.state.sstables_levels[0]) == 0
+    for path in file_paths:
+        assert os.path.exists(path) is False

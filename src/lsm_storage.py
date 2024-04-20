@@ -269,6 +269,10 @@ class LsmStorage:
         event = CompactionEvent(input_sstables=sstables_to_compact, output_sstables=new_ss_tables, level=0)
         self.manifest.add_event(event=event)
 
+        # Delete old SSTables
+        for sstable in sstables_to_compact:
+            sstable.file.remove_self()
+
     def force_compaction_l1_or_more_level(self, level: int) -> None:
         level_index = level - 1
         next_level_index = level
@@ -292,6 +296,10 @@ class LsmStorage:
         # Write to manifest
         event = CompactionEvent(input_sstables=sstables_to_compact, output_sstables=new_ss_tables, level=level)
         self.manifest.add_event(event=event)
+
+        # Delete old SSTables
+        for sstable in sstables_to_compact:
+            sstable.file.remove_self()
 
     def _try_compact(self) -> None:
         """Checks if a level should be compacted or not and compacts it if so.

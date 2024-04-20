@@ -50,6 +50,9 @@ class SSTableFile:
     def _exists(self) -> bool:
         return os.path.isfile(self.path)
 
+    def remove_self(self):
+        os.remove(self.path)
+
 
 class SSTableEncoding:
     """This class handles encoding and decoding of SSTables.
@@ -114,14 +117,6 @@ class SSTableEncoding:
 
 
 class SSTable:
-    # TODO: ne contenir que:
-    #  first key, last key ??? (utile pour savoir si besoin de regarder dedans - plus tard quand compaction niveaux ) ,
-    #  ✅ meta_blocks,
-    #  ✅ meta_block_offset,
-    #  ✅ file
-    #  ----------------------------------------
-    #  Iterator à part ???
-
     def __init__(self,
                  meta_blocks: list[MetaBlock],
                  meta_block_offset: int,
@@ -157,10 +152,6 @@ class SSTable:
                 return None
 
         return None
-        # TODO later: Optimisation:
-        # # Perform binary search in meta blocks to find in which block the key is likely to be
-        # first_key = self.meta_blocks[0].first_key
-        # last_key = self.meta_blocks[-1].last_key
 
     def read_data_block(self, block_id: int) -> DataBlock:
         start = self.meta_blocks[block_id].offset

@@ -37,7 +37,6 @@ class CompactionEvent(Event):
                 and self.level == other.level)
 
 
-
 class Configuration:
     def __init__(
             self,
