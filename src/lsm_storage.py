@@ -261,8 +261,8 @@ class LsmStorage:
             os.makedirs(self.directory)
 
     def _compute_compacted_ss_tables(self, records_iterator: BaseIterator) -> list[SSTable]:
-        """Performs the compaction operation.
-        Compaction consists in creating a set of compacted SSTables from the records yielded by the inputted iterator.
+        """Computes the new set of compacted SSTable by iterating over all records.
+        Each SSTable of the new set should not exceed the maximum SSTable size.
         """
         compacted_ss_tables = []
         sstable_builder = SSTableBuilder(sstable_size=self._configuration.max_sstable_size,
@@ -292,13 +292,23 @@ class LsmStorage:
                  output_sstables: Deque[SSTable],
                  input_level: int,
                  iterator_class: Type[MergingIterator] or Type[ConcatenatingIterator]) -> None:
+        """Performs the compaction operation.
+        Compaction consists in:
+        - Identifying all SSTables that should be compacted
+        - Compacting them into a new set of SSTables
+        - Updating the state to remove the old set and add the new one to the list of tracked SSTables.
 
+        In order to allow restarts and crash recoveries, a CompactionEvent is recorded in the manifest.
+        """
+
+        # Create records iterator from input SSTables
         with self._locks.read_write.read():
             sstables_to_compact = [sstable for sstable in input_sstables]
             records_iterator = iterator_class(iterators=[
                 SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
             ])
 
+        # Compute compacted SSTables
         new_ss_tables = self._compute_compacted_ss_tables(records_iterator=records_iterator)
 
         # Update state to remove input SSTables and add new output SSTables
@@ -317,6 +327,8 @@ class LsmStorage:
             sstable.file.remove_self()
 
     def _compact_l0(self) -> None:
+        """Performs the compaction operation at level 0.
+        """
         input_sstables = self.state.sstables_level0
         output_sstables = self.state.sstables_levels[0]
 
@@ -326,6 +338,8 @@ class LsmStorage:
                       iterator_class=MergingIterator)
 
     def _compact_l1_or_more(self, level: int) -> None:
+        """Performs the compaction operation at level 1 or more.
+        """
         output_level = min(level + 1, self._configuration.nb_levels)
         input_sstables = self.state.sstables_levels[level - 1]
         output_sstables = self.state.sstables_levels[output_level - 1]
