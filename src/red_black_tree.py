@@ -11,7 +11,7 @@ class Color(str, Enum):
 
 
 class Node:
-    Key = int or str
+    Key = bytes
     Data = bytes
 
     def __init__(self,
@@ -79,22 +79,6 @@ class RedBlackTree:
         if not isinstance(other, RedBlackTree):
             return NotImplemented
         return self.read_data(with_value=True) == other.read_data(with_value=True)
-
-    def _get_lower_bound_node(self, key: Node.Key) -> Node:
-        node = self.root
-        # Find start node
-        candidate = self.NIL_LEAF
-        while node is not self.NIL_LEAF:
-            if node.key == key:
-                return node
-            elif node.key < key:
-                node = node.right
-            elif node.key > key:
-                if candidate is self.NIL_LEAF or candidate.key > node.key:
-                    candidate = node
-                node = node.left
-
-        return candidate
 
     def scan(self, lower: Node.Key, upper: Node.Key) -> Iterator[Node.Data]:
         for node in self.root.in_order_traversal(lower=lower, upper=upper):
