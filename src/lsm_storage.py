@@ -51,10 +51,10 @@ class LsmStorage:
 
     def close(self) -> None:
         if self.state.memtable.approximate_size > 0:
-            self._freeze_memtable()
+            self._freeze()
 
         while len(self.state.immutable_memtables):
-            self.flush_next_immutable_memtable()
+            self._trigger_flush()
 
     @classmethod
     def create(cls,
@@ -138,9 +138,9 @@ class LsmStorage:
                 with self._locks.read_write.read():
                     latest_approximate_size = self.state.memtable.approximate_size
                 if latest_approximate_size >= self._configuration.max_sstable_size:
-                    self._freeze_memtable()
+                    self._freeze()
 
-    def _freeze_memtable(self) -> None:
+    def _freeze(self) -> None:
         with self._locks.read_write.write():
             new_memtable = MemTable.create(directory=self.directory)
             self.state.immutable_memtables.insert(0, self.state.memtable)
@@ -190,7 +190,7 @@ class LsmStorage:
             iterators=[active_memtable_iterator] + immutable_memtables_iterators + sstables_iterators)
         yield from iterator
 
-    def _do_flush(self) -> None:
+    def _flush(self) -> None:
         # Read the oldest memtable
         with self._locks.read_write.read():
             memtable_to_flush = self.state.immutable_memtables[-1]
@@ -216,9 +216,9 @@ class LsmStorage:
         # Delete the WAL
         flushed_memtable.wal.remove_self()
 
-    def flush_next_immutable_memtable(self) -> None:
+    def _trigger_flush(self) -> None:
         with self._locks.state:
-            self._do_flush()
+            self._flush()
 
         self._try_compact()
 
