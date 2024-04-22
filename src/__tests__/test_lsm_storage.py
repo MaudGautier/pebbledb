@@ -341,7 +341,7 @@ def test_compact(store_with_multiple_l0_sstables, records_for_store_with_multipl
     ])
 
     # WHEN
-    new_sstables = store._compact(records_iterator=l0_ss_table_iterator)
+    new_sstables = store._compute_compacted_ss_tables(records_iterator=l0_ss_table_iterator)
 
     # THEN
     assert len(new_sstables) == 2
@@ -352,7 +352,7 @@ def test_trigger_l0_compaction(store_with_multiple_l0_sstables, records_for_stor
     store = store_with_multiple_l0_sstables
 
     # WHEN
-    store.force_compaction_l0()
+    store._compact_l0()
 
     # THEN
     assert len(store.state.sstables_levels) == store._configuration.nb_levels
@@ -382,7 +382,7 @@ def test_trigger_l1_compaction_to_l2(store_with_multiple_l1_sstables, records_fo
     store = store_with_multiple_l1_sstables
 
     # WHEN
-    store.force_compaction_l1_or_more_level(level=1)
+    store._compact_l1_or_more(level=1)
 
     # THEN
     assert len(store.state.sstables_levels) == store._configuration.nb_levels
@@ -398,13 +398,13 @@ def test_trigger_l1_compaction_to_l2(store_with_multiple_l1_sstables, records_fo
     assert store.state.sstables_levels[1][3].last_key == "key8"
 
 
-def test_try_compact_should_force_compact_l0_if_above_the_threshold(store_with_one_l0_sstable):
+def test_try_compact_should_compact_l0_if_above_the_threshold(store_with_one_l0_sstable):
     # GIVEN
     store = store_with_one_l0_sstable
     store._configuration.max_l0_sstables = 1
 
     # WHEN/THEN
-    with mock.patch.object(store, 'force_compaction_l0', wraps=store.force_compaction_l0) as mocked_compact:
+    with mock.patch.object(store, '_compact_l0', wraps=store._compact_l0) as mocked_compact:
         # WHEN
         store._try_compact()
 
@@ -412,13 +412,13 @@ def test_try_compact_should_force_compact_l0_if_above_the_threshold(store_with_o
         mocked_compact.assert_called_once()
 
 
-def test_try_compact_should_not_force_compact_l0_if_below_the_threshold(store_with_one_l0_sstable):
+def test_try_compact_should_not_compact_l0_if_below_the_threshold(store_with_one_l0_sstable):
     # GIVEN
     store = store_with_one_l0_sstable
     store._configuration.max_l0_sstables = 2
 
     # WHEN/THEN
-    with mock.patch.object(store, 'force_compaction_l0', wraps=store.force_compaction_l0) as mocked_compact:
+    with mock.patch.object(store, '_compact_l0', wraps=store._compact_l0) as mocked_compact:
         # WHEN
         store._try_compact()
 
@@ -426,14 +426,14 @@ def test_try_compact_should_not_force_compact_l0_if_below_the_threshold(store_wi
         mocked_compact.assert_not_called()
 
 
-def test_try_compact_should_force_compact_l1_if_above_the_threshold(store_with_four_l1_and_one_l2_sstables):
+def test_try_compact_should_compact_l1_if_above_the_threshold(store_with_four_l1_and_one_l2_sstables):
     # GIVEN
     store = store_with_four_l1_and_one_l2_sstables
     store._configuration.levels_ratio = 0.2
 
     # WHEN/THEN
-    with mock.patch.object(store, 'force_compaction_l1_or_more_level',
-                           wraps=store.force_compaction_l1_or_more_level) as mocked_compact:
+    with mock.patch.object(store, '_compact_l1_or_more',
+                           wraps=store._compact_l1_or_more) as mocked_compact:
         # WHEN
         store._try_compact()
 
@@ -441,14 +441,14 @@ def test_try_compact_should_force_compact_l1_if_above_the_threshold(store_with_f
         mocked_compact.assert_called_once()
 
 
-def test_try_compact_should_not_force_compact_l1_if_below_the_threshold(store_with_four_l1_and_one_l2_sstables):
+def test_try_compact_should_not_compact_l1_if_below_the_threshold(store_with_four_l1_and_one_l2_sstables):
     # GIVEN
     store = store_with_four_l1_and_one_l2_sstables
     store._configuration.levels_ratio = 0.3
 
     # WHEN/THEN
-    with mock.patch.object(store, 'force_compaction_l1_or_more_level',
-                           wraps=store.force_compaction_l1_or_more_level) as mocked_compact:
+    with mock.patch.object(store, '_compact_l1_or_more',
+                           wraps=store._compact_l1_or_more) as mocked_compact:
         # WHEN
         store._try_compact()
 
@@ -463,8 +463,8 @@ def test_try_compact_should_compact_in_cascade(store_with_one_sstable_at_five_le
     store._configuration.max_l0_sstables = 1
 
     # WHEN/THEN
-    with mock.patch.object(store, 'force_compaction_l1_or_more_level',
-                           wraps=store.force_compaction_l1_or_more_level) as mocked_compact:
+    with mock.patch.object(store, '_compact_l1_or_more',
+                           wraps=store._compact_l1_or_more) as mocked_compact:
         # WHEN
         store._try_compact()
 
@@ -483,8 +483,8 @@ def test_try_compact_should_not_compact_an_empty_level(store_with_one_sstable_at
     store._configuration.max_l0_sstables = 10
 
     # WHEN/THEN
-    with mock.patch.object(store, 'force_compaction_l1_or_more_level',
-                           wraps=store.force_compaction_l1_or_more_level) as mocked_compact:
+    with mock.patch.object(store, '_compact_l1_or_more',
+                           wraps=store._compact_l1_or_more) as mocked_compact:
         # WHEN
         store._try_compact()
 
@@ -565,7 +565,7 @@ def test_compact_l0_writes_to_manifest(store_with_multiple_l0_sstables):
     # WHEN/THEN
     with mock.patch.object(manifest, 'add_event') as mocked_add_event_to_manifest:
         # WHEN
-        store.force_compaction_l0()
+        store._compact_l0()
 
         # THEN
         mocked_add_event_to_manifest.assert_called_once()
@@ -581,7 +581,7 @@ def test_compact_l1_writes_to_manifest(store_with_four_l1_and_one_l2_sstables):
     # WHEN/THEN
     with mock.patch.object(manifest, 'add_event') as mocked_add_event_to_manifest:
         # WHEN
-        store.force_compaction_l1_or_more_level(level=1)
+        store._compact_l1_or_more(level=1)
 
         # THEN
         mocked_add_event_to_manifest.assert_called_once()
@@ -633,7 +633,7 @@ def test_compaction_on_l0_removes_files(store_with_multiple_l0_sstables):
         assert os.path.isfile(path)
 
     # WHEN
-    store.force_compaction_l0()
+    store._compact_l0()
 
     # THEN
     assert len(store.state.sstables_level0) == 0
@@ -651,7 +651,7 @@ def test_compaction_on_l1_removes_files(store_with_four_l1_and_one_l2_sstables):
         assert os.path.isfile(path)
 
     # WHEN
-    store.force_compaction_l1_or_more_level(level=1)
+    store._compact_l1_or_more(level=1)
 
     # THEN
     assert len(store.state.sstables_levels[0]) == 0

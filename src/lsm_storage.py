@@ -1,7 +1,7 @@
 import os
 import time
 from collections import deque
-from typing import Optional, Iterator, Deque
+from typing import Optional, Iterator, Deque, Type
 
 from src.iterators import MemTableIterator, MergingIterator, SSTableIterator, ConcatenatingIterator, BaseIterator
 from src.locks import ReadWriteLock, Mutex
@@ -155,8 +155,10 @@ class LsmStorage:
         - Creating a new empty memtable and adding it to the state as the current one;
         - Inserting the previous memtable in the list of immutable memtables.
         """
+        # Create empty memtable
         new_memtable = MemTable.create(directory=self.directory)
 
+        # Update state to add current memtable to immutable memtables and use the new empty memtable to write to
         with self._locks.read_write.write():
             self.state.immutable_memtables.insert(0, self.state.memtable)
             self.state.memtable = new_memtable
@@ -258,7 +260,7 @@ class LsmStorage:
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
-    def _compact(self, records_iterator: BaseIterator) -> list[SSTable]:
+    def _compute_compacted_ss_tables(self, records_iterator: BaseIterator) -> list[SSTable]:
         """Performs the compaction operation.
         Compaction consists in creating a set of compacted SSTables from the records yielded by the inputted iterator.
         """
@@ -285,56 +287,53 @@ class LsmStorage:
         sstable = sstable_builder.build(path=self._compute_path())
         sstables.append(sstable)
 
-    def force_compaction_l0(self) -> None:
+    def _compact(self,
+                 input_sstables: Deque[SSTable],
+                 output_sstables: Deque[SSTable],
+                 input_level: int,
+                 iterator_class: Type[MergingIterator] or Type[ConcatenatingIterator]) -> None:
+
         with self._locks.read_write.read():
-            sstables_to_compact = [sstable for sstable in self.state.sstables_level0]
-            l0_ss_table_iterator = MergingIterator(iterators=[
+            sstables_to_compact = [sstable for sstable in input_sstables]
+            records_iterator = iterator_class(iterators=[
                 SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
             ])
 
-        new_ss_tables = self._compact(records_iterator=l0_ss_table_iterator)
+        new_ss_tables = self._compute_compacted_ss_tables(records_iterator=records_iterator)
 
+        # Update state to remove input SSTables and add new output SSTables
         with self._locks.state:
             with self._locks.read_write.write():
-                self.state.sstables_levels[0].extendleft(reversed(new_ss_tables))
+                output_sstables.extendleft(reversed(new_ss_tables))
                 for sstable in sstables_to_compact:
-                    self.state.sstables_level0.remove(sstable)
+                    input_sstables.remove(sstable)
 
         # Write to manifest
-        event = CompactionEvent(input_sstables=sstables_to_compact, output_sstables=new_ss_tables, level=0)
+        event = CompactionEvent(input_sstables=sstables_to_compact, output_sstables=new_ss_tables, level=input_level)
         self.manifest.add_event(event=event)
 
         # Delete old SSTables
         for sstable in sstables_to_compact:
             sstable.file.remove_self()
 
-    def force_compaction_l1_or_more_level(self, level: int) -> None:
-        level_index = level - 1
-        next_level_index = level
-        if self._configuration.nb_levels < level:
-            next_level_index = level - 1
+    def _compact_l0(self) -> None:
+        input_sstables = self.state.sstables_level0
+        output_sstables = self.state.sstables_levels[0]
 
-        with self._locks.read_write.read():
-            sstables_to_compact = [sstable for sstable in self.state.sstables_levels[level_index]]
-            l0_ss_table_iterator = ConcatenatingIterator(iterators=[
-                SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
-            ])
+        self._compact(input_level=0,
+                      input_sstables=input_sstables,
+                      output_sstables=output_sstables,
+                      iterator_class=MergingIterator)
 
-        new_ss_tables = self._compact(records_iterator=l0_ss_table_iterator)
+    def _compact_l1_or_more(self, level: int) -> None:
+        output_level = min(level + 1, self._configuration.nb_levels)
+        input_sstables = self.state.sstables_levels[level - 1]
+        output_sstables = self.state.sstables_levels[output_level - 1]
 
-        with self._locks.state:
-            with self._locks.read_write.write():
-                self.state.sstables_levels[next_level_index].extendleft(reversed(new_ss_tables))
-                for sstable in sstables_to_compact:
-                    self.state.sstables_levels[level_index].remove(sstable)
-
-        # Write to manifest
-        event = CompactionEvent(input_sstables=sstables_to_compact, output_sstables=new_ss_tables, level=level)
-        self.manifest.add_event(event=event)
-
-        # Delete old SSTables
-        for sstable in sstables_to_compact:
-            sstable.file.remove_self()
+        self._compact(input_level=level,
+                      input_sstables=input_sstables,
+                      output_sstables=output_sstables,
+                      iterator_class=ConcatenatingIterator)
 
     def _try_compact(self) -> None:
         """Checks if a level should be compacted or not and compacts it if so.
@@ -351,14 +350,14 @@ class LsmStorage:
 
         # Try to compact level 0
         if len(self.state.sstables_level0) >= self._configuration.max_l0_sstables:
-            self.force_compaction_l0()
+            self._compact_l0()
 
         # Try to compact other levels
         for level_index in range(self._configuration.nb_levels - 1):
             current_level = self.state.sstables_levels[level_index]
             next_level = self.state.sstables_levels[level_index + 1]
             if len(current_level) > 0 and len(current_level) >= self._configuration.levels_ratio * len(next_level):
-                self.force_compaction_l1_or_more_level(level=level_index + 1)
+                self._compact_l1_or_more(level=level_index + 1)
 
     @classmethod
     def reconstruct_from_manifest(cls, manifest_path: str) -> "LsmStorage":
