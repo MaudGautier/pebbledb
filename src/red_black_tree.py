@@ -11,7 +11,9 @@ class Color(str, Enum):
 
 
 class Node:
-    Key = int or str or bytes
+    Key = bytes or int or str  # int or str are only here for tests.
+    # Note: the test file has been changed to only bytes in commit `refactor(RBTree): pass key as bytes`
+    # (then reverted). I might come back to this at some point
     Data = bytes
 
     def __init__(self,
