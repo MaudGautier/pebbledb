@@ -150,6 +150,11 @@ class LsmStorage:
             self._freeze()
 
     def _freeze(self) -> None:
+        """Performs the freeze operation.
+        The freeze operation consists in:
+        - Creating a new empty memtable and adding it to the state as the current one;
+        - Inserting the previous memtable in the list of immutable memtables.
+        """
         new_memtable = MemTable.create(directory=self.directory)
 
         with self._locks.read_write.write():
@@ -201,6 +206,16 @@ class LsmStorage:
         yield from iterator
 
     def _flush(self) -> None:
+        """Performs the flush operation.
+        The flush operation consists in:
+        - Identifying the oldest immutable memtable;
+        - Creating a new SSTable and filling it with the records in the selected memtable;
+        - Updating the state to add the new SSTable at level 0 and remove the old memtable.
+
+        In order to allow restarts and crash recoveries, a FlushEvent is recorded in the manifest and the WAL
+        associated to the old memtable is deleted.
+        """
+
         # Read the oldest memtable
         with self._locks.read_write.read():
             memtable_to_flush = self.state.immutable_memtables[-1]
@@ -227,6 +242,9 @@ class LsmStorage:
         flushed_memtable.wal.remove_self()
 
     def _trigger_flush(self) -> None:
+        """Triggers the flush operation and subsequent operations.
+        This method's responsibility is only to organize the locking logic around operations.
+        """
         with self._locks.state:
             self._flush()
 
@@ -241,6 +259,9 @@ class LsmStorage:
             os.makedirs(self.directory)
 
     def _compact(self, records_iterator: BaseIterator) -> list[SSTable]:
+        """Performs the compaction operation.
+        Compaction consists in creating a set of compacted SSTables from the records yielded by the inputted iterator.
+        """
         new_ss_tables = []
         sstable_builder = SSTableBuilder(sstable_size=self._configuration.max_sstable_size,
                                          block_size=self._configuration.block_size)
