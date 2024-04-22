@@ -150,8 +150,9 @@ class LsmStorage:
             self._freeze()
 
     def _freeze(self) -> None:
+        new_memtable = MemTable.create(directory=self.directory)
+
         with self._locks.read_write.write():
-            new_memtable = MemTable.create(directory=self.directory)
             self.state.immutable_memtables.insert(0, self.state.memtable)
             self.state.memtable = new_memtable
 
