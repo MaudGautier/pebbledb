@@ -262,24 +262,28 @@ class LsmStorage:
         """Performs the compaction operation.
         Compaction consists in creating a set of compacted SSTables from the records yielded by the inputted iterator.
         """
-        new_ss_tables = []
+        compacted_ss_tables = []
         sstable_builder = SSTableBuilder(sstable_size=self._configuration.max_sstable_size,
                                          block_size=self._configuration.block_size)
 
         for record in records_iterator:
             sstable_builder.add(key=record.key, value=record.value)
 
+            # Build the sstable when it exceeds the maximum size and instantiate a new builder
             if sstable_builder.current_buffer_position >= self._configuration.max_sstable_size:
-                sstable = sstable_builder.build(path=self._compute_path())
-                new_ss_tables.append(sstable)
+                self._finalize_sstable(sstable_builder=sstable_builder, sstables=compacted_ss_tables)
                 sstable_builder = SSTableBuilder(sstable_size=self._configuration.max_sstable_size,
                                                  block_size=self._configuration.block_size)
 
+        # Build the last SSTable if it is not empty
         if sstable_builder.current_buffer_position > 0:
-            sstable = sstable_builder.build(path=self._compute_path())
-            new_ss_tables.append(sstable)
+            self._finalize_sstable(sstable_builder=sstable_builder, sstables=compacted_ss_tables)
 
-        return new_ss_tables
+        return compacted_ss_tables
+
+    def _finalize_sstable(self, sstable_builder: SSTableBuilder, sstables: list[SSTable]):
+        sstable = sstable_builder.build(path=self._compute_path())
+        sstables.append(sstable)
 
     def force_compaction_l0(self) -> None:
         with self._locks.read_write.read():
