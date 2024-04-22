@@ -30,21 +30,21 @@ def test_try_freeze(empty_store):
     store._configuration.max_sstable_size = 50
 
     # WHEN/THEN
-    with mock.patch.object(store, '_freeze_memtable', wraps=store._freeze_memtable) as mocked_freeze:
+    with mock.patch.object(store, '_freeze', wraps=store._freeze) as mocked_freeze:
         # WHEN
         store._try_freeze()
 
         # THEN
         mocked_freeze.assert_not_called()
 
-    with mock.patch.object(store, '_freeze_memtable', wraps=store._freeze_memtable) as mocked_freeze:
+    with mock.patch.object(store, '_freeze', wraps=store._freeze) as mocked_freeze:
         # WHEN
         store.put(key="a_short_key", value=b'a_short_value')
 
         # THEN
         mocked_freeze.assert_not_called()
 
-    with mock.patch.object(store, '_freeze_memtable', wraps=store._freeze_memtable) as mocked_freeze:
+    with mock.patch.object(store, '_freeze', wraps=store._freeze) as mocked_freeze:
         # WHEN
         store.put(key="a_veeeeeeryyyyyyy_loooong_key", value=b'a_veeeeeeryyyyyyy_loooong_value')
 
@@ -52,7 +52,7 @@ def test_try_freeze(empty_store):
         mocked_freeze.assert_called_once()
 
 
-def test_freeze_memtable(empty_store):
+def test_freeze(empty_store):
     # GIVEN
     store = empty_store
     store.max_sstable_size = 1000
@@ -65,7 +65,7 @@ def test_freeze_memtable(empty_store):
     assert store.state.memtable.get("key3") == b'value3'
 
     # WHEN
-    store._freeze_memtable()
+    store._freeze()
 
     # THEN
     assert len(store.state.immutable_memtables) == 1
@@ -140,7 +140,7 @@ def test_flush_next_immutable_memtable(store_with_multiple_immutable_memtables):
     nb_memtables = len(store.state.immutable_memtables)
 
     # WHEN
-    store.flush_next_immutable_memtable()
+    store._trigger_flush()
 
     # THEN
     assert len(store.state.sstables_level0) == 1  # One SSTable has been added
@@ -159,8 +159,8 @@ def test_flush_waits_for_freeze(empty_store):
     times = {}
 
     # Wrap _do_flush and _do_freeze with timing
-    original_do_flush = storage._do_flush
-    original_freeze = storage._freeze_memtable
+    original_do_flush = storage._flush
+    original_freeze = storage._freeze
 
     def _do_flush_with_timing():
         times['flush_start'] = time.time()
@@ -173,13 +173,13 @@ def test_flush_waits_for_freeze(empty_store):
         times['freeze_end'] = time.time()
 
     # Replace original methods with timed methods
-    storage._do_flush = _do_flush_with_timing
-    storage._freeze_memtable = _freeze_with_timing
+    storage._flush = _do_flush_with_timing
+    storage._freeze = _freeze_with_timing
 
     # WHEN
     # Start threads
     freeze_thread = threading.Thread(target=storage._try_freeze())
-    flush_thread = threading.Thread(target=storage.flush_next_immutable_memtable())
+    flush_thread = threading.Thread(target=storage._trigger_flush())
 
     freeze_thread.start()
     flush_thread.start()
@@ -203,13 +203,13 @@ def test_freeze_waits_for_flush(empty_store, empty_memtable):
     # Original methods with timing
     times = {}
 
-    original_freeze_memtable = storage._freeze_memtable
+    original_freeze = storage._freeze
     original_try_compact = storage._try_compact
 
-    def _freeze_memtable_with_timing():
-        times['freeze_memtable_start'] = time.time()
-        original_freeze_memtable()  # Ensure this calls the real implementation
-        times['freeze_memtable_end'] = time.time()
+    def _freeze_with_timing():
+        times['freeze_start'] = time.time()
+        original_freeze()  # Ensure this calls the real implementation
+        times['freeze_end'] = time.time()
 
     # _try_compact is called outside the mutex lock => adding times around its execution so that we can track that the
     # beginning of freeze starts after the end of the flush under lock (i.e. the beginning of _try_compact)
@@ -220,7 +220,7 @@ def test_freeze_waits_for_flush(empty_store, empty_memtable):
 
     def flush_next_immutable_memtable_with_timing():
         times['flush_start'] = time.time()
-        storage.flush_next_immutable_memtable()
+        storage._trigger_flush()
         times['flush_end'] = time.time()
 
     def _try_freeze_with_timing():
@@ -228,8 +228,8 @@ def test_freeze_waits_for_flush(empty_store, empty_memtable):
         storage._try_freeze()
         times['freeze_end'] = time.time()
 
-    # Replace or wrap the original _freeze_memtable method with the timing version
-    storage._freeze_memtable = _freeze_memtable_with_timing
+    # Replace or wrap the original _freeze method with the timing version
+    storage._freeze = _freeze_with_timing
     storage._try_compact = _try_compact_with_timing  # Do nothing in try compact
 
     # WHEN
@@ -245,8 +245,8 @@ def test_freeze_waits_for_flush(empty_store, empty_memtable):
 
     # THEN
     # Assert that the portion of flush under locking (everything before compact) ended before freeze memtable starts
-    assert times['try_compact_start'] < times['freeze_memtable_start']
-    # Note: assert times['flush_end'] < times['freeze_memtable_start'] fails because the last part of the flush
+    assert times['try_compact_start'] < times['freeze_start']
+    # Note: assert times['flush_end'] < times['freeze_start'] fails because the last part of the flush
     # (_try_compact) is not under a mutex lock
 
 
@@ -257,8 +257,8 @@ def test_flush_memtables_prepends_sstables_in_l0_level(store_with_multiple_immut
     nb_memtables = len(store.state.immutable_memtables)
 
     # WHEN
-    store.flush_next_immutable_memtable()
-    store.flush_next_immutable_memtable()
+    store._trigger_flush()
+    store._trigger_flush()
 
     # THEN
     assert len(store.state.sstables_level0) == 2  # Two SSTables have been added
@@ -272,7 +272,7 @@ def test_flush_memtables_prepends_sstables_in_l0_level(store_with_multiple_immut
 def test_get_value_from_store(store_with_multiple_immutable_memtables):
     # GIVEN
     store = store_with_multiple_immutable_memtables
-    store.flush_next_immutable_memtable()
+    store._trigger_flush()
 
     # WHEN/THEN
     # From SSTable
@@ -502,7 +502,7 @@ def test_flush_next_immutable_memtable_tries_compacting(store_with_multiple_immu
     # WHEN/THEN
     with mock.patch.object(store, '_try_compact', wraps=store._try_compact) as mocked_compact:
         # WHEN
-        store.flush_next_immutable_memtable()
+        store._trigger_flush()
 
         # THEN
         mocked_compact.assert_called_once()
@@ -516,7 +516,7 @@ def test_wal_associated_to_flushed_memtable_gets_deleted_upon_flush(store_with_m
     # WHEN/THEN
     with mock.patch.object(next_memtable_wal, 'remove_self') as mocked_remove_self:
         # WHEN
-        store.flush_next_immutable_memtable()
+        store._trigger_flush()
 
         # THEN
         mocked_remove_self.assert_called_once()
@@ -599,7 +599,7 @@ def test_flush_writes_to_manifest(store_with_multiple_immutable_memtables):
     # WHEN/THEN
     with mock.patch.object(manifest, 'add_event') as mocked_add_event_to_manifest:
         # WHEN
-        store.flush_next_immutable_memtable()
+        store._trigger_flush()
 
         # THEN
         mocked_add_event_to_manifest.assert_called()
