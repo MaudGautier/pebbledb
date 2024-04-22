@@ -8,6 +8,7 @@ from src.memtable import MemTable
 def empty_memtable():
     return MemTable.create(directory=TEST_DIRECTORY)
 
+
 @pytest.fixture
 def empty_memtable2():
     return MemTable.create(directory=TEST_DIRECTORY)

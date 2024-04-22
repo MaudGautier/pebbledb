@@ -64,7 +64,7 @@ class MemTable:
     def put(self, key: Record.Key, value: Record.Value):
         record = Record(key=key, value=value)
         self.wal.insert(record=record)
-        self.map.insert(key=record.key, data=record.to_bytes())
+        self.map.insert(key=key, data=record.to_bytes())
         # Recomputing the approximate size of the mem table by adding the size of the record
         # This size is only approximate because, if a key is re-written or deleted, then the computed size will be
         # bigger than the actual one. Computing the exact size would imply some overhead to read first. That is why the

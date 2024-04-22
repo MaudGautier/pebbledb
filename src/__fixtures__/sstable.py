@@ -12,25 +12,25 @@ from src.sstable import SSTableBuilder, SSTable, SSTableFile
 def records_for_sstable_four_blocks():
     return [
         # Goes into Data Block 0
-        Record(key="aaa", value=b'some_long_value_for_aaa'),
-        Record(key="bbb", value=b'some_long_value_for_bbb'),
-        Record(key="ccc", value=b'some_long_value_for_ccc'),
-        Record(key="ddd", value=b'some_long_value_for_ddd'),
+        Record(key=b'aaa', value=b'some_long_value_for_aaa'),
+        Record(key=b'bbb', value=b'some_long_value_for_bbb'),
+        Record(key=b'ccc', value=b'some_long_value_for_ccc'),
+        Record(key=b'ddd', value=b'some_long_value_for_ddd'),
         # Goes into Data Block 1
-        Record(key="eee", value=b'some_long_value_for_eee'),
-        Record(key="fff", value=b'some_long_value_for_fff'),
-        Record(key="ggg", value=b'some_long_value_for_ggg'),
-        Record(key="hhh", value=b'some_long_value_for_hhh'),
+        Record(key=b'eee', value=b'some_long_value_for_eee'),
+        Record(key=b'fff', value=b'some_long_value_for_fff'),
+        Record(key=b'ggg', value=b'some_long_value_for_ggg'),
+        Record(key=b'hhh', value=b'some_long_value_for_hhh'),
         # Goes into Data Block 2
-        Record(key="iii", value=b'some_long_value_for_iii'),
-        Record(key="jjj", value=b'some_long_value_for_jjj'),
-        Record(key="kkk", value=b'some_long_value_for_kkk'),
-        Record(key="lll", value=b'some_long_value_for_lll'),
+        Record(key=b'iii', value=b'some_long_value_for_iii'),
+        Record(key=b'jjj', value=b'some_long_value_for_jjj'),
+        Record(key=b'kkk', value=b'some_long_value_for_kkk'),
+        Record(key=b'lll', value=b'some_long_value_for_lll'),
         # Goes into Data Block 3
-        Record(key="mmm", value=b'some_long_value_for_mmm'),
-        Record(key="nnn", value=b'some_long_value_for_nnn'),
-        Record(key="ooo", value=b'some_long_value_for_ooo'),
-        Record(key="ppp", value=b'some_long_value_for_ppp')
+        Record(key=b'mmm', value=b'some_long_value_for_mmm'),
+        Record(key=b'nnn', value=b'some_long_value_for_nnn'),
+        Record(key=b'ooo', value=b'some_long_value_for_ooo'),
+        Record(key=b'ppp', value=b'some_long_value_for_ppp')
     ]
 
 
@@ -43,14 +43,14 @@ def sstable_four_blocks(records_for_sstable_four_blocks) -> Generator[SSTable, N
     sstable = sstable_builder.build(path=f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/sstable_four_blocks.sst")
 
     assert len(sstable.meta_blocks) == 4
-    assert sstable.meta_blocks[0].first_key == "aaa"
-    assert sstable.meta_blocks[0].last_key == "ddd"
-    assert sstable.meta_blocks[1].first_key == "eee"
-    assert sstable.meta_blocks[1].last_key == "hhh"
-    assert sstable.meta_blocks[2].first_key == "iii"
-    assert sstable.meta_blocks[2].last_key == "lll"
-    assert sstable.meta_blocks[3].first_key == "mmm"
-    assert sstable.meta_blocks[3].last_key == "ppp"
+    assert sstable.meta_blocks[0].first_key == b'aaa'
+    assert sstable.meta_blocks[0].last_key == b'ddd'
+    assert sstable.meta_blocks[1].first_key == b'eee'
+    assert sstable.meta_blocks[1].last_key == b'hhh'
+    assert sstable.meta_blocks[2].first_key == b'iii'
+    assert sstable.meta_blocks[2].last_key == b'lll'
+    assert sstable.meta_blocks[3].first_key == b'mmm'
+    assert sstable.meta_blocks[3].last_key == b'ppp'
 
     yield sstable
 
@@ -62,9 +62,9 @@ def sstable_four_blocks(records_for_sstable_four_blocks) -> Generator[SSTable, N
 def records_for_sstable_one_block():
     return [
         # Goes into Data Block 0
-        Record(key="key1", value=b'value1'),
-        Record(key="key2", value=b'value2'),
-        Record(key="key3", value=b'value3')
+        Record(key=b'key1', value=b'value1'),
+        Record(key=b'key2', value=b'value2'),
+        Record(key=b'key3', value=b'value3')
     ]
 
 
@@ -76,8 +76,8 @@ def build_sstable_one_block(records_for_sstable_one_block, file_name) -> Generat
     sstable = sstable_builder.build(path=f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/{file_name}.sst")
 
     assert len(sstable.meta_blocks) == 1
-    assert sstable.meta_blocks[0].first_key == "key1"
-    assert sstable.meta_blocks[0].last_key == "key3"
+    assert sstable.meta_blocks[0].first_key == b'key1'
+    assert sstable.meta_blocks[0].last_key == b'key3'
 
     yield sstable
 

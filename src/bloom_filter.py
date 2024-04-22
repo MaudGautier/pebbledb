@@ -4,6 +4,8 @@ from typing import Optional
 
 import mmh3
 
+from src.record import Record
+
 
 class BloomFilter:
     """This class implements a bloom filter.
@@ -35,12 +37,12 @@ class BloomFilter:
             return NotImplemented
         return self.bits == other.bits and self.nb_hash_functions == other.nb_hash_functions
 
-    def _hash(self, key: str) -> list[int]:
+    def _hash(self, key: Record.Key) -> list[int]:
         """Hashes the key with all hash functions and defines the list of bits that should be set.
         After hashing, we take the modulo of the result by the size of the sequence of bits so that all hash functions
         are mapped to the same output range.
         """
-        encoded_key = key.encode(encoding="utf-8")
+        encoded_key = key  # already encoded
         selected_bits = []
         for i in range(self.nb_hash_functions):
             hashed_key = mmh3.hash(encoded_key, i)
@@ -57,14 +59,14 @@ class BloomFilter:
         bit = (1 << bit_index)
         return (self.bits & bit) == bit
 
-    def add(self, key: str) -> None:
+    def add(self, key: Record.Key) -> None:
         """Adds a key to the bloom filter.
         """
         bits_to_set = self._hash(key=key)
         for bit in bits_to_set:
             self._set_bit(bit_index=bit)
 
-    def may_contain(self, key: str) -> bool:
+    def may_contain(self, key: Record.Key) -> bool:
         """Returns True if the key may be in the bloom filter, False if it is guaranteed not to be in it.
         """
         bits_to_check = self._hash(key=key)
@@ -90,7 +92,7 @@ class BloomFilter:
         return cls(nb_bytes=nb_bytes, nb_hash_functions=nb_hash_functions, bits=bits)
 
     @classmethod
-    def build_from_keys_and_fp_rate(cls, keys: list[str], fp_rate: float) -> "BloomFilter":
+    def build_from_keys_and_fp_rate(cls, keys: list[Record.Key], fp_rate: float) -> "BloomFilter":
         """
         This method returns a bloom filter with optimal parameters given the number of items to add and the desired
         false positive rate.

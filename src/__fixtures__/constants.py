@@ -3,8 +3,6 @@ import time
 
 import pytest
 
-from src.memtable import MemTable
-
 TEST_SSTABLE_FIXTURES_DIRECTORY = "./test_sstable_fixtures"
 TEST_DIRECTORY = "./test_store"
 

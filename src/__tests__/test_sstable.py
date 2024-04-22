@@ -13,8 +13,8 @@ def test_add_record_to_current_block():
 
     # WHEN
     kv_pairs = [
-        ("key1", b'value1'),
-        ("key2", b'value2'),
+        (b'key1', b'value1'),
+        (b'key2', b'value2'),
     ]
     for key, value in kv_pairs:
         sstable_builder.add(key=key, value=value)
@@ -31,9 +31,9 @@ def test_adding_record_to_new_block_updates_buffer():
 
     # WHEN
     kv_pairs = [
-        ("key1", b'value1'),
-        ("key2", b'value2'),
-        ("key3", b'value3'),
+        (b'key1', b'value1'),
+        (b'key2', b'value2'),
+        (b'key3', b'value3'),
     ]
     for key, value in kv_pairs:
         sstable_builder.add(key=key, value=value)
@@ -57,8 +57,8 @@ def test_encode_sstable():
     block2 = DataBlock(data=data2, offsets=[0])
     encoded_block2 = block2.to_bytes()
     data = encoded_block1 + encoded_block2
-    meta_block1 = MetaBlock(first_key="key1", last_key="key2", offset=0)
-    meta_block2 = MetaBlock(first_key="key3", last_key="key3", offset=42)  # 42 = 18*2 + 2*2 + 2
+    meta_block1 = MetaBlock(first_key=b'key1', last_key=b'key2', offset=0)
+    meta_block2 = MetaBlock(first_key=b'key3', last_key=b'key3', offset=42)  # 42 = 18*2 + 2*2 + 2
     bloom_filter = BloomFilter.build_from_keys_and_fp_rate(["key1", "key2", "key3"], fp_rate=0.0001)
     sstable = SSTableEncoding(data=data, meta_blocks=[meta_block1, meta_block2], bloom_filter=bloom_filter)
 
@@ -102,13 +102,13 @@ def test_find_block_of_key(sstable_four_blocks):
     sstable = sstable_four_blocks
 
     # WHEN/THEN
-    assert sstable.find_block_id("ddd") == 0
-    assert sstable.find_block_id("eee") == 1
-    assert sstable.find_block_id("jj") == 2
-    assert sstable.find_block_id("ooo") == 3
-    assert sstable.find_block_id("a") is None
-    assert sstable.find_block_id("iiii") == 2
-    assert sstable.find_block_id("zzz") is None
+    assert sstable.find_block_id(b'ddd') == 0
+    assert sstable.find_block_id(b'eee') == 1
+    assert sstable.find_block_id(b'jj') == 2
+    assert sstable.find_block_id(b'ooo') == 3
+    assert sstable.find_block_id(b'a') is None
+    assert sstable.find_block_id(b'iiii') == 2
+    assert sstable.find_block_id(b'zzz') is None
 
 
 def test_read_data_block(sstable_four_blocks):
@@ -132,33 +132,33 @@ def test_get_key(sstable_four_blocks, records_for_sstable_four_blocks):
     for record in records_for_sstable_four_blocks:
         assert sstable.get(record.key) == record.value
     # Missing records
-    assert sstable.get("jj") is None
-    assert sstable.get("a") is None
-    assert sstable.get("iiii") is None
-    assert sstable.get("zzz") is None
+    assert sstable.get(b'jj') is None
+    assert sstable.get(b'a') is None
+    assert sstable.get(b'iiii') is None
+    assert sstable.get(b'zzz') is None
 
 
 @pytest.mark.parametrize(
     ("start_key", "end_key"),
     [
         pytest.param(
-            "cc", "eee",
+            b'cc', b'eee',
             id="inside",
         ),
         pytest.param(
-            "a", "ccc",
+            b'a', b'ccc',
             id="overlap-below",
         ),
         pytest.param(
-            "a", "aa",
+            b'a', b'aa',
             id="outside-below",
         ),
         pytest.param(
-            "dd", "zzzz",
+            b'dd', b'zzzz',
             id="overlap-above",
         ),
         pytest.param(
-            "ww", "zzzz",
+            b'ww', b'zzzz',
             id="outside-above",
         ),
     ],
@@ -238,9 +238,9 @@ def test_sstables_are_equal(temporary_sstable_path, simple_bloom_filter):
     SSTableFile.create(path=temporary_sstable_path, data=b'')
     file1 = SSTableFile.open(path=temporary_sstable_path)
     file2 = SSTableFile.open(path=temporary_sstable_path)
-    sstable_1 = SSTable(meta_blocks=[], first_key="key1", last_key="key3", meta_block_offset=10,
+    sstable_1 = SSTable(meta_blocks=[], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
                         bloom_filter=simple_bloom_filter, file=file1)
-    sstable_2 = SSTable(meta_blocks=[], first_key="key1", last_key="key3", meta_block_offset=10,
+    sstable_2 = SSTable(meta_blocks=[], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
                         bloom_filter=simple_bloom_filter, file=file2)
 
     # WHEN
@@ -254,22 +254,22 @@ def test_sstables_are_not_equal_under_several_conditions(temporary_sstable_path,
                                                          simple_bloom_filter_2, sstable_four_blocks):
     # GIVEN
     SSTableFile.create(path=temporary_sstable_path, data=b'')
-    meta_block = MetaBlock(first_key="key1", last_key="key3", offset=0)
-    meta_block_other = MetaBlock(first_key="key1", last_key="key3", offset=2)
-    sstable = SSTable(meta_blocks=[meta_block], first_key="key1", last_key="key3", meta_block_offset=10,
+    meta_block = MetaBlock(first_key=b'key1', last_key=b'key3', offset=0)
+    meta_block_other = MetaBlock(first_key=b'key1', last_key=b'key3', offset=2)
+    sstable = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
                       bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
-    sstable_first_key = SSTable(meta_blocks=[meta_block], first_key="key2", last_key="key3", meta_block_offset=10,
+    sstable_first_key = SSTable(meta_blocks=[meta_block], first_key=b'key2', last_key=b'key3', meta_block_offset=10,
                                 bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
-    sstable_last_key = SSTable(meta_blocks=[meta_block], first_key="key1", last_key="key4", meta_block_offset=10,
+    sstable_last_key = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key4', meta_block_offset=10,
                                bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
-    sstable_meta_block = SSTable(meta_blocks=[meta_block_other], first_key="key1", last_key="key3",
+    sstable_meta_block = SSTable(meta_blocks=[meta_block_other], first_key=b'key1', last_key=b'key3',
                                  meta_block_offset=10,
                                  bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
-    sstable_offset = SSTable(meta_blocks=[meta_block], first_key="key1", last_key="key3", meta_block_offset=11,
+    sstable_offset = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=11,
                              bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
-    sstable_bloom = SSTable(meta_blocks=[meta_block], first_key="key1", last_key="key3", meta_block_offset=10,
+    sstable_bloom = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
                             bloom_filter=simple_bloom_filter_2, file=SSTableFile.open(path=temporary_sstable_path))
-    sstable_file = SSTable(meta_blocks=[meta_block], first_key="key1", last_key="key3", meta_block_offset=10,
+    sstable_file = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
                            bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=sstable_four_blocks.file.path))
 
     # WHEN

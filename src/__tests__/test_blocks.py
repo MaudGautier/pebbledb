@@ -7,13 +7,13 @@ def test_block_builder_buffer_and_offsets():
     block_builder = DataBlockBuilder(target_size=100)
 
     # WHEN
-    block_builder.add(key="key1", value=b'value1')
-    block_builder.add(key="key2", value=b'value2')
-    block_builder.add(key="key3", value=b'value3')
-    block_builder.add(key="key4", value=b'value4')
+    block_builder.add(key=b'key1', value=b'value1')
+    block_builder.add(key=b'key2', value=b'value2')
+    block_builder.add(key=b'key3', value=b'value3')
+    block_builder.add(key=b'key4', value=b'value4')
 
     # THEN
-    record_size = len("keyN") + len(b"valueN") + 4 + 4
+    record_size = len(b'keyN') + len(b"valueN") + 4 + 4
     expected_offsets = [i * record_size for i in range(4)]
     assert block_builder.offsets == expected_offsets
     expected_data_chunks = [
@@ -30,8 +30,8 @@ def test_block_builder_returns_false_when_too_big():
     block_builder = DataBlockBuilder(target_size=20)
 
     # WHEN
-    add_key1_return = block_builder.add(key="key1", value=b'value1')
-    add_key2_return = block_builder.add(key="key2", value=b'value2')
+    add_key1_return = block_builder.add(key=b'key1', value=b'value1')
+    add_key2_return = block_builder.add(key=b'key2', value=b'value2')
 
     # THEN
     assert add_key1_return is True
@@ -76,7 +76,7 @@ def test_decode_data_block():
 
 def test_encode_meta_block():
     # GIVEN
-    block = MetaBlock(first_key="first_key", last_key="last_key", offset=100)
+    block = MetaBlock(first_key=b'first_key', last_key=b'last_key', offset=100)
 
     # WHEN
     encoded_block = block.to_bytes()
@@ -98,8 +98,8 @@ def test_decode_meta_block():
     decoded_block = MetaBlock.from_bytes(encoded_meta_block)
 
     # THEN
-    assert decoded_block.first_key == "first_key"
-    assert decoded_block.last_key == "last_key"
+    assert decoded_block.first_key == b'first_key'
+    assert decoded_block.last_key == b'last_key'
     assert decoded_block.offset == 100
 
 
@@ -107,21 +107,21 @@ def test_get_record():
     # GIVEN
     block_builder = DataBlockBuilder(target_size=100)
     kv_pairs = [
-        ("key1", b'value1'),
-        ("key2", b'value2'),
-        ("key3", b'value3'),
-        ("key4", b'value4'),
+        (b'key1', b'value1'),
+        (b'key2', b'value2'),
+        (b'key3', b'value3'),
+        (b'key4', b'value4'),
     ]
     for key, value in kv_pairs:
         block_builder.add(key=key, value=value)
     block = block_builder.create_block()
 
     # WHEN
-    record_key1 = block.get("key1")
-    record_key2 = block.get("key2")
-    record_key3 = block.get("key3")
-    record_key4 = block.get("key4")
-    record_missing_key = block.get("missing_key")
+    record_key1 = block.get(b'key1')
+    record_key2 = block.get(b'key2')
+    record_key3 = block.get(b'key3')
+    record_key4 = block.get(b'key4')
+    record_missing_key = block.get(b'missing_key')
 
     # THEN
     assert record_key1 == Record(key=kv_pairs[0][0], value=kv_pairs[0][1])
@@ -133,8 +133,8 @@ def test_get_record():
 
 def test_meta_blocks_are_equal():
     # GIVEN
-    meta_block_1 = MetaBlock(first_key="key1", last_key="key2", offset=10)
-    meta_block_2 = MetaBlock(first_key="key1", last_key="key2", offset=10)
+    meta_block_1 = MetaBlock(first_key=b'key1', last_key=b'key2', offset=10)
+    meta_block_2 = MetaBlock(first_key=b'key1', last_key=b'key2', offset=10)
 
     # WHEN
     are_equal = meta_block_1 == meta_block_2
@@ -145,9 +145,9 @@ def test_meta_blocks_are_equal():
 
 def test_meta_blocks_are_not_equal_if_different_keys():
     # GIVEN
-    meta_block_1 = MetaBlock(first_key="key1", last_key="key2", offset=10)
-    meta_block_2 = MetaBlock(first_key="key0", last_key="key2", offset=10)
-    meta_block_3 = MetaBlock(first_key="key1", last_key="key3", offset=10)
+    meta_block_1 = MetaBlock(first_key=b'key1', last_key=b'key2', offset=10)
+    meta_block_2 = MetaBlock(first_key=b'key0', last_key=b'key2', offset=10)
+    meta_block_3 = MetaBlock(first_key=b'key1', last_key=b'key3', offset=10)
 
     # WHEN
     are_equal_1_2 = meta_block_1 == meta_block_2
@@ -160,8 +160,8 @@ def test_meta_blocks_are_not_equal_if_different_keys():
 
 def test_meta_blocks_are_not_equal_if_different_offsets():
     # GIVEN
-    meta_block_1 = MetaBlock(first_key="key1", last_key="key2", offset=10)
-    meta_block_2 = MetaBlock(first_key="key1", last_key="key2", offset=11)
+    meta_block_1 = MetaBlock(first_key=b'key1', last_key=b'key2', offset=10)
+    meta_block_2 = MetaBlock(first_key=b'key1', last_key=b'key2', offset=11)
 
     # WHEN
     are_equal = meta_block_1 == meta_block_2
