@@ -133,12 +133,21 @@ class LsmStorage:
         with self._locks.read_write.read():
             approximate_size = self.state.memtable.approximate_size
 
-        if approximate_size >= self._configuration.max_sstable_size:
-            with self._locks.state:
-                with self._locks.read_write.read():
-                    latest_approximate_size = self.state.memtable.approximate_size
-                if latest_approximate_size >= self._configuration.max_sstable_size:
-                    self._freeze()
+        # Freeze should _not_ be triggered if the memtable is not full
+        if approximate_size < self._configuration.max_sstable_size:
+            return
+
+        with self._locks.state:
+            with self._locks.read_write.read():
+                # Approximate size is re-read in case the memtable has already been flushed while waiting to acquire the
+                # `self._locks.state` lock
+                latest_approximate_size = self.state.memtable.approximate_size
+
+            # Freeze should still _not_ be triggered if the memtable is not full
+            if latest_approximate_size < self._configuration.max_sstable_size:
+                return
+
+            self._freeze()
 
     def _freeze(self) -> None:
         with self._locks.read_write.write():
