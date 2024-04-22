@@ -162,7 +162,7 @@ def store_with_multiple_l1_sstables(records_for_store_with_multiple_l1_sstables)
     assert len(store.state.immutable_memtables) == 0
     assert len(store.state.sstables_level0) == 4
 
-    store.force_compaction_l0()
+    store._compact_l0()
 
     assert len(store.state.sstables_level0) == 0
     assert len(store.state.sstables_levels) == nb_levels
@@ -205,8 +205,8 @@ def store_with_four_l1_and_one_l2_sstables(records_for_store_with_four_l1_and_on
     assert len(store.state.immutable_memtables) == 1
     assert len(store.state.sstables_level0) == 4
 
-    store.force_compaction_l0()
-    store.force_compaction_l1_or_more_level(level=1)
+    store._compact_l0()
+    store._compact_l1_or_more(level=1)
 
     assert len(store.state.sstables_level0) == 0
     assert len(store.state.sstables_levels) == 2
@@ -220,7 +220,7 @@ def store_with_four_l1_and_one_l2_sstables(records_for_store_with_four_l1_and_on
     assert len(store.state.sstables_levels[0]) == 0
     assert len(store.state.sstables_levels[1]) == 4
 
-    store.force_compaction_l0()
+    store._compact_l0()
 
     assert len(store.state.sstables_level0) == 0
     assert len(store.state.sstables_levels) == 2
@@ -261,25 +261,25 @@ def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_
 
     # Table 0
     store._trigger_flush()
-    store.force_compaction_l0()
-    store.force_compaction_l1_or_more_level(level=1)
-    store.force_compaction_l1_or_more_level(level=2)
-    store.force_compaction_l1_or_more_level(level=3)
+    store._compact_l0()
+    store._compact_l1_or_more(level=1)
+    store._compact_l1_or_more(level=2)
+    store._compact_l1_or_more(level=3)
 
     # Table 1
     store._trigger_flush()
-    store.force_compaction_l0()
-    store.force_compaction_l1_or_more_level(level=1)
-    store.force_compaction_l1_or_more_level(level=2)
+    store._compact_l0()
+    store._compact_l1_or_more(level=1)
+    store._compact_l1_or_more(level=2)
 
     # Table 2
     store._trigger_flush()
-    store.force_compaction_l0()
-    store.force_compaction_l1_or_more_level(level=1)
+    store._compact_l0()
+    store._compact_l1_or_more(level=1)
 
     # Table 3
     store._trigger_flush()
-    store.force_compaction_l0()
+    store._compact_l0()
 
     # Table 4
     store._trigger_flush()
@@ -314,9 +314,9 @@ def store_with_one_sstable_at_last_level(records_for_store_with_one_sstable_at_l
 
     # Table 0 (moves to level 3)
     store._trigger_flush()
-    store.force_compaction_l0()
-    store.force_compaction_l1_or_more_level(level=1)
-    store.force_compaction_l1_or_more_level(level=2)
+    store._compact_l0()
+    store._compact_l1_or_more(level=1)
+    store._compact_l1_or_more(level=2)
 
     # No SSTable at level 2
     # No SSTable at level 1
