@@ -1,6 +1,5 @@
 import math
 import random
-import struct
 import threading
 import time
 from typing import cast
@@ -11,130 +10,105 @@ from unittest import mock
 
 from src.red_black_tree import RedBlackTree, Color, Node
 
-# COMMON VALUES
-key_minus2 = struct.pack("i", -2)
-key0 = struct.pack("i", 0)
-key1 = struct.pack("i", 1)
-key2 = struct.pack("i", 2)
-key3 = struct.pack("i", 3)
-key4 = struct.pack("i", 4)
-key5 = struct.pack("i", 5)
-key6 = struct.pack("i", 6)
-key7 = struct.pack("i", 7)
-key8 = struct.pack("i", 8)
-key9 = struct.pack("i", 9)
-key10 = struct.pack("i", 10)
-key11 = struct.pack("i", 11)
-key12 = struct.pack("i", 12)
-key13 = struct.pack("i", 13)
-key14 = struct.pack("i", 14)
-key15 = struct.pack("i", 15)
-key16 = struct.pack("i", 16)
-key17 = struct.pack("i", 17)
-key18 = struct.pack("i", 18)
-key19 = struct.pack("i", 19)
-key21 = struct.pack("i", 21)
-key32 = struct.pack("i", 32)
-
 
 def test_insert_root():
     # GIVEN
     tree = RedBlackTree()
 
     # WHEN
-    tree.insert(key=key10)
+    tree.insert(key=10)
 
     # THEN
     values = tree.read_data()
-    expected_values = [key10, None, None]
+    expected_values = [10, None, None]
     assert values == expected_values
 
 
 def test_insert_node_on_left():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
+    tree.insert(key=10)
 
     # WHEN
-    tree.insert(key=key9)
+    tree.insert(key=9)
 
     # THEN
     values = tree.read_data()
-    expected_values = [key10, key9, None, None, None]
+    expected_values = [10, 9, None, None, None]
     assert values == expected_values
 
 
 def test_insert_node_on_right():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
+    tree.insert(key=10)
 
     # WHEN
-    tree.insert(key=key11)
+    tree.insert(key=11)
 
     # THEN
     values = tree.read_data()
-    expected_values = [key10, None, key11, None, None]
+    expected_values = [10, None, 11, None, None]
     assert values == expected_values
 
 
 def test_insert_node_on_right_right():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
-    tree.insert(key=key11)
+    tree.insert(key=10)
+    tree.insert(key=11)
 
     # WHEN
-    tree._bst_insert(node=Node(key=key12, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
+    tree._bst_insert(node=Node(key=12, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
 
     # THEN
     values = tree.read_data()
-    expected_values = [key10, None, key11, None, key12, None, None]
+    expected_values = [10, None, 11, None, 12, None, None]
     assert values == expected_values
 
 
 def test_insert_node_on_right_left():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
-    tree.insert(key=key12)
+    tree.insert(key=10)
+    tree.insert(key=12)
 
     # WHEN
-    tree._bst_insert(node=Node(key=key11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
+    tree._bst_insert(node=Node(key=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
 
     # THEN
     values = tree.read_data()
-    expected_values = [key10, None, key12, key11, None, None, None]
+    expected_values = [10, None, 12, 11, None, None, None]
     assert values == expected_values
 
 
 def test_insert_node_on_left_left():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
-    tree.insert(key=key9)
+    tree.insert(key=10)
+    tree.insert(key=9)
 
     # WHEN
-    tree._bst_insert(node=Node(key=key8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
+    tree._bst_insert(node=Node(key=8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
 
     # THEN
     values = tree.read_data()
-    expected_values = [key10, key9, None, key8, None, None, None]
+    expected_values = [10, 9, None, 8, None, None, None]
     assert values == expected_values
 
 
 def test_insert_node_on_left_right():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
-    tree.insert(key=key8)
+    tree.insert(key=10)
+    tree.insert(key=8)
 
     # WHEN
-    tree._bst_insert(node=Node(key=key9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
+    tree._bst_insert(node=Node(key=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF))
 
     # THEN
     values = tree.read_data()
-    expected_values = [key10, key8, None, None, key9, None, None]
+    expected_values = [10, 8, None, None, 9, None, None]
     assert values == expected_values
 
 
@@ -143,7 +117,7 @@ def test_inserted_root_is_black():
     tree = RedBlackTree()
 
     # WHEN
-    tree.insert(key=key10)
+    tree.insert(key=10)
 
     # THEN
     assert tree.root.color == Color.BLACK
@@ -152,11 +126,11 @@ def test_inserted_root_is_black():
 def test_node_is_red_when_inserted():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
+    tree.insert(key=10)
 
     # WHEN
-    tree.insert(key=key11)
-    tree.insert(key=key9)
+    tree.insert(key=11)
+    tree.insert(key=9)
 
     # THEN
     assert tree.root.color == Color.BLACK
@@ -172,11 +146,11 @@ def test_get_uncle():
     # 1   3
 
     # GIVEN
-    node1 = Node(key=key1)
-    node2 = Node(key=key2)
-    node3 = Node(key=key3)
-    node4 = Node(key=key4)
-    node5 = Node(key=key5)
+    node1 = Node(key=1)
+    node2 = Node(key=2)
+    node3 = Node(key=3)
+    node4 = Node(key=4)
+    node5 = Node(key=5)
     node4.left = node2
     node4.right = node5
     node2.left = node1
@@ -203,14 +177,14 @@ def test_get_uncle():
 def test_insert_node_right_right_calls_left_rotation_on_grand_parent():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
-    tree.insert(key=key11)
+    tree.insert(key=10)
+    tree.insert(key=11)
     grand_parent = tree.root
     parent = grand_parent.right
 
     # WHEN/THEN
     with mock.patch.multiple(RedBlackTree, rotate_left=MagicMock(), swap_colors=MagicMock()):
-        tree.insert(key=key12)
+        tree.insert(key=12)
         cast(MagicMock, tree.rotate_left).assert_called_once_with(grand_parent)
         cast(MagicMock, tree.swap_colors).assert_called_once_with(node1=grand_parent, node2=parent)
 
@@ -218,14 +192,14 @@ def test_insert_node_right_right_calls_left_rotation_on_grand_parent():
 def test_insert_node_left_left_calls_right_rotation_on_grand_parent():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
-    tree.insert(key=key9)
+    tree.insert(key=10)
+    tree.insert(key=9)
     grand_parent = tree.root
     parent = grand_parent.left
 
     # WHEN/THEN
     with mock.patch.multiple(RedBlackTree, rotate_right=MagicMock(), swap_colors=MagicMock()):
-        tree.insert(key=key8)
+        tree.insert(key=8)
         cast(MagicMock, tree.rotate_right).assert_called_once_with(grand_parent)
         cast(MagicMock, tree.swap_colors).assert_called_once_with(node1=grand_parent, node2=parent)
 
@@ -234,13 +208,13 @@ def test_insert_node_right_left_calls_right_rotation_on_parent_and_RR_case():
     with mock.patch.multiple(RedBlackTree, rotate_left=MagicMock(), rotate_right=MagicMock(), swap_colors=MagicMock()):
         # GIVEN
         tree = RedBlackTree()
-        tree.insert(key=key10)
-        tree.insert(key=key12)
+        tree.insert(key=10)
+        tree.insert(key=12)
         grand_parent = tree.root
         parent = tree.root.right
 
         # WHEN/THEN
-        tree.insert(key=key11)
+        tree.insert(key=11)
         new_node = parent.left
         rotate_right_mock = cast(MagicMock, tree.rotate_right)
         rotate_left_mock = cast(MagicMock, tree.rotate_left)
@@ -253,13 +227,13 @@ def test_insert_node_left_right_calls_left_rotation_on_parent_and_LL_case():
     with mock.patch.multiple(RedBlackTree, rotate_left=MagicMock(), rotate_right=MagicMock(), swap_colors=MagicMock()):
         # GIVEN
         tree = RedBlackTree()
-        tree.insert(key=key10)
-        tree.insert(key=key8)
+        tree.insert(key=10)
+        tree.insert(key=8)
         grand_parent = tree.root
         parent = tree.root.left
 
         # WHEN/THEN
-        tree.insert(key=key9)
+        tree.insert(key=9)
         rotate_right_mock = cast(MagicMock, tree.rotate_right)
         rotate_left_mock = cast(MagicMock, tree.rotate_left)
         rotate_left_mock.assert_called_once_with(parent)
@@ -285,12 +259,12 @@ def test_rotate_right():
 
     # GIVEN
     tree = RedBlackTree()
-    node_X = Node(key=key10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_X = Node(key=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
     tree.root = node_X
-    node_Y = Node(key=key8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_7 = Node(key=key7, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_9 = Node(key=key9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_11 = Node(key=key11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_Y = Node(key=8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_7 = Node(key=7, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_9 = Node(key=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_11 = Node(key=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
 
     tree._bst_insert(node=node_Y)
     tree._bst_insert(node=node_7)
@@ -343,11 +317,11 @@ def test_test_rotate_right_2():
     #   5   9(X)
     # GIVEN
     tree = RedBlackTree()
-    node_10 = Node(key=key10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_11 = Node(key=key11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_9 = Node(key=key9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_7 = Node(key=key7, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_5 = Node(key=key5, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_10 = Node(key=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_11 = Node(key=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_9 = Node(key=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_7 = Node(key=7, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_5 = Node(key=5, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
     tree._bst_insert(node=node_10)
     tree._bst_insert(node=node_11)
     tree._bst_insert(node=node_9)
@@ -399,10 +373,10 @@ def test_rotate_right_triangle():
 
     # GIVEN
     tree = RedBlackTree()
-    node_10 = Node(key=key10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_10 = Node(key=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
     tree.root = node_10
-    node_12 = Node(key=key12, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_11 = Node(key=key11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_12 = Node(key=12, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_11 = Node(key=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
 
     tree._bst_insert(node=node_12)
     tree._bst_insert(node=node_11)
@@ -444,12 +418,12 @@ def test_rotate_left():
 
     # GIVEN
     tree = RedBlackTree()
-    node_Y = Node(key=key10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_X = Node(key=key8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_Y = Node(key=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_X = Node(key=8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
     tree.root = node_X
-    node_7 = Node(key=key7, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_9 = Node(key=key9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_11 = Node(key=key11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_7 = Node(key=7, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_9 = Node(key=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_11 = Node(key=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
 
     tree._bst_insert(node=node_Y)
     tree._bst_insert(node=node_7)
@@ -505,11 +479,11 @@ def test_test_rotate_left_2():
 
     # GIVEN
     tree = RedBlackTree()
-    node_10 = Node(key=key10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_11 = Node(key=key11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_9 = Node(key=key9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_12 = Node(key=key12, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_13 = Node(key=key13, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_10 = Node(key=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_11 = Node(key=11, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_9 = Node(key=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_12 = Node(key=12, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_13 = Node(key=13, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
     tree._bst_insert(node=node_10)
     tree._bst_insert(node=node_11)
     tree._bst_insert(node=node_9)
@@ -562,10 +536,10 @@ def test_rotate_left_triangle():
 
     # GIVEN
     tree = RedBlackTree()
-    node_10 = Node(key=key10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_10 = Node(key=10, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
     tree.root = node_10
-    node_8 = Node(key=key8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
-    node_9 = Node(key=key9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_8 = Node(key=8, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
+    node_9 = Node(key=9, left=RedBlackTree.NIL_LEAF, right=RedBlackTree.NIL_LEAF)
 
     tree._bst_insert(node=node_8)
     tree._bst_insert(node=node_9)
@@ -593,130 +567,130 @@ def test_rotate_left_triangle():
 def test_insert_node_right_right_renders_correct_colors():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
-    tree.insert(key=key11)
+    tree.insert(key=10)
+    tree.insert(key=11)
     root = tree.root
     left = root.left
     right = root.right
-    assert root.key == key10
+    assert root.key == 10
     assert root.color == Color.BLACK
-    assert right.key == key11
+    assert right.key == 11
     assert right.color == Color.RED
     assert left is RedBlackTree.NIL_LEAF
 
     # WHEN
-    tree.insert(key=key12)
+    tree.insert(key=12)
 
     # THEN
     root = tree.root
     left = root.left
     right = root.right
-    assert root.key == key11
+    assert root.key == 11
     assert root.color == Color.BLACK
-    assert left.key == key10
+    assert left.key == 10
     assert left.color == Color.RED
-    assert right.key == key12
+    assert right.key == 12
     assert right.color == Color.RED
 
 
 def test_insert_node_left_left_renders_correct_colors():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
-    tree.insert(key=key9)
+    tree.insert(key=10)
+    tree.insert(key=9)
     root = tree.root
     left = root.left
     right = root.right
-    assert root.key == key10
+    assert root.key == 10
     assert root.color == Color.BLACK
-    assert left.key == key9
+    assert left.key == 9
     assert left.color == Color.RED
     assert right is RedBlackTree.NIL_LEAF
 
     # WHEN
-    tree.insert(key=key8)
+    tree.insert(key=8)
 
     # THEN
     root = tree.root
     left = root.left
     right = root.right
-    assert root.key == key9
+    assert root.key == 9
     assert root.color == Color.BLACK
-    assert right.key == key10
+    assert right.key == 10
     assert right.color == Color.RED
-    assert left.key == key8
+    assert left.key == 8
     assert left.color == Color.RED
 
 
 def test_insert_node_right_left_renders_correct_colors():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
-    tree.insert(key=key12)
+    tree.insert(key=10)
+    tree.insert(key=12)
     root = tree.root
     left = root.left
     right = root.right
-    assert root.key == key10
+    assert root.key == 10
     assert root.color == Color.BLACK
-    assert right.key == key12
+    assert right.key == 12
     assert right.color == Color.RED
     assert left is RedBlackTree.NIL_LEAF
 
     # WHEN
-    tree.insert(key=key11)
+    tree.insert(key=11)
 
     # THEN
     root = tree.root
     left = root.left
     right = root.right
-    assert root.key == key11
+    assert root.key == 11
     assert root.color == Color.BLACK
-    assert left.key == key10
+    assert left.key == 10
     assert left.color == Color.RED
-    assert right.key == key12
+    assert right.key == 12
     assert right.color == Color.RED
 
 
 def test_insert_node_left_right_renders_correct_colors():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
-    tree.insert(key=key8)
+    tree.insert(key=10)
+    tree.insert(key=8)
     root = tree.root
     left = root.left
     right = root.right
-    assert root.key == key10
+    assert root.key == 10
     assert root.color == Color.BLACK
     assert right is RedBlackTree.NIL_LEAF
-    assert left.key == key8
+    assert left.key == 8
     assert left.color == Color.RED
 
     # WHEN
-    tree.insert(key=key9)
+    tree.insert(key=9)
 
     # THEN
     root = tree.root
     left = root.left
     right = root.right
-    assert root.key == key9
+    assert root.key == 9
     assert root.color == Color.BLACK
-    assert left.key == key8
+    assert left.key == 8
     assert left.color == Color.RED
-    assert right.key == key10
+    assert right.key == 10
     assert right.color == Color.RED
 
 
 def test_uncle_is_red_should_recolor():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key=key10)
-    tree.insert(key=key11)
-    tree.insert(key=key9)
+    tree.insert(key=10)
+    tree.insert(key=11)
+    tree.insert(key=9)
 
     # WHEN/THEN
     with mock.patch.object(tree, '_recolor', wraps=tree._recolor) as mocked_recolor:
         # WHEN
-        tree.insert(key=key7)
+        tree.insert(key=7)
 
         # THEN
         mocked_recolor.assert_called_once_with(tree.root)
@@ -736,19 +710,19 @@ def test_complex_insertion_1():
     tree = RedBlackTree()
 
     # WHEN
-    tree.insert(key=key3)
-    tree.insert(key=key21)
-    tree.insert(key=key32)
-    tree.insert(key=key15)
+    tree.insert(key=3)
+    tree.insert(key=21)
+    tree.insert(key=32)
+    tree.insert(key=15)
 
     # THEN
-    assert tree.root.key == key21
+    assert tree.root.key == 21
     assert tree.root.color == Color.BLACK
-    assert tree.root.left.key == key3
+    assert tree.root.left.key == 3
     assert tree.root.left.color == Color.BLACK
-    assert tree.root.left.right.key == key15
+    assert tree.root.left.right.key == 15
     assert tree.root.left.right.color == Color.RED
-    assert tree.root.right.key == key32
+    assert tree.root.right.key == 32
     assert tree.root.right.color == Color.BLACK
 
 
@@ -764,19 +738,19 @@ def test_complex_insertion_2():
     tree = RedBlackTree()
 
     # WHEN
-    tree.insert(key=key10)
-    tree.insert(key=key11)
-    tree.insert(key=key9)
-    tree.insert(key=key7)
+    tree.insert(key=10)
+    tree.insert(key=11)
+    tree.insert(key=9)
+    tree.insert(key=7)
 
     # THEN
-    assert tree.root.key == key10
+    assert tree.root.key == 10
     assert tree.root.color == Color.BLACK
-    assert tree.root.left.key == key9
+    assert tree.root.left.key == 9
     assert tree.root.left.color == Color.BLACK
-    assert tree.root.left.left.key == key7
+    assert tree.root.left.left.key == 7
     assert tree.root.left.left.color == Color.RED
-    assert tree.root.right.key == key11
+    assert tree.root.right.key == 11
     assert tree.root.right.color == Color.BLACK
 
 
@@ -792,22 +766,22 @@ def test_complex_insertion_3():
     tree = RedBlackTree()
 
     # WHEN
-    tree.insert(key=key10)
-    tree.insert(key=key11)
-    tree.insert(key=key9)
-    tree.insert(key=key7)
-    tree.insert(key=key5)
+    tree.insert(key=10)
+    tree.insert(key=11)
+    tree.insert(key=9)
+    tree.insert(key=7)
+    tree.insert(key=5)
 
     # THEN
-    assert tree.root.key == key10
+    assert tree.root.key == 10
     assert tree.root.color == Color.BLACK
-    assert tree.root.left.key == key7
+    assert tree.root.left.key == 7
     assert tree.root.left.color == Color.BLACK
-    assert tree.root.left.left.key == key5
+    assert tree.root.left.left.key == 5
     assert tree.root.left.left.color == Color.RED
-    assert tree.root.left.right.key == key9
+    assert tree.root.left.right.key == 9
     assert tree.root.left.right.color == Color.RED
-    assert tree.root.right.key == key11
+    assert tree.root.right.key == 11
     assert tree.root.right.color == Color.BLACK
 
 
@@ -825,25 +799,25 @@ def test_complex_insertion_4():
     tree = RedBlackTree()
 
     # WHEN
-    tree.insert(key=key10)
-    tree.insert(key=key11)
-    tree.insert(key=key9)
-    tree.insert(key=key7)
-    tree.insert(key=key5)
-    tree.insert(key=key4)
+    tree.insert(key=10)
+    tree.insert(key=11)
+    tree.insert(key=9)
+    tree.insert(key=7)
+    tree.insert(key=5)
+    tree.insert(key=4)
 
     # THEN
-    assert tree.root.key == key10
+    assert tree.root.key == 10
     assert tree.root.color == Color.BLACK
-    assert tree.root.left.key == key7
+    assert tree.root.left.key == 7
     assert tree.root.left.color == Color.RED
-    assert tree.root.left.left.key == key5
+    assert tree.root.left.left.key == 5
     assert tree.root.left.left.color == Color.BLACK
-    assert tree.root.left.left.left.key == key4
+    assert tree.root.left.left.left.key == 4
     assert tree.root.left.left.left.color == Color.RED
-    assert tree.root.left.right.key == key9
+    assert tree.root.left.right.key == 9
     assert tree.root.left.right.color == Color.BLACK
-    assert tree.root.right.key == key11
+    assert tree.root.right.key == 11
     assert tree.root.right.color == Color.BLACK
 
 
@@ -861,31 +835,31 @@ def test_complex_insertion_5():
     tree = RedBlackTree()
 
     # WHEN
-    tree.insert(key=key10)
-    tree.insert(key=key11)
-    tree.insert(key=key9)
-    tree.insert(key=key7)
-    tree.insert(key=key5)
-    tree.insert(key=key4)
-    tree.insert(key=key2)
-    tree.insert(key=key1)
+    tree.insert(key=10)
+    tree.insert(key=11)
+    tree.insert(key=9)
+    tree.insert(key=7)
+    tree.insert(key=5)
+    tree.insert(key=4)
+    tree.insert(key=2)
+    tree.insert(key=1)
 
     # THEN
-    assert tree.root.key == key7
+    assert tree.root.key == 7
     assert tree.root.color == Color.BLACK
-    assert tree.root.left.key == key4
+    assert tree.root.left.key == 4
     assert tree.root.left.color == Color.RED
-    assert tree.root.left.left.key == key2
+    assert tree.root.left.left.key == 2
     assert tree.root.left.left.color == Color.BLACK
-    assert tree.root.left.left.left.key == key1
+    assert tree.root.left.left.left.key == 1
     assert tree.root.left.left.left.color == Color.RED
-    assert tree.root.left.right.key == key5
+    assert tree.root.left.right.key == 5
     assert tree.root.left.right.color == Color.BLACK
-    assert tree.root.right.key == key10
+    assert tree.root.right.key == 10
     assert tree.root.right.color == Color.RED
-    assert tree.root.right.left.key == key9
+    assert tree.root.right.left.key == 9
     assert tree.root.right.left.color == Color.BLACK
-    assert tree.root.right.right.key == key11
+    assert tree.root.right.right.key == 11
     assert tree.root.right.right.color == Color.BLACK
 
 
@@ -894,27 +868,27 @@ def test_can_extract_data():
     tree = RedBlackTree()
 
     # WHEN
-    tree.insert(key="key".encode(encoding="utf-8"), data=b'key+value')
-    tree.insert(key="key2".encode(encoding="utf-8"), data=b'key2+value2')
+    tree.insert(key="key", data=b'key+value')
+    tree.insert(key="key2", data=b'key2+value2')
 
     # THEN
-    assert tree.root.key == "key".encode(encoding="utf-8")
+    assert tree.root.key == "key"
     assert tree.root.data == b'key+value'
-    assert tree.root.right.key == "key2".encode(encoding="utf-8")
+    assert tree.root.right.key == "key2"
     assert tree.root.right.data == b'key2+value2'
 
 
 def test_can_get_data_upon_request():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key="key".encode(encoding="utf-8"), data=b'key+value')
-    tree.insert(key="key2".encode(encoding="utf-8"), data=b'key2+value2')
-    tree.insert(key="key3".encode(encoding="utf-8"), data=b'key3+value3')
+    tree.insert(key="key", data=b'key+value')
+    tree.insert(key="key2", data=b'key2+value2')
+    tree.insert(key="key3", data=b'key3+value3')
 
     # WHEN/THEN
-    assert tree.get(key="key".encode(encoding="utf-8")) == b'key+value'
-    assert tree.get(key="key2".encode(encoding="utf-8")) == b'key2+value2'
-    assert tree.get(key="key3".encode(encoding="utf-8")) == b'key3+value3'
+    assert tree.get(key="key") == b'key+value'
+    assert tree.get(key="key2") == b'key2+value2'
+    assert tree.get(key="key3") == b'key3+value3'
 
 
 def test_concurrent_insertions_are_serialized():
@@ -952,15 +926,35 @@ def test_concurrent_insertions_are_serialized():
 def test_replace_existing_key():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key="key".encode(encoding="utf-8"), data=b'old_data')
-    tree.insert(key="1".encode(encoding="utf-8"), data=b"1")
-    tree.insert(key="2".encode(encoding="utf-8"), data=b"2")
+    tree.insert(key="key", data=b'old_data')
+    tree.insert(key="1", data=b"1")
+    tree.insert(key="2", data=b"2")
 
     # WHEN
-    tree.insert(key="key".encode(encoding="utf-8"), data=b'new_data')
+    tree.insert(key="key", data=b'new_data')
 
     # THEN
-    assert tree.get(key="key".encode(encoding="utf-8")) == b'new_data'
+    assert tree.get(key="key") == b'new_data'
+
+
+def test_find_start_node():
+    # GIVEN
+    tree = RedBlackTree()
+    tree.insert(key=0, data=b'0')
+    tree.insert(key=2, data=b'2')
+    tree.insert(key=3, data=b'3')
+    tree.insert(key=5, data=b'5')
+    tree.insert(key=10, data=b'10')
+
+    # WHEN
+    assert tree._get_lower_bound_node(key=-2).key == 0
+    assert tree._get_lower_bound_node(key=0).key == 0
+    assert tree._get_lower_bound_node(key=1).key == 2
+    assert tree._get_lower_bound_node(key=3).key == 3
+    assert tree._get_lower_bound_node(key=4).key == 5
+    assert tree._get_lower_bound_node(key=5).key == 5
+    assert tree._get_lower_bound_node(key=8).key == 10
+    assert tree._get_lower_bound_node(key=12).key is None
 
 
 def test_iterate():
