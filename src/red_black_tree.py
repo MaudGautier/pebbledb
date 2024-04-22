@@ -11,7 +11,7 @@ class Color(str, Enum):
 
 
 class Node:
-    Key = int or str
+    Key = int or str or bytes
     Data = bytes
 
     def __init__(self,
