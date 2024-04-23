@@ -923,18 +923,18 @@ def test_concurrent_insertions_are_serialized():
         assert tree.get(key=str(i)) == str(i).encode()
 
 
-def test_replace_existing_key():
+def test_do_not_replace_existing_key_but_add_new_data():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key="key", data=b'old_data')
-    tree.insert(key="1", data=b"1")
-    tree.insert(key="2", data=b"2")
+    tree.insert(key="key", data=[b'old_data'])
+    tree.insert(key="1", data=[b"1"])
+    tree.insert(key="2", data=[b"2"])
 
     # WHEN
-    tree.insert(key="key", data=b'new_data')
+    tree.insert(key="key", data=[b'new_data'])
 
     # THEN
-    assert tree.get(key="key") == b'new_data'
+    assert tree.get(key="key") == [b'old_data', b'new_data']
 
 
 def test_find_start_node():
