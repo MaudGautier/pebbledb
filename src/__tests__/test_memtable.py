@@ -141,4 +141,18 @@ def test_scan_with_sequence_numbers_returns_only_the_most_recent_one(empty_memta
     # THEN
     expected_record = Record(key=b'1', value=b'1')
     assert scanned_records == [expected_record]
-    assert expected_record.sequence_number == len(keys)
+    assert scanned_records[0].sequence_number == len(keys) - 1
+
+
+def test_get_when_duplicates_returns_only_the_most_recent_one(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    key_value_pairs = [(b'1', b'1'), (b'1', b'2'), (b'1', b'3')]
+    for key, value in key_value_pairs:
+        memtable.put(key=key, value=value)
+
+    # WHEN
+    value = memtable.get(key=b'1')
+
+    # THEN
+    assert value == b'3'

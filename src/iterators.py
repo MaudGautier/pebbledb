@@ -2,6 +2,7 @@ from heapq import heappush, heappop
 from typing import Iterator, TYPE_CHECKING, Optional
 
 from src.record import Record
+from src.red_black_tree import Node
 
 # TODO: Should be possible to remove this when finished decoupling iterators logic from DataBlocks
 if TYPE_CHECKING:
@@ -34,7 +35,7 @@ class MemTableIterator(BaseIterator):
     def _select_generator(
             memtable: "MemTable",
             start_key: Optional[Record.Key],
-            end_key: Optional[Record.Key]) -> Iterator[bytes]:
+            end_key: Optional[Record.Key]) -> Iterator[Node.Data]:
         if start_key is None and end_key is None:
             return iter(memtable.map)
 
@@ -48,11 +49,25 @@ class MemTableIterator(BaseIterator):
 
     def __next__(self) -> Record:
         self.current = next(self.generator, None)
+
         if self.current is None:
             raise StopIteration
 
-        encoded_record = self.current
-        return Record.from_bytes(data=encoded_record)
+        records = [Record.from_bytes(data=encoded_record) for encoded_record in self.current]
+
+        return self._select_most_recent_record(records=records)
+
+    @staticmethod
+    def _select_most_recent_record(records: list[Record]) -> Record:
+        most_recent_record: Optional[Record] = None
+
+        for record in records:
+            if most_recent_record is not None and most_recent_record.sequence_number >= record.sequence_number:
+                continue
+
+            most_recent_record = record
+
+        return most_recent_record
 
 
 class DataBlockIterator(BaseIterator):

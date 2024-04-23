@@ -304,6 +304,10 @@ class RedBlackTree:
 
         return nodes_to_display
 
+    def count_data_nodes(self):
+        nodes = self.bfs()
+        return len([node for node in nodes if node is not self.NIL_LEAF])
+
     def get(self, key: Node.Key) -> Optional[Node.Data]:
         node = self.root
 

@@ -47,7 +47,7 @@ class MemTable:
         red_black_tree = RedBlackTree()
         approximate_size = 0
         for record in records:
-            red_black_tree.insert(key=record.key, data=record.to_bytes())
+            red_black_tree.insert(key=record.key, data=[record.to_bytes()])
             approximate_size += record.size
 
         return cls(directory=directory, approximate_size=approximate_size, map=red_black_tree, wal=wal)
@@ -64,7 +64,7 @@ class MemTable:
     def put(self, key: Record.Key, value: Record.Value):
         record = Record(key=key, value=value)
         self.wal.insert(record=record)
-        self.map.insert(key=key, data=record.to_bytes())
+        self.map.insert(key=key, data=[record.to_bytes()])
         # Recomputing the approximate size of the mem table by adding the size of the record
         # This size is only approximate because, if a key is re-written or deleted, then the computed size will be
         # bigger than the actual one. Computing the exact size would imply some overhead to read first. That is why the
@@ -72,8 +72,11 @@ class MemTable:
         self.approximate_size += record.size
 
     def get(self, key: Record.Key) -> Optional[Record.Value]:
-        encoded_record = self.map.get(key=key)
-        if encoded_record is None:
+        encoded_records = self.map.get(key=key)
+        if encoded_records is None:
             return None
-        decoded_record = Record.from_bytes(encoded_record)
+
+        # Newer values are appended to the end
+        decoded_record = Record.from_bytes(encoded_records[-1])
+
         return decoded_record.value
