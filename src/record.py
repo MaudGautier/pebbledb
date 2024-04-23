@@ -92,3 +92,28 @@ class Record:
     def from_bytes(cls, data: bytes) -> "Record":
         record, _ = cls.decode_single_record(data=data)
         return record
+
+    @property
+    def snapshot_key(self):
+        """A `snapshot_key` combines the record's key and sequence number.
+        Snapshot keys must be encoded in a way that preserves the targeted ordering, which is:
+        - a lower key should be sorted before a higher key
+        - if the keys are identical, then a higher sequence number should be sorted before a lower sequence number
+          (because a higher sequence number means a more recent version).
+
+        Therefore, the snapshot key is encoded by a concatenation of the key (thus, the main ordering element when
+        sorting in lexicographical order) with a special encoding of the sequence number.
+
+        To ensure that higher sequence numbers are sorted before lower sequence numbers, they are encoded with
+        big-endianness (to have the most significant byte first) and bytes are inverted (by applying a bitwise NOT to
+        each byte and a 0xFF mask).
+        Therefore, the ordering becomes:
+        ("A", 500) < ("A", 1) < ("B", 500) < ("B", 1)
+        """
+        # Encode the sequence number in big-endian format ('>Q' for big-endian unsigned long long)
+        seq_num_bytes = struct.pack('>Q', self.sequence_number)
+
+        # Invert the bytes of the sequence number (Bitwise NOT each byte and mask with 0xFF)
+        inverted_seq_num_bytes = bytes(~byte & 0xFF for byte in seq_num_bytes)
+
+        return self.key + inverted_seq_num_bytes
