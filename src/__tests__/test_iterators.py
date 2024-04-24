@@ -359,3 +359,19 @@ def test_concatenating_iterator_when_one_empty():
     # THEN
     expected_values = [Record("0", b'0')]
     assert list(concatenating_iterator) == expected_values
+
+
+def test_iterate_on_memtable_with_duplicates_returns_the_most_recent_sequence_numbers(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    keys = [b'1', b'1', b'1']
+    for key in keys:
+        memtable.put(key=key, value=key)
+    memtable_iterator = MemTableIterator(memtable=memtable)
+
+    # WHEN
+    records_sequence_numbers = list(record.sequence_number for record in memtable_iterator)
+
+    # THEN
+    expected_sequence_numbers = [2]
+    assert records_sequence_numbers == expected_sequence_numbers
