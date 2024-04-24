@@ -9,10 +9,10 @@ def test_block_builder_buffer_and_offsets():
     block_builder = DataBlockBuilder(target_size=150)
 
     # WHEN
-    block_builder.add(key=b'key1', value=b'value1')
-    block_builder.add(key=b'key2', value=b'value2')
-    block_builder.add(key=b'key3', value=b'value3')
-    block_builder.add(key=b'key4', value=b'value4')
+    block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    block_builder.add(record=Record(key=b'key2', value=b'value2'))
+    block_builder.add(record=Record(key=b'key3', value=b'value3'))
+    block_builder.add(record=Record(key=b'key4', value=b'value4'))
 
     # THEN
     record_size = len(b'keyN') + len(b"valueN") + 4 + 4 + 8
@@ -35,8 +35,8 @@ def test_block_builder_returns_false_when_too_big():
     # Note: As the target size is between that of one and two records, the first one will be added, not the second one
 
     # WHEN
-    add_key1_return = block_builder.add(key=b'key1', value=b'value1')
-    add_key2_return = block_builder.add(key=b'key2', value=b'value2')
+    add_key1_return = block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    add_key2_return = block_builder.add(record=Record(key=b'key2', value=b'value2'))
 
     # THEN
     assert add_key1_return is True
@@ -123,7 +123,7 @@ def test_get_record():
     block_builder = DataBlockBuilder(target_size=random_target_size)
 
     for key, value in kv_pairs:
-        block_builder.add(key=key, value=value)
+        block_builder.add(record=Record(key=key, value=value))
     block = block_builder.create_block()
 
     # WHEN

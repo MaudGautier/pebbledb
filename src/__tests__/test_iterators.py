@@ -5,7 +5,6 @@ import pytest
 from src.blocks import DataBlock, DataBlockBuilder
 from src.iterators import DataBlockIterator, MemTableIterator, SSTableIterator, MergingIterator, BaseIterator, \
     ConcatenatingIterator
-from src.memtable import MemTable
 from src.record import Record
 
 
@@ -58,10 +57,10 @@ def test_iterate_on_data_block():
     record_size = Record(key=b'keyN', value=b'valueN').size
     block_size = random.randint(4 * record_size, 10 * record_size)  # Upper limit does not matter
     block_builder = DataBlockBuilder(target_size=block_size)
-    block_builder.add(key=b'key1', value=b'value1')
-    block_builder.add(key=b'key2', value=b'value2')
-    block_builder.add(key=b'key3', value=b'value3')
-    block_builder.add(key=b'key4', value=b'value4')
+    block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    block_builder.add(record=Record(key=b'key2', value=b'value2'))
+    block_builder.add(record=Record(key=b'key3', value=b'value3'))
+    block_builder.add(record=Record(key=b'key4', value=b'value4'))
     block = block_builder.create_block()
     data_block_iterator = DataBlockIterator(block=block)
 
@@ -125,10 +124,10 @@ def test_data_block_select_index():
 def test_iterate_on_data_block_with_boundaries_before():
     # GIVEN
     block_builder = DataBlockBuilder(target_size=100)
-    block_builder.add(key=b'key1', value=b'value1')
-    block_builder.add(key=b'key2', value=b'value2')
-    block_builder.add(key=b'key3', value=b'value3')
-    block_builder.add(key=b'key4', value=b'value4')
+    block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    block_builder.add(record=Record(key=b'key2', value=b'value2'))
+    block_builder.add(record=Record(key=b'key3', value=b'value3'))
+    block_builder.add(record=Record(key=b'key4', value=b'value4'))
     block = block_builder.create_block()
     data_block_iterator = DataBlockIterator(block=block, start_key=b'k', end_key=b'key0')
 
@@ -143,10 +142,10 @@ def test_iterate_on_data_block_with_boundaries_before():
 def test_iterate_on_data_block_with_boundaries_after_returns_empty_list():
     # GIVEN
     block_builder = DataBlockBuilder(target_size=100)
-    block_builder.add(key=b'key1', value=b'value1')
-    block_builder.add(key=b'key2', value=b'value2')
-    block_builder.add(key=b'key3', value=b'value3')
-    block_builder.add(key=b'key4', value=b'value4')
+    block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    block_builder.add(record=Record(key=b'key2', value=b'value2'))
+    block_builder.add(record=Record(key=b'key3', value=b'value3'))
+    block_builder.add(record=Record(key=b'key4', value=b'value4'))
     block = block_builder.create_block()
     data_block_iterator = DataBlockIterator(block=block, start_key=b'key6', end_key=b'key9')
 
@@ -164,10 +163,10 @@ def test_iterate_on_data_block_with_boundaries_inside_returns_partial_list():
     record_size = Record(key=b'keyN', value=b'valueN').size
     block_size = random.randint(4 * record_size, 10 * record_size)  # Upper limit does not matter
     block_builder = DataBlockBuilder(target_size=block_size)
-    block_builder.add(key=b'key1', value=b'value1')
-    block_builder.add(key=b'key2', value=b'value2')
-    block_builder.add(key=b'key3', value=b'value3')
-    block_builder.add(key=b'key4', value=b'value4')
+    block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    block_builder.add(record=Record(key=b'key2', value=b'value2'))
+    block_builder.add(record=Record(key=b'key3', value=b'value3'))
+    block_builder.add(record=Record(key=b'key4', value=b'value4'))
     block = block_builder.create_block()
     data_block_iterator = DataBlockIterator(block=block, start_key=b'key2', end_key=b'key4')
 

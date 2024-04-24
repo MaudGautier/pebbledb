@@ -214,14 +214,14 @@ class SSTableBuilder:
         self.meta_blocks = []
         self.keys = []
 
-    def add(self, key: Record.Key, value: Record.Value):
+    def add(self, record: Record):
         """Adds a key-value pair to the SSTable.
         As long as the current block is not full, the record is appended to the current block.
         Once it is full, the block is created, the encoded block is added to the SSTable's buffer and a new block
         builder is initialized.
         """
-        self.keys.append(key)
-        was_added = self.block_builder.add(key=key, value=value)
+        self.keys.append(record.key)
+        was_added = self.block_builder.add(record=record)
 
         # Nothing to do if the record was added to the block
         if was_added:
@@ -234,7 +234,7 @@ class SSTableBuilder:
         self.block_builder = DataBlockBuilder(target_size=self.block_size)
 
         # Add record to the new block
-        self.block_builder.add(key=key, value=value)
+        self.block_builder.add(record=record)
 
     def finish_block(self) -> DataBlock:
         # Add current buffer position to list of block offsets

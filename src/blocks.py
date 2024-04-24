@@ -75,8 +75,8 @@ class DataBlockBuilder:
         self.first_key = None
         self.last_key = None
 
-    def add(self, key: Record.Key, value: Record.Value) -> bool:
-        encoded_record = Record(key=key, value=value).to_bytes()
+    def add(self, record: Record) -> bool:
+        encoded_record = record.to_bytes()
         size = len(encoded_record)
 
         current_offset = self.data_length
@@ -89,8 +89,8 @@ class DataBlockBuilder:
         self.data_buffer[current_offset:new_offset] = encoded_record
         self.data_length += size
         if self.first_key is None:
-            self.first_key = key
-        self.last_key = key
+            self.first_key = record.key
+        self.last_key = record.key
 
         return True
 

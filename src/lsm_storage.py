@@ -228,7 +228,7 @@ class LsmStorage:
                                          block_size=self._configuration.block_size)
         memtable_iterator = MemTableIterator(memtable=memtable_to_flush)
         for record in memtable_iterator:
-            sstable_builder.add(key=record.key, value=record.value)
+            sstable_builder.add(record=record)
         sstable = sstable_builder.build(path=path)
 
         # Update state to remove oldest memtable and add new SSTable
@@ -269,7 +269,7 @@ class LsmStorage:
                                          block_size=self._configuration.block_size)
 
         for record in records_iterator:
-            sstable_builder.add(key=record.key, value=record.value)
+            sstable_builder.add(record=record)
 
             # Build the sstable when it exceeds the maximum size and instantiate a new builder
             if sstable_builder.current_buffer_position >= self._configuration.max_sstable_size:

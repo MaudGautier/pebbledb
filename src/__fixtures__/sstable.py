@@ -44,7 +44,7 @@ def sstable_four_blocks(records_for_sstable_four_blocks) -> Generator[SSTable, N
     block_size = random.randint(4 * record_size, 5 * record_size - 1)
     sstable_builder = SSTableBuilder(sstable_size=20000, block_size=block_size)
     for record in records_for_sstable_four_blocks:
-        sstable_builder.add(key=record.key, value=record.value)
+        sstable_builder.add(record=record)
 
     sstable = sstable_builder.build(path=f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/sstable_four_blocks.sst")
 
@@ -83,7 +83,7 @@ def build_sstable_one_block(records_for_sstable_one_block, file_name) -> Generat
 
     sstable_builder = SSTableBuilder(sstable_size=20000, block_size=150)
     for record in records_for_sstable_one_block:
-        sstable_builder.add(key=record.key, value=record.value)
+        sstable_builder.add(record=record)
 
     sstable = sstable_builder.build(path=f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/{file_name}.sst")
 

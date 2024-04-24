@@ -11,18 +11,18 @@ from src.sstable import SSTableBuilder, SSTableEncoding, SSTable, SSTableFile
 
 def test_add_record_to_current_block():
     # GIVEN
-    kv_pairs = [
-        (b'key1', b'value1'),
-        (b'key2', b'value2'),
+    records = [
+        Record(key=b'key1', value=b'value1'),
+        Record(key=b'key2', value=b'value2'),
     ]
     record_size = Record(key=b'keyN', value=b"valueN").size
-    random_block_size = random.randint(len(kv_pairs) * record_size, (len(kv_pairs) + 1) * record_size - 1)
+    random_block_size = random.randint(len(records) * record_size, (len(records) + 1) * record_size - 1)
     sstable_size = random_block_size * 3
     sstable_builder = SSTableBuilder(sstable_size=sstable_size, block_size=random_block_size)
 
     # WHEN
-    for key, value in kv_pairs:
-        sstable_builder.add(key=key, value=value)
+    for record in records:
+        sstable_builder.add(record=record)
 
     # THEN
     assert sstable_builder.current_buffer_position == 0
@@ -32,19 +32,19 @@ def test_add_record_to_current_block():
 
 def test_adding_record_to_new_block_updates_buffer():
     # GIVEN
-    kv_pairs = [
-        (b'key1', b'value1'),
-        (b'key2', b'value2'),
-        (b'key3', b'value3'),
+    records = [
+        Record(key=b'key1', value=b'value1'),
+        Record(key=b'key2', value=b'value2'),
+        Record(key=b'key3', value=b'value3'),
     ]
     record_size = Record(key=b'keyN', value=b"valueN").size
-    random_block_size = random.randint((len(kv_pairs) - 1) * record_size, len(kv_pairs) * record_size - 1)
+    random_block_size = random.randint((len(records) - 1) * record_size, len(records) * record_size - 1)
     sstable_builder = SSTableBuilder(sstable_size=random_block_size * 3, block_size=random_block_size)
 
     # WHEN
-    for key, value in kv_pairs:
+    for record in records:
         assert sstable_builder.current_buffer_position == 0
-        sstable_builder.add(key=key, value=value)
+        sstable_builder.add(record=record)
 
     # THEN
     record_index_size = 2  # Number of bytes for a "H" integer (Blocks)
@@ -66,7 +66,7 @@ def test_encode_sstable():
     data = encoded_block1 + encoded_block2
     meta_block1 = MetaBlock(first_key=b'key1', last_key=b'key2', offset=0)
     meta_block2 = MetaBlock(first_key=b'key3', last_key=b'key3', offset=42)  # 42 = 18*2 + 2*2 + 2
-    bloom_filter = BloomFilter.build_from_keys_and_fp_rate(["key1", "key2", "key3"], fp_rate=0.0001)
+    bloom_filter = BloomFilter.build_from_keys_and_fp_rate([b"key1", b"key2", b"key3"], fp_rate=0.0001)
     sstable = SSTableEncoding(data=data, meta_blocks=[meta_block1, meta_block2], bloom_filter=bloom_filter)
 
     # WHEN
@@ -126,10 +126,10 @@ def test_read_data_block(sstable_four_blocks, records_for_sstable_four_blocks):
     data_block = sstable.read_data_block(block_id=1)
 
     # THEN
-    record1 = b'\x03\x00\x00\x00eee\x05\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_eee'
-    record2 = b'\x03\x00\x00\x00fff\x06\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_fff'
-    record3 = b'\x03\x00\x00\x00ggg\x07\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_ggg'
-    record4 = b'\x03\x00\x00\x00hhh\x08\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_hhh'
+    record1 = b'\x03\x00\x00\x00eee\x04\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_eee'
+    record2 = b'\x03\x00\x00\x00fff\x05\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_fff'
+    record3 = b'\x03\x00\x00\x00ggg\x06\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_ggg'
+    record4 = b'\x03\x00\x00\x00hhh\x07\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00some_long_value_for_hhh'
     record_size = records_for_sstable_four_blocks[0].size
 
     assert data_block.number_records == 4
@@ -181,7 +181,7 @@ def test_scan_sstable(start_key, end_key, sstable_four_blocks, records_for_sstab
     sstable = sstable_four_blocks
 
     # WHEN
-    # start_key, end_key = "cc", "eee"
+    start_key, end_key = b"cc", b"eee"
     scanned_records_inside = list(record for record in sstable.scan(lower=start_key, upper=end_key))
 
     # THEN
