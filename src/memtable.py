@@ -61,7 +61,7 @@ class MemTable:
     def scan(self, lower: Optional[Record.Key] = None, upper: Optional[Record.Key] = None) -> MemTableIterator:
         return MemTableIterator(memtable=self, start_key=lower, end_key=upper)
 
-    def put(self, key: Record.Key, value: Record.Value):
+    def put(self, key: Record.Key, value: Record.Value) -> Record:
         record = Record(key=key, value=value)
         self.wal.insert(record=record)
         self.map.insert(key=key, data=[record.to_bytes()])
@@ -70,6 +70,8 @@ class MemTable:
         # bigger than the actual one. Computing the exact size would imply some overhead to read first. That is why the
         # choice is to compute the _approximate size_.
         self.approximate_size += record.size
+
+        return record
 
     def get(self, key: Record.Key) -> Optional[Record.Value]:
         encoded_records = self.map.get(key=key)

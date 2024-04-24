@@ -19,4 +19,5 @@ from src.__fixtures__.manifest import *  # noqa: F401
 from src.__fixtures__.memtable import *  # noqa: F401
 from src.__fixtures__.sstable import *  # noqa: F401
 from src.__fixtures__.store import *  # noqa: F401
+from src.__fixtures__.transactional_store import *  # noqa: F401
 from src.__fixtures__.wal import *  # noqa: F401
