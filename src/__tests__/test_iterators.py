@@ -182,6 +182,29 @@ def test_iterate_on_data_block_with_boundaries_inside_returns_partial_list():
     assert iterated_items == expected_items
 
 
+def test_iterate_on_data_block_with_boundaries_inside_but_in_between_returns_partial_list():
+    # GIVEN
+    record_size = Record(key=b'keyN', value=b'valueN').size
+    block_size = random.randint(4 * record_size, 10 * record_size)  # Upper limit does not matter
+    block_builder = DataBlockBuilder(target_size=block_size)
+    block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    block_builder.add(record=Record(key=b'key3', value=b'value3'))
+    block_builder.add(record=Record(key=b'key5', value=b'value5'))
+    block_builder.add(record=Record(key=b'key7', value=b'value7'))
+    block = block_builder.create_block()
+
+    # WHEN
+    data_block_iterator = DataBlockIterator(block=block, start_key=b'key2', end_key=b'key6')
+    iterated_items = list(item for item in data_block_iterator)
+
+    # THEN
+    expected_items = [
+        Record(key=b'key3', value=b'value3'),
+        Record(key=b'key5', value=b'value5'),
+    ]
+    assert iterated_items == expected_items
+
+
 def test_iterate_on_sstable(sstable_four_blocks, records_for_sstable_four_blocks):
     # GIVEN
     sstable_iterator = SSTableIterator(sstable=sstable_four_blocks)
