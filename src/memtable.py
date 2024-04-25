@@ -2,7 +2,7 @@ import os.path
 import time
 from typing import Optional
 
-from src.iterators import MemTableIterator
+from src.iterators import MemTableIterator, ScanMemtableIterator
 from src.record import Record
 from src.red_black_tree import RedBlackTree
 from src.wal import WriteAheadLog
@@ -59,7 +59,7 @@ class MemTable:
         return WriteAheadLog.create(path=f"{directory}/{timestamp_in_us}.wal")
 
     def scan(self, lower: Optional[Record.Key] = None, upper: Optional[Record.Key] = None) -> MemTableIterator:
-        return MemTableIterator(memtable=self, start_key=lower, end_key=upper)
+        return ScanMemtableIterator(memtable=self, start_key=lower, end_key=upper)
 
     def put(self, key: Record.Key, value: Record.Value) -> Record:
         record = Record(key=key, value=value)

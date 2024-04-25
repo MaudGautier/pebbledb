@@ -3,7 +3,8 @@ import time
 from collections import deque
 from typing import Optional, Iterator, Deque, Type
 
-from src.iterators import MemTableIterator, MergingIterator, SSTableIterator, ConcatenatingIterator, BaseIterator
+from src.iterators import MemTableIterator, MergingIterator, SSTableIterator, ConcatenatingIterator, BaseIterator, \
+    FlushIterator
 from src.locks import ReadWriteLock, Mutex
 from src.manifest import Manifest, Configuration, FlushEvent, CompactionEvent
 from src.memtable import MemTable
@@ -226,9 +227,10 @@ class LsmStorage:
         path = self._compute_path()
         sstable_builder = SSTableBuilder(sstable_size=self._configuration.max_sstable_size,
                                          block_size=self._configuration.block_size)
-        memtable_iterator = MemTableIterator(memtable=memtable_to_flush)
-        for record in memtable_iterator:
-            sstable_builder.add(record=record)
+        memtable_iterator = FlushIterator(memtable=memtable_to_flush)
+        for record_versions in memtable_iterator:
+            for record in record_versions:
+                sstable_builder.add(record=record)
         sstable = sstable_builder.build(path=path)
 
         # Update state to remove oldest memtable and add new SSTable

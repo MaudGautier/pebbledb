@@ -4,7 +4,7 @@ import pytest
 
 from src.blocks import DataBlock, DataBlockBuilder
 from src.iterators import DataBlockIterator, MemTableIterator, SSTableIterator, MergingIterator, BaseIterator, \
-    ConcatenatingIterator
+    ConcatenatingIterator, ScanMemtableIterator, FlushIterator
 from src.record import Record
 
 
@@ -20,7 +20,7 @@ def test_iterate_on_memtable(empty_memtable):
     records = list(item for item in memtable_iterator)
 
     # THEN
-    expected_records = [Record(key=key, value=key) for key in sorted(keys)]
+    expected_records = [[Record(key=key, value=key)] for key in sorted(keys)]
     assert records == expected_records
 
 
@@ -46,8 +46,8 @@ def test_iterate_on_memtable_with_boundaries(empty_memtable):
 
     # THEN
     expected_records = [
-        Record(key=b'1', value=b'1'),
-        Record(key=b'4', value=b'4'),
+        [Record(key=b'1', value=b'1')],
+        [Record(key=b'4', value=b'4')],
     ]
     assert scanned_records == expected_records
 
@@ -361,17 +361,55 @@ def test_concatenating_iterator_when_one_empty():
     assert list(concatenating_iterator) == expected_values
 
 
-def test_iterate_on_memtable_with_duplicates_returns_the_most_recent_sequence_numbers(empty_memtable):
+def test_scan_iterate_on_memtable_with_duplicates_returns_the_most_recent_sequence_numbers(empty_memtable):
     # GIVEN
     memtable = empty_memtable
     keys = [b'1', b'1', b'1']
     for key in keys:
         memtable.put(key=key, value=key)
-    memtable_iterator = MemTableIterator(memtable=memtable)
+    memtable_iterator = ScanMemtableIterator(memtable=memtable)
 
     # WHEN
     records_sequence_numbers = list(record.sequence_number for record in memtable_iterator)
 
     # THEN
     expected_sequence_numbers = [2]
+    assert records_sequence_numbers == expected_sequence_numbers
+
+
+def test_scan_iterate_with_boundaries_on_memtable_with_duplicates_returns_the_most_recent_sequence_numbers(
+        empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    keys = [b'1', b'4', b'1', b'4', b'6', b'1']
+    for key in keys:
+        memtable.put(key=key, value=key)
+    memtable_iterator = ScanMemtableIterator(memtable=memtable, start_key=b'3', end_key=b'7')
+
+    # WHEN
+    records = list(record for record in memtable_iterator)
+    records_sequence_numbers = list(record.sequence_number for record in records)
+
+    # THEN
+    expected_sequence_numbers = [3, 4]
+    expected_records = [Record(key=b'4', value=b'4'), Record(key=b'6', value=b'6')]
+    assert records_sequence_numbers == expected_sequence_numbers
+    assert records == expected_records
+
+
+def test_flush_iterate_on_memtable_with_duplicates_returns_all_versions(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    keys = [b'1', b'1', b'1']
+    for key in keys:
+        memtable.put(key=key, value=key)
+    memtable_iterator = FlushIterator(memtable=memtable)
+
+    # WHEN
+    records_sequence_numbers = list(record_version.sequence_number
+                                    for record_versions in memtable_iterator
+                                    for record_version in record_versions)
+
+    # THEN
+    expected_sequence_numbers = [2, 1, 0]
     assert records_sequence_numbers == expected_sequence_numbers

@@ -47,14 +47,35 @@ class MemTableIterator(BaseIterator):
     def __iter__(self) -> "MemTableIterator":
         return self
 
-    def __next__(self) -> Record:
+    def __next__(self) -> list[Record]:
         self.current = next(self.generator, None)
 
         if self.current is None:
             raise StopIteration
 
-        records = [Record.from_bytes(data=encoded_record) for encoded_record in self.current]
+        # Note: Records versions are from oldest to most recent
+        records = [Record.from_bytes(data=encoded_record_version) for encoded_record_version in reversed(self.current)]
 
+        return records
+
+
+class FlushIterator(MemTableIterator):
+    def __init__(self,
+                 memtable: "MemTable",
+                 start_key: Optional[Record.Key] = None,
+                 end_key: Optional[Record.Key] = None):
+        super().__init__(memtable=memtable, start_key=start_key, end_key=end_key)
+
+
+class ScanMemtableIterator(MemTableIterator):
+    def __init__(self,
+                 memtable: "MemTable",
+                 start_key: Optional[Record.Key] = None,
+                 end_key: Optional[Record.Key] = None):
+        super().__init__(memtable=memtable, start_key=start_key, end_key=end_key)
+
+    def __next__(self) -> Record:
+        records = super().__next__()
         return self._select_most_recent_record(records=records)
 
     @staticmethod
