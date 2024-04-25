@@ -125,3 +125,70 @@ def content_of_sstable_file_1():
 @pytest.fixture
 def sstable_file_1(temporary_sstable_path, content_of_sstable_file_1):
     return SSTableFile.create(path=temporary_sstable_path, data=content_of_sstable_file_1)
+
+
+@pytest.fixture
+def records_for_sstable_with_duplicates():
+    key_a_records = [
+        Record(key=b'keyA', value=b'valueA1'),
+        Record(key=b'keyA', value=b'valueA2'),
+        Record(key=b'keyA', value=b'valueA3'),
+    ]
+    key_b_records = [
+        Record(key=b'keyB', value=b'valueB1'),
+        Record(key=b'keyB', value=b'valueB2'),
+    ]
+    key_c_records = [
+        Record(key=b'keyC', value=b'valueC1'),
+        # Block 3
+        Record(key=b'keyC', value=b'valueC2'),
+        Record(key=b'keyC', value=b'valueC3'),
+    ]
+    key_d_records = [
+        Record(key=b'keyD', value=b'valueD1'),
+    ]
+    all_records = sorted(key_a_records + key_b_records + key_c_records + key_d_records,
+                         key=lambda record: record.to_bytes())
+    # Blocks will be:
+    #    # Block 1
+    assert all_records[0] == Record(key=b'keyA', value=b'valueA3')
+    assert all_records[1] == Record(key=b'keyA', value=b'valueA2')
+    assert all_records[2] == Record(key=b'keyA', value=b'valueA1')
+    #    # Block 2
+    assert all_records[3] == Record(key=b'keyB', value=b'valueB2')
+    assert all_records[4] == Record(key=b'keyB', value=b'valueB1')
+    assert all_records[5] == Record(key=b'keyC', value=b'valueC3')
+    #    # Block 3
+    assert all_records[6] == Record(key=b'keyC', value=b'valueC2')
+    assert all_records[7] == Record(key=b'keyC', value=b'valueC1')
+    assert all_records[8] == Record(key=b'keyD', value=b'valueD1')
+
+    return all_records
+
+
+@pytest.fixture
+def sstable_with_duplicates(records_for_sstable_with_duplicates):
+    records = records_for_sstable_with_duplicates
+    SequenceNumberGenerator.reset()
+    record_size = records[0].size
+    block_size = 3 * record_size
+
+    sstable_builder = SSTableBuilder(sstable_size=20000, block_size=block_size)
+    for record in records:
+        sstable_builder.add(record=record)
+
+    sstable = sstable_builder.build(path=f"{TEST_SSTABLE_FIXTURES_DIRECTORY}/sstable_with_duplicates.sst")
+
+    assert len(sstable.meta_blocks) == 3
+    assert sstable.meta_blocks[0].first_key == b'keyA'
+    assert sstable.meta_blocks[0].last_key == b'keyA'
+    assert sstable.meta_blocks[1].first_key == b'keyB'
+    assert sstable.meta_blocks[1].last_key == b'keyC'
+    assert sstable.meta_blocks[2].first_key == b'keyC'
+    assert sstable.meta_blocks[2].last_key == b'keyD'
+    # sstable.file.read().startswith()
+
+    yield sstable
+
+    # Cleanup code (Delete the file created by the fixture)
+    os.remove(sstable.file.path)

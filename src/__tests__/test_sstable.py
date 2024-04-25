@@ -334,3 +334,26 @@ def test_reconstruct_a_sstable_from_file(sstable_four_blocks):
 
     # THEN
     assert reconstructed_sstable == original_sstable
+
+
+def test_get_with_duplicates_returns_most_recent_one(sstable_with_duplicates, records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+
+    # WHEN
+    value = sstable.get(key=b'keyA')
+
+    # THEN
+    assert value == b'valueA3'
+
+
+def test_get_with_duplicates_returns_most_recent_one_when_on_multiple_blocks(sstable_with_duplicates,
+                                                                             records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+
+    # WHEN
+    value = sstable.get(key=b'keyC')
+
+    # THEN
+    assert value == b'valueC3'
