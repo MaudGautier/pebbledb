@@ -36,7 +36,7 @@ class Record:
         return self.key == other.key and self.value == other.value
 
     def __repr__(self):
-        return f"{self.key}: {self.value}"
+        return f"{self.key}: {self.value} ({self.sequence_number})"
 
     def __lt__(self, other: "Record"):
         if not isinstance(other, Record):
