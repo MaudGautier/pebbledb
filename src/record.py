@@ -1,5 +1,5 @@
 import struct
-from typing import Optional
+from typing import Optional, Tuple
 
 from src.sequence_number_generator import SequenceNumberGenerator
 
@@ -66,27 +66,24 @@ class Record:
 
     def to_bytes(self) -> bytes:
         encoded_key_size = self.encoded_key_size
-        encoded_key = self.key  # already encoded
+        encoded_key = self.snapshot_key  # already encoded
         encoded_value_size = self.encoded_value_size
         encoded_value = self.value  # already encoded
-        encoded_sequence_number = struct.pack("Q", self.sequence_number)
 
-        return encoded_key_size + encoded_key + encoded_sequence_number + encoded_value_size + encoded_value
+        return encoded_key_size + encoded_key + encoded_value_size + encoded_value
 
     @classmethod
     def decode_single_record(cls, data: bytes) -> tuple["Record", int]:
         key_size_end = cls.NB_BYTES_INTEGER
         key_size = struct.unpack("i", data[:key_size_end])[0]
-        key_end = key_size_end + key_size
-        key = data[key_size_end:key_end]
-        sequence_number_end = key_end + 8
-        decoded_sequence_number = struct.unpack("Q", data[key_end:sequence_number_end])[0]
-        value_size_end = sequence_number_end + cls.NB_BYTES_INTEGER
-        value_size = struct.unpack("i", data[sequence_number_end:value_size_end])[0]
+        snapshot_key_end = key_size_end + key_size + 8
+        key, sequence_number = cls.decode_snapshot_key(data=data[key_size_end:snapshot_key_end])
+        value_size_end = snapshot_key_end + cls.NB_BYTES_INTEGER
+        value_size = struct.unpack("i", data[snapshot_key_end:value_size_end])[0]
         value_end = value_size_end + value_size
         value = data[value_size_end:value_end]
 
-        return cls(key=key, value=value, sequence_number=decoded_sequence_number), value_end
+        return cls(key=key, value=value, sequence_number=sequence_number), value_end
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "Record":
@@ -94,7 +91,7 @@ class Record:
         return record
 
     @property
-    def snapshot_key(self):
+    def snapshot_key(self) -> bytes:
         """A `snapshot_key` combines the record's key and sequence number.
         Snapshot keys must be encoded in a way that preserves the targeted ordering, which is:
         - a lower key should be sorted before a higher key
@@ -117,3 +114,16 @@ class Record:
         inverted_seq_num_bytes = bytes(~byte & 0xFF for byte in seq_num_bytes)
 
         return self.key + inverted_seq_num_bytes
+
+    @staticmethod
+    def decode_snapshot_key(data: bytes) -> Tuple[Key, SequenceNumber]:
+        key = data[:-8]
+        inverted_seq_num_bytes = data[-8:]
+
+        # Revert the inversion of the sequence number bytes
+        seq_num_bytes = bytes(~byte & 0xFF for byte in inverted_seq_num_bytes)
+
+        # Decode the sequence number from big-endian format
+        sequence_number, = struct.unpack('>Q', seq_num_bytes)
+
+        return key, sequence_number
