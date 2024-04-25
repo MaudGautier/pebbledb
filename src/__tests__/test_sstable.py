@@ -176,12 +176,11 @@ def test_get_key(sstable_four_blocks, records_for_sstable_four_blocks):
         ),
     ],
 )
-def test_scan_sstable(start_key, end_key, sstable_four_blocks, records_for_sstable_four_blocks):
+def test_scan_sstable(start_key: bytes, end_key: bytes, sstable_four_blocks, records_for_sstable_four_blocks):
     # GIVEN
     sstable = sstable_four_blocks
 
     # WHEN
-    start_key, end_key = b"cc", b"eee"
     scanned_records_inside = list(record for record in sstable.scan(lower=start_key, upper=end_key))
 
     # THEN
