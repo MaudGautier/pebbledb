@@ -81,7 +81,7 @@ def build_sstable_one_block(records_for_sstable_one_block, file_name) -> Generat
     block_size = random.randint(len(records_for_sstable_one_block) * record_size,
                                 (len(records_for_sstable_one_block) + 1) * record_size)
 
-    sstable_builder = SSTableBuilder(sstable_size=20000, block_size=150)
+    sstable_builder = SSTableBuilder(sstable_size=20000, block_size=block_size)
     for record in records_for_sstable_one_block:
         sstable_builder.add(record=record)
 
