@@ -13,6 +13,7 @@ error codes at https://flake8.pycqa.org/en/2.5.5/warnings.html).
 """
 
 from src.__fixtures__.autouse_fixtures import *  # noqa: F401
+from src.__fixtures__.block import *  # noqa: F401
 from src.__fixtures__.bloom_filter import *  # noqa: F401
 from src.__fixtures__.constants import *  # noqa: F401
 from src.__fixtures__.manifest import *  # noqa: F401

@@ -102,28 +102,28 @@ class DataBlockIterator(BaseIterator):
         self._index = self._select_index(key=start_key)
         self._end_key = end_key
 
+    def _get_record(self, record_index: int):
+        offsets = self.block.offsets + [len(self.block.data)]
+        offset_start = offsets[record_index]
+        offset_end = offsets[record_index + 1]
+        encoded_record = self.block.data[offset_start:offset_end]
+        record = Record.from_bytes(data=encoded_record)
+        return record
+
     def _select_index(self, key: Optional[Record.Key] = None) -> int:
         """Selects the first key that is >= key"""
         if key is None:
             return 0
 
-        offsets = self.block.offsets + [len(self.block.data)]
-
         low, high = 0, len(self.block.offsets)
         while low < high:
             mid = int(low + (high - low) / 2)
-            offset_start = offsets[mid]
-            offset_end = offsets[mid + 1]
-            encoded_record = self.block.data[offset_start:offset_end]
-            record = Record.from_bytes(data=encoded_record)
-            if record.key == key:
-                return mid
+            record = self._get_record(record_index=mid)
             if record.key < key:
                 low = mid + 1
-            if record.key > key:
+            else:
                 high = mid
 
-        # TODO mettre tout ca dans une autre fonction et StopIteration si plus que le truc (ça devrait être bon avec ce que j'ai - ajouter un test)
         return low
 
     def __iter__(self) -> "DataBlockIterator":

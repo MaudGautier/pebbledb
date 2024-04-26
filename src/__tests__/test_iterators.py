@@ -182,27 +182,49 @@ def test_iterate_on_data_block_with_boundaries_inside_returns_partial_list():
     assert iterated_items == expected_items
 
 
-def test_iterate_on_data_block_with_boundaries_inside_but_in_between_returns_partial_list():
+@pytest.mark.parametrize(
+    ("start_key", "end_key"),
+    [
+        pytest.param(
+            b'k', b'key0',
+            id="outside-before",
+        ),
+        pytest.param(
+            b'key8', b'key9',
+            id="outside-after",
+        ),
+        pytest.param(
+            b'key0', b'key2',
+            id="overlap-before",
+        ),
+        pytest.param(
+            b'key5', b'key9',
+            id="overlap-after",
+        ),
+        pytest.param(
+            b'key1', b'key5',
+            id="inside-with-included-keys",
+        ),
+        pytest.param(
+            b'key2', b'key6',
+            id="inside-with-non-keys",
+        ),
+    ],
+)
+def test_iterate_on_data_block_with_duplicates(start_key, end_key, data_block_with_duplicates,
+                                               records_for_sstable_with_duplicates):
     # GIVEN
-    record_size = Record(key=b'keyN', value=b'valueN').size
-    block_size = random.randint(4 * record_size, 10 * record_size)  # Upper limit does not matter
-    block_builder = DataBlockBuilder(target_size=block_size)
-    block_builder.add(record=Record(key=b'key1', value=b'value1'))
-    block_builder.add(record=Record(key=b'key3', value=b'value3'))
-    block_builder.add(record=Record(key=b'key5', value=b'value5'))
-    block_builder.add(record=Record(key=b'key7', value=b'value7'))
-    block = block_builder.create_block()
+    block = data_block_with_duplicates
+    records = records_for_sstable_with_duplicates
 
     # WHEN
-    data_block_iterator = DataBlockIterator(block=block, start_key=b'key2', end_key=b'key6')
-    iterated_items = list(item for item in data_block_iterator)
+    data_block_iterator = DataBlockIterator(block=block, start_key=b'k', end_key=b'key0')
+    iterated_records = list(record for record in data_block_iterator)
 
     # THEN
-    expected_items = [
-        Record(key=b'key3', value=b'value3'),
-        Record(key=b'key5', value=b'value5'),
-    ]
-    assert iterated_items == expected_items
+    expected_records = [record for record in records if start_key <= record.key <= end_key]
+
+    assert iterated_records == expected_records
 
 
 def test_iterate_on_sstable(sstable_four_blocks, records_for_sstable_four_blocks):
