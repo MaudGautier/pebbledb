@@ -140,7 +140,6 @@ def records_for_sstable_with_duplicates():
     ]
     key_c_records = [
         Record(key=b'keyC', value=b'valueC1'),
-        # Block 3
         Record(key=b'keyC', value=b'valueC2'),
         Record(key=b'keyC', value=b'valueC3'),
     ]
@@ -186,7 +185,6 @@ def sstable_with_duplicates(records_for_sstable_with_duplicates):
     assert sstable.meta_blocks[1].last_key == b'keyC'
     assert sstable.meta_blocks[2].first_key == b'keyC'
     assert sstable.meta_blocks[2].last_key == b'keyD'
-    # sstable.file.read().startswith()
 
     yield sstable
 

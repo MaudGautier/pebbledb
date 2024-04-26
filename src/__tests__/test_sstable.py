@@ -109,13 +109,13 @@ def test_find_block_of_key(sstable_four_blocks):
     sstable = sstable_four_blocks
 
     # WHEN/THEN
-    assert sstable.find_block_id(b'ddd') == 0
-    assert sstable.find_block_id(b'eee') == 1
-    assert sstable.find_block_id(b'jj') == 2
-    assert sstable.find_block_id(b'ooo') == 3
-    assert sstable.find_block_id(b'a') is None
-    assert sstable.find_block_id(b'iiii') == 2
-    assert sstable.find_block_id(b'zzz') is None
+    assert sstable.find_blocks_ids(b'ddd') == [0]
+    assert sstable.find_blocks_ids(b'eee') == [1]
+    assert sstable.find_blocks_ids(b'jj') == [2]
+    assert sstable.find_blocks_ids(b'ooo') == [3]
+    assert sstable.find_blocks_ids(b'a') == []
+    assert sstable.find_blocks_ids(b'iiii') == [2]
+    assert sstable.find_blocks_ids(b'zzz') == []
 
 
 def test_read_data_block(sstable_four_blocks, records_for_sstable_four_blocks):
@@ -394,3 +394,29 @@ def test_scan_with_duplicates_returns_most_recent_one_when_on_multiple_blocks(ss
     expected_records = [last_c_record, last_d_record]
 
     assert scanned_records == expected_records
+
+
+def test_get_with_duplicates_and_snapshot_returns_most_recent_one_before_snapshot(
+        sstable_with_duplicates,
+        records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+
+    # WHEN
+    value = sstable.get(key=b'keyA', snapshot=1)
+
+    # THEN
+    assert value == b'valueA2'
+
+
+def test_get_with_duplicates_and_snapshot_returns_most_recent_one_when_on_multiple_blocks(
+        sstable_with_duplicates,
+        records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+
+    # WHEN
+    value = sstable.get(key=b'keyC', snapshot=5)
+
+    # THEN
+    assert value == b'valueC1'

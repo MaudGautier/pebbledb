@@ -144,16 +144,17 @@ class SSTable:
                 and self.first_key == other.first_key
                 and self.last_key == other.last_key)
 
-    def find_block_id(self, key: Record.Key) -> Optional[int]:
+    def find_blocks_ids(self, key: Record.Key) -> list[int]:
+        blocks_ids = []
         for i, meta_block in enumerate(self.meta_blocks):
             if meta_block.last_key < key:
                 continue
             if meta_block.first_key <= key <= meta_block.last_key:
-                return i
+                blocks_ids.append(i)
             if key <= meta_block.first_key:
-                return None
+                return blocks_ids
 
-        return None
+        return blocks_ids
 
     def read_data_block(self, block_id: int) -> DataBlock:
         start = self.meta_blocks[block_id].offset
@@ -165,19 +166,23 @@ class SSTable:
         return DataBlock.from_bytes(data=encoded_block)
 
     # TODO: Probably return the record and move the decoding up in the LSM Storage part
-    def get(self, key: Record.Key) -> Optional[Record.Value]:
+    def get(self, key: Record.Key, snapshot: Optional[int] = None) -> Optional[Record.Value]:
         """To look up a key in a SSTable, we need to:
-        1. Find the block that may contain it (by parsing meta blocks first and last keys)
-        2. Read the block and search for the key within the block.
+        1. Find the blocks that may contain it (by parsing meta blocks first and last keys)
+        2. Read the blocks and search for the key within each block.
+        3. Select the version that is the most recent, but before the snapshot.
         """
-        block_id = self.find_block_id(key=key)
-        if block_id is None:
+        blocks_ids = self.find_blocks_ids(key=key)
+        if not blocks_ids:
             return None
 
-        block = self.read_data_block(block_id=block_id)
-        record = block.get(key=key)
+        for block_id in blocks_ids:
+            block = self.read_data_block(block_id=block_id)
+            record = block.get(key=key, snapshot=snapshot)
+            if record is not None:
+                return record.value
 
-        return record.value if record is not None else None
+        return None
 
     def scan(self, lower: Record.Key, upper: Record.Key) -> ScanSSTableIterator:
         return ScanSSTableIterator(sstable=self, start_key=lower, end_key=upper)
