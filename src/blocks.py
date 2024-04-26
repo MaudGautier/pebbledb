@@ -2,7 +2,7 @@ import struct
 from typing import Optional, Iterator
 
 from src.iterators import DataBlockIterator
-from src.record import Record
+from src.record import Record, MAX_SNAPSHOT
 
 INT_H_SIZE = 2
 
@@ -57,10 +57,11 @@ class DataBlock:
         return cls(data=encoded_records, offsets=offsets)
 
     # TODO: will need to move this to DataBlockIterator at some point I think
-    def get(self, key: Record.Key) -> Optional[Record]:
+    def get(self, key: Record.Key, snapshot: Optional[int] = None) -> Optional[Record]:
+        snapshot = MAX_SNAPSHOT if snapshot is None else snapshot
         iterator = DataBlockIterator(block=self)
         for record in iterator:
-            if record.key == key:
+            if record.key == key and record.sequence_number <= snapshot:
                 return record
         return None
 

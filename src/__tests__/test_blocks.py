@@ -2,6 +2,7 @@ import random
 
 from src.blocks import DataBlockBuilder, DataBlock, MetaBlock
 from src.record import Record
+from src.sequence_number_generator import SequenceNumberGenerator
 
 
 def test_block_builder_buffer_and_offsets():
@@ -178,3 +179,56 @@ def test_meta_blocks_are_not_equal_if_different_offsets():
 
     # THEN
     assert are_equal is False
+
+
+def test_get_with_duplicates_returns_the_most_recent_version(data_block_with_duplicates,
+                                                             records_key1_for_data_block_with_duplicates,
+                                                             records_key3_for_data_block_with_duplicates,
+                                                             records_key5_for_data_block_with_duplicates,
+                                                             records_key7_for_data_block_with_duplicates):
+    # GIVEN
+    block = data_block_with_duplicates
+
+    # WHEN
+    record_1 = block.get(key=b'key1')
+    record_2 = block.get(key=b'key2')
+    record_3 = block.get(key=b'key3')
+    record_5 = block.get(key=b'key5')
+    record_7 = block.get(key=b'key7')
+
+    # THEN
+    assert record_1 == records_key1_for_data_block_with_duplicates[-1]
+    assert record_2 is None
+    assert record_3 == records_key3_for_data_block_with_duplicates[-1]
+    assert record_5 == records_key5_for_data_block_with_duplicates[-1]
+    assert record_7 == records_key7_for_data_block_with_duplicates[-1]
+
+
+def test_get_with_duplicates_and_snapshot_returns_the_most_recent_version_before_snapshot():
+    # GIVEN
+    record_1a = Record(key=b'1', value=b'1A')
+    record_2a = Record(key=b'2', value=b'2A')
+    record_1b = Record(key=b'1', value=b'1B')
+    record_1c = Record(key=b'1', value=b'1C')
+    record_2b = Record(key=b'2', value=b'2B')
+    record_4a = Record(key=b'4', value=b'4A')
+
+    # In reverse because they are written from most to least recent in data blocks
+    records = list(reversed([record_1a, record_2a, record_1b, record_1c, record_2b, record_4a]))
+    SequenceNumberGenerator.reset()
+    block_builder = DataBlockBuilder(target_size=len(records) * records[0].size)
+    for record in records:
+        block_builder.add(record=record)
+    block = block_builder.create_block()
+
+    # WHEN
+    record_1 = block.get(key=b'1', snapshot=2)
+    record_2 = block.get(key=b'2', snapshot=2)
+    record_3 = block.get(key=b'3', snapshot=2)
+    record_4 = block.get(key=b'4', snapshot=2)
+
+    # THEN
+    assert record_1 == record_1b
+    assert record_2 == record_2a
+    assert record_3 is None
+    assert record_4 is None
