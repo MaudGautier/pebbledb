@@ -184,8 +184,8 @@ class SSTable:
 
         return None
 
-    def scan(self, lower: Record.Key, upper: Record.Key) -> ScanSSTableIterator:
-        return ScanSSTableIterator(sstable=self, start_key=lower, end_key=upper)
+    def scan(self, lower: Record.Key, upper: Record.Key, snapshot: Optional[int] = None) -> ScanSSTableIterator:
+        return ScanSSTableIterator(sstable=self, start_key=lower, end_key=upper, snapshot=snapshot)
 
     @classmethod
     def build_from_path(cls, path: str):

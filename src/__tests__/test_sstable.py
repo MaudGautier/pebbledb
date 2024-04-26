@@ -420,3 +420,42 @@ def test_get_with_duplicates_and_snapshot_returns_most_recent_one_when_on_multip
 
     # THEN
     assert value == b'valueC1'
+
+
+def test_scan_with_duplicates_and_snapshot_returns_most_recent_one_per_key(sstable_with_duplicates,
+                                                                           records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+    records = records_for_sstable_with_duplicates
+
+    # WHEN
+    scanned_records = [record for record in sstable.scan(lower=b'keyA', upper=b'keyB', snapshot=3)]
+
+    # THEN
+    a_record = sorted([record for record in records if record.key == b'keyA'],
+                      key=lambda x: x.sequence_number)[1]
+    b_record = sorted([record for record in records if record.key == b'keyB'],
+                      key=lambda x: x.sequence_number)[0]
+    expected_records = [a_record, b_record]
+
+    assert scanned_records == expected_records
+
+
+def test_scan_with_duplicates_and_snapshot_returns_most_recent_one_when_on_multiple_blocks(
+        sstable_with_duplicates,
+        records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+    records = records_for_sstable_with_duplicates
+
+    # WHEN
+    scanned_records = [record for record in sstable.scan(lower=b'keyC', upper=b'keyD', snapshot=5)]
+
+    # THEN
+    c_record = sorted([record for record in records if record.key == b'keyC'],
+                      key=lambda x: x.sequence_number)[1]
+    d_record = sorted([record for record in records if record.key == b'keyD'],
+                      key=lambda x: x.sequence_number)[0]
+    expected_records = [c_record, d_record]
+
+    assert scanned_records == expected_records

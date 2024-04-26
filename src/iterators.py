@@ -199,10 +199,12 @@ class ScanSSTableIterator(SSTableIterator):
     def __init__(self,
                  sstable: "SSTable",
                  start_key: Optional[Record.Key] = None,
-                 end_key: Optional[Record.Key] = None
+                 end_key: Optional[Record.Key] = None,
+                 snapshot: Optional[int] = None
                  ):
         super().__init__(sstable=sstable, start_key=start_key, end_key=end_key)
         self.last_seen_record = None
+        self.snapshot = snapshot if snapshot else MAX_SNAPSHOT
 
     def __next__(self) -> Record:
         try:
@@ -211,6 +213,10 @@ class ScanSSTableIterator(SSTableIterator):
 
                 # Skip record if duplicate of previous one
                 if self.last_seen_record and record.is_duplicate(self.last_seen_record):
+                    continue
+
+                # Skip record if sequence number is above snapshot
+                if record.sequence_number > self.snapshot:
                     continue
 
                 # Otherwise return
