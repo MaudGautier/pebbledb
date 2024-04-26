@@ -132,14 +132,14 @@ class DataBlockIterator(BaseIterator):
     def __next__(self) -> Record:
         if self._index >= len(self.block.offsets):
             raise StopIteration()
-        offset = self.block.offsets[self._index]
-        next_offset = self.block.offsets[self._index + 1] if self._index + 1 < len(self.block.offsets) else len(
-            self.block.data)
-        self._index += 1
-        encoded_record = self.block.data[offset:next_offset]
-        record = Record.from_bytes(data=encoded_record)
+
+        record = self._get_record(record_index=self._index)
+
         if self._end_key and record.key > self._end_key:
             raise StopIteration
+
+        self._index += 1
+
         return record
 
 
