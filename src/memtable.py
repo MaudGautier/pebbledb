@@ -3,7 +3,7 @@ import time
 from typing import Optional
 
 from src.iterators import MemTableIterator, ScanMemtableIterator
-from src.record import Record
+from src.record import Record, MAX_SNAPSHOT
 from src.red_black_tree import RedBlackTree
 from src.wal import WriteAheadLog
 
@@ -73,12 +73,15 @@ class MemTable:
 
         return record
 
-    def get(self, key: Record.Key) -> Optional[Record.Value]:
-        encoded_records = self.map.get(key=key)
-        if encoded_records is None:
+    def get(self, key: Record.Key, snapshot: Optional[int] = MAX_SNAPSHOT) -> Optional[Record.Value]:
+        encoded_record_versions = self.map.get(key=key)
+        if encoded_record_versions is None:
             return None
 
-        # Newer values are appended to the end
-        decoded_record = Record.from_bytes(encoded_records[-1])
+        # Newer values are appended to the end => reading from the end
+        for encoded_record_version in reversed(encoded_record_versions):
+            decoded_record_version = Record.from_bytes(data=encoded_record_version)
+            if decoded_record_version.sequence_number <= snapshot:
+                return decoded_record_version.value
 
-        return decoded_record.value
+        return None

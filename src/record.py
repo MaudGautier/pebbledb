@@ -3,6 +3,8 @@ from typing import Optional, Tuple
 
 from src.sequence_number_generator import SequenceNumberGenerator
 
+MAX_SNAPSHOT = (2 ** 8) ** 8
+
 
 class Record:
     """This class handles encoding and decoding of Records.
