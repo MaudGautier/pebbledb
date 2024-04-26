@@ -358,8 +358,8 @@ def test_get_with_duplicates_returns_most_recent_one_when_on_multiple_blocks(sst
     assert value == b'valueC3'
 
 
-def test_scan_with_duplicates_returns_most_recent_one_per_scan(sstable_with_duplicates,
-                                                               records_for_sstable_with_duplicates):
+def test_scan_with_duplicates_returns_most_recent_one_per_key(sstable_with_duplicates,
+                                                              records_for_sstable_with_duplicates):
     # GIVEN
     sstable = sstable_with_duplicates
     records = records_for_sstable_with_duplicates
@@ -373,5 +373,24 @@ def test_scan_with_duplicates_returns_most_recent_one_per_scan(sstable_with_dupl
     last_b_record = sorted([record for record in records if record.key == b'keyB'],
                            key=lambda x: x.sequence_number)[-1]
     expected_records = [last_a_record, last_b_record]
+
+    assert scanned_records == expected_records
+
+
+def test_scan_with_duplicates_returns_most_recent_one_when_on_multiple_blocks(sstable_with_duplicates,
+                                                                              records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+    records = records_for_sstable_with_duplicates
+
+    # WHEN
+    scanned_records = [record for record in sstable.scan(lower=b'keyC', upper=b'keyD')]
+
+    # THEN
+    last_c_record = sorted([record for record in records if record.key == b'keyC'],
+                           key=lambda x: x.sequence_number)[-1]
+    last_d_record = sorted([record for record in records if record.key == b'keyD'],
+                           key=lambda x: x.sequence_number)[-1]
+    expected_records = [last_c_record, last_d_record]
 
     assert scanned_records == expected_records
