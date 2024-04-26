@@ -356,3 +356,22 @@ def test_get_with_duplicates_returns_most_recent_one_when_on_multiple_blocks(sst
 
     # THEN
     assert value == b'valueC3'
+
+
+def test_scan_with_duplicates_returns_most_recent_one_per_scan(sstable_with_duplicates,
+                                                               records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+    records = records_for_sstable_with_duplicates
+
+    # WHEN
+    scanned_records = [record for record in sstable.scan(lower=b'keyA', upper=b'keyB')]
+
+    # THEN
+    last_a_record = sorted([record for record in records if record.key == b'keyA'],
+                           key=lambda x: x.sequence_number)[-1]
+    last_b_record = sorted([record for record in records if record.key == b'keyB'],
+                           key=lambda x: x.sequence_number)[-1]
+    expected_records = [last_a_record, last_b_record]
+
+    assert scanned_records == expected_records

@@ -177,6 +177,46 @@ class SSTableIterator(BaseIterator):
             return next(self)
 
 
+class CompactSSTableIterator(SSTableIterator):
+    def __init__(self,
+                 sstable: "SSTable",
+                 start_key: Optional[Record.Key] = None,
+                 end_key: Optional[Record.Key] = None
+                 ):
+        super().__init__(sstable=sstable, start_key=start_key, end_key=end_key)
+
+
+class ScanSSTableIterator(SSTableIterator):
+    def __init__(self,
+                 sstable: "SSTable",
+                 start_key: Optional[Record.Key] = None,
+                 end_key: Optional[Record.Key] = None
+                 ):
+        super().__init__(sstable=sstable, start_key=start_key, end_key=end_key)
+        self.last_seen_record = None
+
+    def __next__(self) -> Record:
+        try:
+            while True:
+                record = next(self.block_iterator)
+
+                # Skip record if duplicate of previous one
+                if self.last_seen_record and record.is_duplicate(self.last_seen_record):
+                    continue
+
+                # Otherwise return
+                self.last_seen_record = record
+                return record
+
+        except StopIteration:
+            self._index += 1
+            if self._index >= len(self.sstable.meta_blocks):
+                raise StopIteration()
+
+            self.block_iterator = self._get_block_iterator(block_id=self._index)
+            return next(self)
+
+
 class MergingIterator(BaseIterator):
     def __init__(self, iterators: list[BaseIterator]):
         super().__init__()

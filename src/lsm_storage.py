@@ -3,8 +3,13 @@ import time
 from collections import deque
 from typing import Optional, Iterator, Deque, Type
 
-from src.iterators import MemTableIterator, MergingIterator, SSTableIterator, ConcatenatingIterator, BaseIterator, \
-    FlushIterator
+from src.iterators import (
+    MergingIterator,
+    ConcatenatingIterator,
+    BaseIterator,
+    FlushIterator,
+    CompactSSTableIterator
+)
 from src.locks import ReadWriteLock, Mutex
 from src.manifest import Manifest, Configuration, FlushEvent, CompactionEvent
 from src.memtable import MemTable
@@ -307,7 +312,7 @@ class LsmStorage:
         with self._locks.read_write.read():
             sstables_to_compact = [sstable for sstable in input_sstables]
             records_iterator = iterator_class(iterators=[
-                SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
+                CompactSSTableIterator(sstable=sstable) for sstable in sstables_to_compact
             ])
 
         # Compute compacted SSTables
