@@ -129,25 +129,18 @@ def sstable_file_1(temporary_sstable_path, content_of_sstable_file_1):
 
 @pytest.fixture
 def records_for_sstable_with_duplicates():
-    key_a_records = [
+    records = [
         Record(key=b'keyA', value=b'valueA1'),
-        Record(key=b'keyA', value=b'valueA2'),
-        Record(key=b'keyA', value=b'valueA3'),
-    ]
-    key_b_records = [
         Record(key=b'keyB', value=b'valueB1'),
-        Record(key=b'keyB', value=b'valueB2'),
-    ]
-    key_c_records = [
+        Record(key=b'keyA', value=b'valueA2'),
         Record(key=b'keyC', value=b'valueC1'),
         Record(key=b'keyC', value=b'valueC2'),
+        Record(key=b'keyD', value=b'valueD1'),
+        Record(key=b'keyA', value=b'valueA3'),
+        Record(key=b'keyB', value=b'valueB2'),
         Record(key=b'keyC', value=b'valueC3'),
     ]
-    key_d_records = [
-        Record(key=b'keyD', value=b'valueD1'),
-    ]
-    all_records = sorted(key_a_records + key_b_records + key_c_records + key_d_records,
-                         key=lambda record: record.to_bytes())
+    all_records = sorted(records, key=lambda record: record.to_bytes())
     # Blocks will be:
     #    # Block 1
     assert all_records[0] == Record(key=b'keyA', value=b'valueA3')

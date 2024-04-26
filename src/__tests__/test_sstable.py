@@ -403,7 +403,7 @@ def test_get_with_duplicates_and_snapshot_returns_most_recent_one_before_snapsho
     sstable = sstable_with_duplicates
 
     # WHEN
-    value = sstable.get(key=b'keyA', snapshot=1)
+    value = sstable.get(key=b'keyA', snapshot=3)
 
     # THEN
     assert value == b'valueA2'
@@ -416,7 +416,7 @@ def test_get_with_duplicates_and_snapshot_returns_most_recent_one_when_on_multip
     sstable = sstable_with_duplicates
 
     # WHEN
-    value = sstable.get(key=b'keyC', snapshot=5)
+    value = sstable.get(key=b'keyC', snapshot=3)
 
     # THEN
     assert value == b'valueC1'
