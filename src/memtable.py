@@ -58,8 +58,11 @@ class MemTable:
 
         return WriteAheadLog.create(path=f"{directory}/{timestamp_in_us}.wal")
 
-    def scan(self, lower: Optional[Record.Key] = None, upper: Optional[Record.Key] = None) -> MemTableIterator:
-        return ScanMemtableIterator(memtable=self, start_key=lower, end_key=upper)
+    def scan(self,
+             lower: Optional[Record.Key] = None,
+             upper: Optional[Record.Key] = None,
+             snapshot: Optional[int] = None) -> MemTableIterator:
+        return ScanMemtableIterator(memtable=self, start_key=lower, end_key=upper, snapshot=snapshot)
 
     def put(self, key: Record.Key, value: Record.Value) -> Record:
         record = Record(key=key, value=value)

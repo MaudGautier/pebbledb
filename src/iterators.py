@@ -1,7 +1,7 @@
 from heapq import heappush, heappop
 from typing import Iterator, TYPE_CHECKING, Optional
 
-from src.record import Record
+from src.record import Record, MAX_SNAPSHOT
 from src.red_black_tree import Node
 
 # TODO: Should be possible to remove this when finished decoupling iterators logic from DataBlocks
@@ -25,11 +25,13 @@ class BaseIterator(Iterator):
 class MemTableIterator(BaseIterator):
     def __init__(self,
                  memtable: "MemTable",
+                 snapshot: Optional[int] = None,
                  start_key: Optional[Record.Key] = None,
                  end_key: Optional[Record.Key] = None):
         super().__init__()
         self.generator = self._select_generator(memtable=memtable, start_key=start_key, end_key=end_key)
         self.current = None
+        self.snapshot = snapshot if snapshot is not None else MAX_SNAPSHOT
 
     @staticmethod
     def _select_generator(
@@ -53,10 +55,15 @@ class MemTableIterator(BaseIterator):
         if self.current is None:
             raise StopIteration
 
-        # Note: Records versions are from oldest to most recent
-        records = [Record.from_bytes(data=encoded_record_version) for encoded_record_version in reversed(self.current)]
+        selected_versions = [
+            record_version
+            # Note: Record versions are from oldest to most recent (hence the need to reverse)
+            for encoded_record_version in reversed(self.current)
+            # Keep only versions whose sequence number is smaller than the snapshot
+            if (record_version := Record.from_bytes(data=encoded_record_version)).sequence_number <= self.snapshot
+        ]
 
-        return records
+        return selected_versions
 
 
 class FlushIterator(MemTableIterator):
@@ -70,9 +77,11 @@ class FlushIterator(MemTableIterator):
 class ScanMemtableIterator(MemTableIterator):
     def __init__(self,
                  memtable: "MemTable",
+                 snapshot: Optional[int] = None,
                  start_key: Optional[Record.Key] = None,
-                 end_key: Optional[Record.Key] = None):
-        super().__init__(memtable=memtable, start_key=start_key, end_key=end_key)
+                 end_key: Optional[Record.Key] = None,
+                 ):
+        super().__init__(memtable=memtable, start_key=start_key, end_key=end_key, snapshot=snapshot)
 
     def __next__(self) -> Record:
         records = super().__next__()

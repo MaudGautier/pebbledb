@@ -170,3 +170,36 @@ def test_get_when_duplicates_and_snapshot_returns_only_the_most_recent_one_below
 
     # THEN
     assert value == b'2'
+
+
+def test_scan_when_duplicates_returns_only_the_most_recent_one_per_key(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    records = [Record(key=b'1', value=b'1A'), Record(key=b'2', value=b'2A'), Record(key=b'1', value=b'1B'),
+               Record(key=b'1', value=b'1C'), Record(key=b'2', value=b'2B'), Record(key=b'4', value=b'4A')]
+    for record in records:
+        memtable.put(key=record.key, value=record.value)
+
+    # WHEN
+    scanned_records = list(memtable.scan(lower=b'0', upper=b'3'))
+
+    # THEN
+    expected_records = [records[3], records[4]]
+    assert scanned_records == expected_records
+
+
+def test_scan_when_duplicates_and_snapshot_returns_only_the_most_recent_one_below_snapshot_per_key(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    records = [Record(key=b'1', value=b'1A'), Record(key=b'2', value=b'2A'), Record(key=b'1', value=b'1B'),
+               Record(key=b'1', value=b'1C'), Record(key=b'2', value=b'2B'), Record(key=b'4', value=b'4A')]
+    SequenceNumberGenerator.reset()
+    for record in records:
+        memtable.put(key=record.key, value=record.value)
+
+    # WHEN
+    scanned_records = list(memtable.scan(lower=b'0', upper=b'3', snapshot=3))
+
+    # THEN
+    expected_records = [records[3], records[1]]
+    assert scanned_records == expected_records
