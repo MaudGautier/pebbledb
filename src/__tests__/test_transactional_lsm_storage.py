@@ -1,3 +1,5 @@
+import threading
+
 from src.record import Record
 
 
@@ -68,3 +70,42 @@ def test_get_in_transactional_store_finds_correct_version_in_ss_tables_level0(
     assert value_a == b'valueA3'
     assert value_b == b'valueB2'
     assert value_c == b'valueC1'
+
+
+def test_get_uses_previous_committed_version(transactional_store_with_duplicates_in_immutable_memtable):
+    # GIVEN
+    store = transactional_store_with_duplicates_in_immutable_memtable
+    original_value = store.get(key=b'keyA')
+
+    # WHEN
+    results = []
+
+    # This start_event, together with the `start_event.wait()` makes sure that both threads will start at the same time
+    # (it is important to remove flakiness)
+    start_event = threading.Event()
+
+    def get_with_return():
+        start_event.wait()  # Wait for the signal to start
+        value = store.get(key=b'keyA')
+        results.append(value)
+
+    def put_wrapper():
+        start_event.wait()  # Wait for the signal to start
+        store.put(key=b'keyA', value=b'new_value')
+
+    put_thread = threading.Thread(target=put_wrapper)
+    get_thread = threading.Thread(target=get_with_return)
+
+    # Start threads
+    put_thread.start()
+    get_thread.start()
+
+    # Signal threads to start operations
+    start_event.set()
+
+    # Join threads
+    put_thread.join()
+    get_thread.join()
+
+    # THEN
+    assert results == [original_value]
