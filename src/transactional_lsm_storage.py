@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Iterator, Optional
 
+from src.iterators import MergingIterator
 from src.lsm_storage import LsmStorage, LsmState
 from src.manifest import Configuration, Manifest
 from src.record import Record
@@ -35,3 +36,17 @@ class TransactionalLsmStorage(LsmStorage):
                 return value
 
         return None
+
+    def scan(self, lower: Record.Key, upper: Record.Key) -> Iterator[Record]:
+        snapshot = self.last_committed_sequence_number
+
+        active_memtable_iterator = self.state.memtable.scan(lower=lower, upper=upper, snapshot=snapshot)
+        immutable_memtables_iterators = [memtable.scan(lower=lower, upper=upper, snapshot=snapshot) for memtable in
+                                         self.state.immutable_memtables]
+        sstables_iterators = [sstable.scan(lower=lower, upper=upper, snapshot=snapshot)
+                              for sstable in self.state.sstables_level0]
+
+        iterators = [active_memtable_iterator] + immutable_memtables_iterators + sstables_iterators
+        iterator = MergingIterator(iterators=iterators)
+
+        yield from iterator

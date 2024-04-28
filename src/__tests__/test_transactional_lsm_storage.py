@@ -109,3 +109,70 @@ def test_get_uses_previous_committed_version(transactional_store_with_duplicates
 
     # THEN
     assert results == [original_value]
+
+
+def test_scan_in_transactional_store_finds_correct_version_in_memtables(
+        transactional_store_with_duplicates_in_immutable_memtable):
+    # GIVEN
+    store = transactional_store_with_duplicates_in_immutable_memtable
+
+    # WHEN
+    values = [record.value for record in store.scan(lower=b'keyA', upper=b'keyB')]
+
+    # THEN
+    assert values == [b'valueA3', b'valueB2']
+
+
+def test_scan_in_transactional_store_finds_correct_version_in_ss_tables_level0(
+        transactional_store_with_duplicates_in_immutable_memtable):
+    # GIVEN
+    store = transactional_store_with_duplicates_in_immutable_memtable
+    store._flush()
+    store._flush()
+    assert len(store.state.immutable_memtables) == 1
+    assert len(store.state.sstables_level0) == 2
+
+    # WHEN
+    values = [record.value for record in store.scan(lower=b'keyA', upper=b'keyB')]
+
+    # THEN
+    assert values == [b'valueA3', b'valueB2']
+
+
+def test_scan_uses_previous_committed_version(transactional_store_with_duplicates_in_immutable_memtable):
+    # GIVEN
+    store = transactional_store_with_duplicates_in_immutable_memtable
+    original_values = [record.value for record in store.scan(lower=b'keyA', upper=b'keyB')]
+
+    # WHEN
+    results = []
+
+    # This start_event, together with the `start_event.wait()` makes sure that both threads will start at the same time
+    # (it is important to remove flakiness)
+    start_event = threading.Event()
+
+    def get_with_return():
+        start_event.wait()  # Wait for the signal to start
+        values = [record.value for record in store.scan(lower=b'keyA', upper=b'keyB')]
+        results.append(values)
+
+    def put_wrapper():
+        start_event.wait()  # Wait for the signal to start
+        store.put(key=b'keyA', value=b'new_value')
+
+    put_thread = threading.Thread(target=put_wrapper)
+    get_thread = threading.Thread(target=get_with_return)
+
+    # Start threads
+    put_thread.start()
+    get_thread.start()
+
+    # Signal threads to start operations
+    start_event.set()
+
+    # Join threads
+    put_thread.join()
+    get_thread.join()
+
+    # THEN
+    assert results == [original_values]
