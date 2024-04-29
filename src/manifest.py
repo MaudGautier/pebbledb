@@ -14,14 +14,14 @@ class Event:
 
 
 class FlushEvent(Event):
-    def __init__(self, sstable: SSTable):
+    def __init__(self, sstable_path: str):
         super().__init__()
-        self.sstable = sstable
+        self.sstable_path = sstable_path
 
     def __eq__(self, other):
         if not isinstance(other, FlushEvent):
             return NotImplemented
-        return self.sstable == other.sstable
+        return self.sstable_path == other.sstable_path
 
 
 class CompactionEvent(Event):
@@ -219,7 +219,7 @@ class Manifest:
 
         for event in self.events:
             if isinstance(event, FlushEvent):
-                ss_tables_levels[0].insert(0, event.sstable)
+                ss_tables_levels[0].insert(0, SSTable.build_from_path(event.sstable_path))
             if isinstance(event, CompactionEvent):
                 level = event.level
                 for sstable in event.output_sstables:
@@ -291,7 +291,7 @@ class ManifestFlushRecord(ManifestRecord):
         self.event = event
 
     def to_bytes(self):
-        manifest_ss_table = ManifestSSTable(sstable_path=self.event.sstable.file.path)
+        manifest_ss_table = ManifestSSTable(sstable_path=self.event.sstable_path)
         encoded_manifest_sstable = manifest_ss_table.to_bytes()
         encoded_size = struct.pack("B", len(encoded_manifest_sstable))
 
@@ -301,7 +301,7 @@ class ManifestFlushRecord(ManifestRecord):
     def from_bytes(cls, data: bytes) -> "ManifestFlushRecord":
         size = struct.unpack("B", data[0:1])[0]
         sstable_path = ManifestSSTable.from_bytes(data=data[1:1 + size]).sstable_path
-        event = FlushEvent(sstable=SSTable.build_from_path(sstable_path))
+        event = FlushEvent(sstable_path=sstable_path)
 
         return cls(event=event)
 

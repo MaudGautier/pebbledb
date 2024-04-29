@@ -237,7 +237,7 @@ class LsmStorage:
             self.state.sstables_level0.insert(0, sstable)
 
         # Write to manifest
-        event = FlushEvent(sstable=sstable)
+        event = FlushEvent(sstable_path=sstable.file.path)
         self.manifest.add_event(event=event)
 
         # Delete the WAL
