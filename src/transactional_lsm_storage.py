@@ -8,13 +8,24 @@ from src.record import Record
 
 class TransactionalLsmStorage(LsmStorage):
     def __init__(self,
-                 configuration: Configuration,
-                 directory: str,
-                 state: LsmState,
-                 manifest: Manifest
+                 last_committed_sequence_number: int,
+                 **kwargs,
                  ):
-        super().__init__(configuration=configuration, directory=directory, state=state, manifest=manifest)
-        self.last_committed_sequence_number: int = -1
+        super().__init__(**kwargs)
+        self.last_committed_sequence_number: int = last_committed_sequence_number
+
+    @classmethod
+    def create(cls, **kwargs) -> "TransactionalLsmStorage":
+
+        lsm_storage = LsmStorage.create(**kwargs)
+
+        last_committed_sequence_number = -1
+
+        return cls(configuration=lsm_storage.manifest.configuration,
+                   directory=lsm_storage.directory,
+                   state=lsm_storage.state,
+                   manifest=lsm_storage.manifest,
+                   last_committed_sequence_number=last_committed_sequence_number)
 
     def put(self, key: Record.Key, value: Record.Value):
         record = self.state.memtable.put(key=key, value=value)

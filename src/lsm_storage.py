@@ -43,7 +43,6 @@ class LsmStorage:
                  manifest: Manifest
                  ):
         self.directory = directory
-        self._create_directory()
         self.manifest = manifest
 
         # Configuration
@@ -71,6 +70,8 @@ class LsmStorage:
                nb_levels: int = 6,
                directory: Optional[str] = ".",
                ) -> "LsmStorage":
+
+        cls._create_directory(directory=directory)
 
         configuration = Configuration(
             nb_levels=nb_levels,
@@ -271,9 +272,10 @@ class LsmStorage:
         timestamp_in_us = int(time.time() * 1_000_000)
         return f"{self.directory}/{timestamp_in_us}.sst"
 
-    def _create_directory(self) -> None:
-        if not os.path.exists(self.directory):
-            os.makedirs(self.directory)
+    @staticmethod
+    def _create_directory(directory: str) -> None:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
     def _compute_compacted_ss_tables(self, records_iterator: BaseIterator) -> list[SSTable]:
         """Computes the new set of compacted SSTable by iterating over all records.
