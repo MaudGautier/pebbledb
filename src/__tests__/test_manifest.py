@@ -273,14 +273,14 @@ def test_compaction_events_are_not_equal_if_different_attributes(sstable_one_blo
 def test_encode_decode_manifest_sstable(sstable_one_block_1):
     # GIVEN
     sstable = sstable_one_block_1
-    manifest_sstable = ManifestSSTable(sstable=sstable)
+    manifest_sstable = ManifestSSTable(sstable_path=sstable.file.path)
 
     # WHEN
     encoded_manifest_sstable = manifest_sstable.to_bytes()
     decoded_manifest_sstable = ManifestSSTable.from_bytes(data=encoded_manifest_sstable)
 
     # THEN
-    assert manifest_sstable.sstable == decoded_manifest_sstable.sstable
+    assert manifest_sstable.sstable_path == decoded_manifest_sstable.sstable_path
 
 
 def test_encode_decode_manifest_flush_record(sstable_one_block_1):
@@ -301,14 +301,14 @@ def test_encode_decode_manifest_sstable_block(sstable_one_block_1, sstable_one_b
     # GIVEN
     sstable1 = sstable_one_block_1
     sstable2 = sstable_one_block_2
-    sstables_to_encode = [sstable1, sstable2]
+    sstables_paths_to_encode = [sstable1.file.path, sstable2.file.path]
 
     # WHEN
-    encoded_block = ManifestSSTablesBlock(sstables=sstables_to_encode).to_bytes()
-    decoded_sstables = ManifestSSTablesBlock.from_bytes(data=encoded_block).sstables
+    encoded_block = ManifestSSTablesBlock(sstables_paths=sstables_paths_to_encode).to_bytes()
+    decoded_sstables_paths = ManifestSSTablesBlock.from_bytes(data=encoded_block).sstables_paths
 
     # THEN
-    assert decoded_sstables == sstables_to_encode
+    assert decoded_sstables_paths == sstables_paths_to_encode
 
 
 def test_encode_decode_manifest_compaction_record(sstable_one_block_1, sstable_one_block_2):
