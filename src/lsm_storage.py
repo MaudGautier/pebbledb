@@ -319,7 +319,10 @@ class LsmStorage:
                     input_sstables.remove(sstable)
 
         # Write to manifest
-        event = CompactionEvent(input_sstables=sstables_to_compact, output_sstables=new_ss_tables, level=input_level)
+        event = CompactionEvent(
+            input_sstables_paths=[sstable.file.path for sstable in sstables_to_compact],
+            output_sstables_paths=[sstable.file.path for sstable in new_ss_tables],
+            level=input_level)
         self.manifest.add_event(event=event)
 
         # Delete old SSTables

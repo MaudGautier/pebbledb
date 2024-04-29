@@ -5,7 +5,7 @@ from collections import deque
 from typing import Dict, Type, BinaryIO, Deque, Tuple
 
 from src.checksums import Checksum
-from src.sstable import SSTable
+from src.sstable import SSTable, SSTableFile
 
 
 class Event:
@@ -14,7 +14,7 @@ class Event:
 
 
 class FlushEvent(Event):
-    def __init__(self, sstable_path: str):
+    def __init__(self, sstable_path: SSTableFile.Path):
         super().__init__()
         self.sstable_path = sstable_path
 
@@ -25,17 +25,20 @@ class FlushEvent(Event):
 
 
 class CompactionEvent(Event):
-    def __init__(self, input_sstables: list[SSTable], output_sstables: list[SSTable], level: int):
+    def __init__(self,
+                 input_sstables_paths: list[SSTableFile.Path],
+                 output_sstables_paths: list[SSTableFile.Path],
+                 level: int):
         super().__init__()
-        self.input_sstables = input_sstables
-        self.output_sstables = output_sstables
+        self.input_sstables_paths = input_sstables_paths
+        self.output_sstables_paths = output_sstables_paths
         self.level = level
 
     def __eq__(self, other):
         if not isinstance(other, CompactionEvent):
             return NotImplemented
-        return (self.input_sstables == other.input_sstables
-                and self.output_sstables == other.output_sstables
+        return (self.input_sstables_paths == other.input_sstables_paths
+                and self.output_sstables_paths == other.output_sstables_paths
                 and self.level == other.level)
 
 
@@ -222,10 +225,10 @@ class Manifest:
                 ss_tables_levels[0].insert(0, SSTable.build_from_path(event.sstable_path))
             if isinstance(event, CompactionEvent):
                 level = event.level
-                for sstable in event.output_sstables:
-                    ss_tables_levels[level + 1].insert(0, sstable)
-                for sstable in event.input_sstables:
-                    ss_tables_levels[level].remove(sstable)
+                for sstable_path in event.output_sstables_paths:
+                    ss_tables_levels[level + 1].insert(0, SSTable.build_from_path(sstable_path))
+                for sstable_path in event.input_sstables_paths:
+                    ss_tables_levels[level].remove(SSTable.build_from_path(sstable_path))
 
         return ss_tables_levels
 
@@ -317,7 +320,7 @@ class ManifestSSTable:
     +-----------+-----------------+
     """
 
-    def __init__(self, sstable_path: str):
+    def __init__(self, sstable_path: SSTableFile.Path):
         self.sstable_path = sstable_path
 
     @property
@@ -340,7 +343,7 @@ class ManifestSSTable:
 
 
 class ManifestSSTablesBlock:
-    def __init__(self, sstables_paths: list[str]):
+    def __init__(self, sstables_paths: list[SSTableFile.Path]):
         self.sstables_paths = sstables_paths
 
     def to_bytes(self) -> bytes:
@@ -385,15 +388,13 @@ class ManifestCompactionRecord(ManifestRecord):
     def to_bytes(self) -> bytes:
         encoded_level = struct.pack("B", self.event.level)
 
-        encoded_in_sstables = ManifestSSTablesBlock(
-            sstables_paths=[sstable.file.path for sstable in self.event.input_sstables]).to_bytes()
-        encoded_out_sstables = ManifestSSTablesBlock(
-            sstables_paths=[sstable.file.path for sstable in self.event.output_sstables]).to_bytes()
-        encoded_size_in_sstables = struct.pack("H", len(encoded_in_sstables))
-        encoded_size_out_sstables = struct.pack("H", len(encoded_out_sstables))
+        encoded_in_sstables_paths = ManifestSSTablesBlock(sstables_paths=self.event.input_sstables_paths).to_bytes()
+        encoded_out_sstables_paths = ManifestSSTablesBlock(sstables_paths=self.event.output_sstables_paths).to_bytes()
+        encoded_size_in_sstables = struct.pack("H", len(encoded_in_sstables_paths))
+        encoded_size_out_sstables = struct.pack("H", len(encoded_out_sstables_paths))
 
         return (encoded_level + encoded_size_in_sstables + encoded_size_out_sstables +
-                encoded_in_sstables + encoded_out_sstables)
+                encoded_in_sstables_paths + encoded_out_sstables_paths)
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "ManifestCompactionRecord":
@@ -408,28 +409,26 @@ class ManifestCompactionRecord(ManifestRecord):
         encoded_input_sstables = data[input_sstables_start:output_sstables_start]
         encoded_output_sstables = data[output_sstables_start:output_sstables_end]
 
-        decoded_input_sstables = [SSTable.build_from_path(path=path) for path in
-                                  ManifestSSTablesBlock.from_bytes(data=encoded_input_sstables).sstables_paths]
-        decoded_output_sstables = [SSTable.build_from_path(path=path) for path in
-                                   ManifestSSTablesBlock.from_bytes(data=encoded_output_sstables).sstables_paths]
+        decoded_input_sstables_paths = ManifestSSTablesBlock.from_bytes(data=encoded_input_sstables).sstables_paths
+        decoded_output_sstables_paths = ManifestSSTablesBlock.from_bytes(data=encoded_output_sstables).sstables_paths
 
-        compaction_event = CompactionEvent(input_sstables=decoded_input_sstables,
-                                           output_sstables=decoded_output_sstables,
+        compaction_event = CompactionEvent(input_sstables_paths=decoded_input_sstables_paths,
+                                           output_sstables_paths=decoded_output_sstables_paths,
                                            level=level)
 
         return cls(event=compaction_event)
 
     @staticmethod
-    def decode_manifest_sstables_block(data: bytes) -> list[SSTable]:
-        sstables = []
+    def decode_manifest_sstables_block(data: bytes) -> list[SSTableFile.Path]:
+        sstables_paths = []
 
         while len(data):
             manifest_sstable = ManifestSSTable.from_bytes(data=data)
-            sstables.append(manifest_sstable.sstable)
+            sstables_paths.append(manifest_sstable.sstable_path)
             data = data[manifest_sstable.size:]
 
-        return sstables
+        return sstables_paths
 
     @staticmethod
-    def encode_manifest_sstables_block(sstables: list[SSTable]) -> bytes:
-        return b''.join([ManifestSSTable(sstable).to_bytes() for sstable in sstables])
+    def encode_manifest_sstables_block(sstables_paths: list[SSTableFile.Path]) -> bytes:
+        return b''.join([ManifestSSTable(sstable_path=sstable_path).to_bytes() for sstable_path in sstables_paths])

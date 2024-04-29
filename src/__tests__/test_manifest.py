@@ -84,7 +84,7 @@ def test_reconstruct_from_one_flush_event_and_one_compaction_event(sstable_four_
     sstable2 = sstable_one_block_1
     events = [
         FlushEvent(sstable_path=sstable1.file.path),
-        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0)
+        CompactionEvent(input_sstables_paths=[sstable1.file.path], output_sstables_paths=[sstable2.file.path], level=0)
     ]
     manifest = Manifest(events=events, configuration=empty_manifest_file_configuration, file=empty_manifest_file)
 
@@ -110,8 +110,8 @@ def test_reconstruct_from_one_flush_event_and_two_compaction_events(sstable_four
     sstable3 = sstable_one_block_2
     events = [
         FlushEvent(sstable_path=sstable1.file.path),
-        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0),
-        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], level=1)
+        CompactionEvent(input_sstables_paths=[sstable1.file.path], output_sstables_paths=[sstable2.file.path], level=0),
+        CompactionEvent(input_sstables_paths=[sstable2.file.path], output_sstables_paths=[sstable3.file.path], level=1)
     ]
     manifest = Manifest(events=events, configuration=empty_manifest_file_configuration, file=empty_manifest_file)
 
@@ -140,9 +140,9 @@ def test_reconstruct_from_one_flush_event_and_three_compaction_events(sstable_on
     sstable4 = sstable_one_block_4
     events = [
         FlushEvent(sstable_path=sstable1.file.path),
-        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0),
-        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable3], level=1),
-        CompactionEvent(input_sstables=[sstable3], output_sstables=[sstable4], level=2),
+        CompactionEvent(input_sstables_paths=[sstable1.file.path], output_sstables_paths=[sstable2.file.path], level=0),
+        CompactionEvent(input_sstables_paths=[sstable2.file.path], output_sstables_paths=[sstable3.file.path], level=1),
+        CompactionEvent(input_sstables_paths=[sstable3.file.path], output_sstables_paths=[sstable4.file.path], level=2),
     ]
     manifest = Manifest(events=events, configuration=empty_manifest_file_configuration, file=empty_manifest_file)
 
@@ -171,7 +171,10 @@ def test_reconstruct_from_two_flush_events_and_one_compaction_event(sstable_one_
     events = [
         FlushEvent(sstable_path=sstable1.file.path),
         FlushEvent(sstable_path=sstable2.file.path),
-        CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable3], level=0),
+        CompactionEvent(
+            input_sstables_paths=[sstable1.file.path, sstable2.file.path],
+            output_sstables_paths=[sstable3.file.path],
+            level=0),
     ]
     manifest = Manifest(events=events, configuration=empty_manifest_file_configuration, file=empty_manifest_file)
 
@@ -199,9 +202,9 @@ def test_reconstruct_from_two_flush_events_interspaced_with_compaction_events(ss
     sstable4 = sstable_one_block_4
     events = [
         FlushEvent(sstable_path=sstable1.file.path),
-        CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable3], level=0),
+        CompactionEvent(input_sstables_paths=[sstable1.file.path], output_sstables_paths=[sstable3.file.path], level=0),
         FlushEvent(sstable_path=sstable2.file.path),
-        CompactionEvent(input_sstables=[sstable2], output_sstables=[sstable4], level=0),
+        CompactionEvent(input_sstables_paths=[sstable2.file.path], output_sstables_paths=[sstable4.file.path], level=0),
     ]
     manifest = Manifest(events=events, configuration=empty_manifest_file_configuration, file=empty_manifest_file)
 
@@ -242,8 +245,14 @@ def test_compaction_events_are_equal(sstable_one_block_1, sstable_one_block_2):
     # GIVEN
     sstable1 = sstable_one_block_1
     sstable2 = sstable_one_block_2
-    compaction_event_1 = CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=1)
-    compaction_event_2 = CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=1)
+    compaction_event_1 = CompactionEvent(
+        input_sstables_paths=[sstable1.file.path],
+        output_sstables_paths=[sstable2.file.path],
+        level=1)
+    compaction_event_2 = CompactionEvent(
+        input_sstables_paths=[sstable1.file.path],
+        output_sstables_paths=[sstable2.file.path],
+        level=1)
 
     # WHEN
     are_equal = compaction_event_1 == compaction_event_2
@@ -259,10 +268,14 @@ def test_compaction_events_are_not_equal_if_different_attributes(sstable_one_blo
     sstable2 = sstable_one_block_2
     sstable3 = sstable_one_block_3
     sstable4 = sstable_one_block_4
-    compaction_event = CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable3], level=1)
-    compaction_event_input = CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable3], level=1)
-    compaction_event_output = CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable4], level=1)
-    compaction_event_level = CompactionEvent(input_sstables=[sstable1, sstable2], output_sstables=[sstable3], level=2)
+    compaction_event = CompactionEvent(input_sstables_paths=[sstable1.file.path, sstable2.file.path],
+                                       output_sstables_paths=[sstable3.file.path], level=1)
+    compaction_event_input = CompactionEvent(input_sstables_paths=[sstable1.file.path],
+                                             output_sstables_paths=[sstable3.file.path], level=1)
+    compaction_event_output = CompactionEvent(input_sstables_paths=[sstable1.file.path, sstable2.file.path],
+                                              output_sstables_paths=[sstable4.file.path], level=1)
+    compaction_event_level = CompactionEvent(input_sstables_paths=[sstable1.file.path, sstable2.file.path],
+                                             output_sstables_paths=[sstable3.file.path], level=2)
 
     # WHEN/THEN
     assert compaction_event != compaction_event_input
@@ -315,7 +328,10 @@ def test_encode_decode_manifest_compaction_record(sstable_one_block_1, sstable_o
     # GIVEN
     sstable1 = sstable_one_block_1
     sstable2 = sstable_one_block_2
-    compaction_event = CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0)
+    compaction_event = CompactionEvent(
+        input_sstables_paths=[sstable1.file.path],
+        output_sstables_paths=[sstable2.file.path],
+        level=0)
 
     manifest_compaction_record = ManifestCompactionRecord(event=compaction_event)
 
@@ -324,8 +340,8 @@ def test_encode_decode_manifest_compaction_record(sstable_one_block_1, sstable_o
     decoded_manifest_record = ManifestCompactionRecord.from_bytes(data=encoded_manifest_record)
 
     # THEN
-    assert manifest_compaction_record.event.input_sstables == decoded_manifest_record.event.input_sstables
-    assert manifest_compaction_record.event.output_sstables == decoded_manifest_record.event.output_sstables
+    assert manifest_compaction_record.event.input_sstables_paths == decoded_manifest_record.event.input_sstables_paths
+    assert manifest_compaction_record.event.output_sstables_paths == decoded_manifest_record.event.output_sstables_paths
     assert manifest_compaction_record.event.level == decoded_manifest_record.event.level
 
 
@@ -352,8 +368,8 @@ def test_encode_decode_manifest_record_which_is_a_compaction_record(sstable_one_
     sstable2 = sstable_one_block_2
     sstable3 = sstable_one_block_3
     sstable4 = sstable_one_block_4
-    compaction_event = CompactionEvent(input_sstables=[sstable1, sstable2],
-                                       output_sstables=[sstable3, sstable4],
+    compaction_event = CompactionEvent(input_sstables_paths=[sstable1.file.path, sstable2.file.path],
+                                       output_sstables_paths=[sstable3.file.path, sstable4.file.path],
                                        level=1)
     manifest_record = ManifestRecord(event=compaction_event)
 
@@ -444,9 +460,9 @@ def test_encode_flush_event_calls_uses_flush_record_encoding(sstable_four_blocks
 
 def test_encode_compaction_event_calls_uses_compaction_record_encoding(sstable_one_block_1, sstable_one_block_2):
     # GIVEN
-    sstable1 = sstable_one_block_1
-    sstable2 = sstable_one_block_2
-    event = CompactionEvent(input_sstables=[sstable1], output_sstables=[sstable2], level=0)
+    sstable1_path = sstable_one_block_1.file.path
+    sstable2_path = sstable_one_block_2.file.path
+    event = CompactionEvent(input_sstables_paths=[sstable1_path], output_sstables_paths=[sstable2_path], level=0)
     record = ManifestRecord(event=event)
 
     # WHEN/THEN
@@ -463,7 +479,10 @@ def test_can_write_events_to_manifest(empty_manifest_file, empty_manifest_file_c
     #  GIVEN
     manifest_file = empty_manifest_file
     event1 = FlushEvent(sstable_path=sstable_one_block_1.file.path)
-    event2 = CompactionEvent(input_sstables=[sstable_one_block_2], output_sstables=[sstable_one_block_3], level=2)
+    event2 = CompactionEvent(
+        input_sstables_paths=[sstable_one_block_2.file.path],
+        output_sstables_paths=[sstable_one_block_3.file.path],
+        level=2)
 
     # WHEN
     manifest_file.write_event(event=event1)
@@ -500,7 +519,10 @@ def test_can_decode_manifest_file_with_multiple_events(empty_manifest_file, empt
     manifest_file = empty_manifest_file
     events = [
         FlushEvent(sstable_path=sstable_one_block_1.file.path),
-        CompactionEvent(input_sstables=[sstable_one_block_2, sstable_one_block_3], output_sstables=[], level=3),
+        CompactionEvent(
+            input_sstables_paths=[sstable_one_block_2.file.path, sstable_one_block_3.file.path],
+            output_sstables_paths=[],
+            level=3),
         FlushEvent(sstable_path=sstable_one_block_4.file.path)
     ]
     for event in events:
@@ -534,7 +556,10 @@ def test_add_events_to_manifest(sample_manifest_0_without_events,
     manifest = sample_manifest_0_without_events
     assert len(manifest.events) == 0
     event1 = FlushEvent(sstable_path=sstable_one_block_1.file.path)
-    event2 = CompactionEvent(input_sstables=[sstable_one_block_2], output_sstables=[sstable_one_block_3], level=2)
+    event2 = CompactionEvent(
+        input_sstables_paths=[sstable_one_block_2.file.path],
+        output_sstables_paths=[sstable_one_block_3.file.path],
+        level=2)
     events = [event1, event2]
 
     # WHEN
@@ -577,7 +602,7 @@ def test_corrupted_manifest_ignores_last_flush_operation(
 #     # GIVEN
 #     manifest_file = empty_manifest_file
 #     events = [
-#         CompactionEvent(input_sstables=[sstable_one_block_2, sstable_one_block_3], output_sstables=[], level=3),
+#         CompactionEvent(input_sstables=[sstable_one_block_2.file.path, sstable_one_block_3.file.path], output_sstables=[], level=3),
 #     ]
 #     for event in events:
 #         manifest_file.write_event(event=event)
