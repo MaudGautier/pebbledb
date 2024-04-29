@@ -98,3 +98,27 @@ def test_not_equal_if_different_nodes(empty_memtable, empty_memtable2):
 
     # WHEN/THEN
     assert memtable1 != memtable2
+
+
+def test_can_recover_with_corrupted_wal(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    key_value_pairs = [(b'1', b'value1'), (b'4', b'value4'), (b'6', b'value6'), (b'9', b'value9')]
+    for key, value in key_value_pairs:
+        memtable.put(key=key, value=value)
+    wal_path = memtable.wal.path
+
+    # Corrupt the last one
+    with open(memtable.wal.path, "rb") as file:
+        data = file.read()
+    with open(memtable.wal.path, "wb") as file:
+        file.write(data[:-5])
+
+    # WHEN
+    resulting_memtable = memtable.create_from_wal(wal_path=wal_path)
+
+    # THEN
+    resulting_records = [record for record in resulting_memtable.map]
+    all_records = [record for record in memtable.map]
+    all_records_but_corrupted_one = all_records[:-1]
+    assert resulting_records == all_records_but_corrupted_one
