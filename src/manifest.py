@@ -1,8 +1,10 @@
+import logging
 import os
 import struct
 from collections import deque
-from typing import Dict, Type, BinaryIO, Deque
+from typing import Dict, Type, BinaryIO, Deque, Tuple
 
+from src.checksums import Checksum
 from src.sstable import SSTable
 
 
@@ -149,10 +151,12 @@ class ManifestFile:
     def write_event(self, event: Event):
         record = ManifestRecord(event=event)
         encoded_record = record.to_bytes()
+        encoded_checksum = Checksum(data=encoded_record).to_bytes()
+        self.file.write(encoded_checksum)
         self.file.write(encoded_record)
         self.file.flush()
 
-    def decode(self):
+    def decode(self) -> Tuple[ManifestHeader, list[Event]]:
         with open(self.path, "rb") as f:
             data = f.read()
 
@@ -169,8 +173,17 @@ class ManifestFile:
     def decode_events(data: bytes) -> list[Event]:
         events = []
         while len(data):
-            manifest_record = ManifestRecord.from_bytes(data=data)
-            event, checkpoint = manifest_record.event, manifest_record.size
+            checksum_size = Checksum.nb_bytes
+            expected_checksum = Checksum.from_bytes(data=data[:checksum_size])
+            manifest_record = ManifestRecord.from_bytes(data=data[checksum_size:])
+
+            # Check that record is not corrupted - ignore the rest of the WAL if it is corrupted
+            record_checksum = Checksum(data=manifest_record.to_bytes())
+            if record_checksum != expected_checksum:
+                logging.info("Record corrupted. Ignoring the rest of the WAL")
+                break
+
+            event, checkpoint = manifest_record.event, manifest_record.size + checksum_size
             events.append(event)
             data = data[checkpoint:]
         return events

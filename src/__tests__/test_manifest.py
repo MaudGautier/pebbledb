@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 
+from src.checksums import Checksum
 from src.manifest import (
     Manifest,
     ManifestSSTable,
@@ -471,11 +472,13 @@ def test_can_write_events_to_manifest(empty_manifest_file, empty_manifest_file_c
     # THEN
     encoded_header = ManifestHeader(configuration=empty_manifest_file_configuration).to_bytes()
     encoded_record1 = ManifestRecord(event=event1).to_bytes()
+    encoded_checksum_1 = Checksum(data=encoded_record1).to_bytes()
     encoded_record2 = ManifestRecord(event=event2).to_bytes()
+    encoded_checksum_2 = Checksum(data=encoded_record2).to_bytes()
     with open(manifest_file.path, "rb") as f:
         data = f.read()
     assert data.startswith(encoded_header)
-    assert data == encoded_header + encoded_record1 + encoded_record2
+    assert data == encoded_header + encoded_checksum_1 + encoded_record1 + encoded_checksum_2 + encoded_record2
 
 
 def test_can_decode_manifest_file_with_no_events(empty_manifest_file, empty_manifest_file_configuration):
