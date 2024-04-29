@@ -4,6 +4,8 @@ from typing import Optional
 
 
 class Checksum:
+    nb_bytes = 4
+
     def __init__(self, data: Optional[bytes] = None, checksum: Optional[int] = None):
         if checksum and data:
             raise ValueError(f"Both checksum ({checksum}) and data ({data}) were provided, there should be only one!")
