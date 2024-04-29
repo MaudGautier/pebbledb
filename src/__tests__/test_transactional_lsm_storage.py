@@ -195,3 +195,16 @@ def test_create_initializes_with_correct_sequence_number():
 
     # THEN
     assert transactional_store.last_committed_sequence_number == -1
+
+
+def test_reconstruct_from_manifest_selects_the_correct_sequence_number(sample_manifest_1_with_events,
+                                                                       records_for_sstable_one_block):
+    # GIVEN
+    manifest = sample_manifest_1_with_events
+
+    # WHEN
+    reconstructed_store = TransactionalLsmStorage.reconstruct(manifest_path=manifest.file.path)
+
+    # THEN
+    expected_last_sequence_number = len(records_for_sstable_one_block) - 1  # Because manifest made of these events
+    assert reconstructed_store.last_committed_sequence_number == expected_last_sequence_number

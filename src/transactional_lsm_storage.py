@@ -61,3 +61,26 @@ class TransactionalLsmStorage(LsmStorage):
         iterator = MergingIterator(iterators=iterators)
 
         yield from iterator
+
+    @classmethod
+    def reconstruct(cls, manifest_path: str) -> "TransactionalLsmStorage":
+        lsm_storage = LsmStorage.reconstruct_from_manifest(manifest_path=manifest_path)
+
+        last_committed_sequence_number = cls._get_last_committed_sequence_number(state=lsm_storage.state)
+
+        return cls(
+            configuration=lsm_storage.manifest.configuration,
+            directory=lsm_storage.directory,
+            state=lsm_storage.state,
+            manifest=lsm_storage.manifest,
+            last_committed_sequence_number=last_committed_sequence_number
+        )
+
+    @staticmethod
+    def _get_last_committed_sequence_number(state: LsmState) -> int:
+        max_sequence_number = -1
+        for level_ss_tables in [state.sstables_level0, *state.sstables_levels]:
+            for sstable in level_ss_tables:
+                max_sequence_number = max(max_sequence_number, sstable.max_sequence_number)
+
+        return max_sequence_number
