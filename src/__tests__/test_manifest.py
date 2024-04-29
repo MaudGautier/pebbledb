@@ -594,27 +594,29 @@ def test_corrupted_manifest_ignores_last_flush_operation(
     # THEN
     assert read_events == events[:-1]
 
-# def test_corrupted_manifest_ignores_last_compact_operation(
-#         empty_manifest_file,
-#         sstable_one_block_2,
-#         sstable_one_block_3,
-# ):
-#     # GIVEN
-#     manifest_file = empty_manifest_file
-#     events = [
-#         CompactionEvent(input_sstables=[sstable_one_block_2.file.path, sstable_one_block_3.file.path], output_sstables=[], level=3),
-#     ]
-#     for event in events:
-#         manifest_file.write_event(event=event)
-#
-#     # Corrupt the last one
-#     with open(manifest_file.path, "rb") as file:
-#         data = file.read()
-#     with open(manifest_file.path, "wb") as file:
-#         file.write(data[:-10])
-#
-#     # WHEN
-#     _, read_events = manifest_file.decode()
-#
-#     # THEN
-#     assert read_events == events[:-1]
+
+def test_corrupted_manifest_ignores_last_compact_operation(
+        empty_manifest_file,
+        sstable_one_block_2,
+        sstable_one_block_3,
+):
+    # GIVEN
+    manifest_file = empty_manifest_file
+    events = [
+        CompactionEvent(input_sstables_paths=[sstable_one_block_2.file.path, sstable_one_block_3.file.path],
+                        output_sstables_paths=[], level=3),
+    ]
+    for event in events:
+        manifest_file.write_event(event=event)
+
+    # Corrupt the last one
+    with open(manifest_file.path, "rb") as file:
+        data = file.read()
+    with open(manifest_file.path, "wb") as file:
+        file.write(data[:-10])
+
+    # WHEN
+    _, read_events = manifest_file.decode()
+
+    # THEN
+    assert read_events == events[:-1]
