@@ -68,7 +68,7 @@ class Record:
         return encoded_key_size + encoded_key + encoded_value_size + encoded_value
 
     @classmethod
-    def _from_bytes(cls, data: bytes) -> tuple["Record", int]:
+    def decode_single_record(cls, data: bytes) -> tuple["Record", int]:
         key_size_end = cls.NB_BYTES_INTEGER
         key_size = struct.unpack("i", data[:key_size_end])[0]
         key_end = key_size_end + key_size
@@ -82,15 +82,5 @@ class Record:
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "Record":
-        record, _ = cls._from_bytes(data=data)
+        record, _ = cls.decode_single_record(data=data)
         return record
-
-    # TODO: move this to a dedicated class (this would be an iterator)
-    @classmethod
-    def list_from_bytes(cls, data: bytes) -> list["Record"]:
-        records = []
-        while len(data):
-            record, checkpoint = cls._from_bytes(data)
-            records.append(record)
-            data = data[checkpoint:]
-        return records

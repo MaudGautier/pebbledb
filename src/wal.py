@@ -28,7 +28,12 @@ class WriteAheadLog:
 
     def read_records(self) -> list[Record]:
         data = self.file.read()
-        return Record.list_from_bytes(data=data)
+        records = []
+        while len(data):
+            record, checkpoint = Record.decode_single_record(data)
+            records.append(record)
+            data = data[checkpoint:]
+        return records
 
     @staticmethod
     def _exists(path: str) -> bool:
