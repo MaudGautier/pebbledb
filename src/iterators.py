@@ -276,16 +276,19 @@ class ScanSSTableIterator(SSTableIterator):
 
 
 class MergingIterator(BaseIterator):
-    def __init__(self, iterators: list[BaseIterator]):
+    def __init__(self, iterators: list[BaseIterator], filter_duplicates: bool = True):
         super().__init__()
         self.iterators = iterators
-        self.merged_and_filtered_iterator = self._filter_duplicate_keys(self._merge_iterators())
+        if filter_duplicates:
+            self.merged_iterator = self._filter_duplicate_keys(self._merge_iterators())
+        else:
+            self.merged_iterator = self._merge_iterators()
 
     def __iter__(self) -> "MergingIterator":
         return self
 
     def __next__(self):
-        return next(self.merged_and_filtered_iterator)
+        return next(self.merged_iterator)
 
     def _merge_iterators(self) -> BaseIterator:
         no_item = object()
