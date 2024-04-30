@@ -208,3 +208,45 @@ def test_reconstruct_from_manifest_selects_the_correct_sequence_number(sample_ma
     # THEN
     expected_last_sequence_number = len(records_for_sstable_one_block) - 1  # Because manifest made of these events
     assert reconstructed_store.last_committed_sequence_number == expected_last_sequence_number
+
+
+def test_get_adds_snapshot_to_list_and_then_removes_it(empty_transactional_store):
+    # GIVEN
+    store = empty_transactional_store
+    initial_size = len(store.current_snapshots)
+
+    # Define a wrapper for the _get method that includes the assertion
+    def wrapper(*args, **kwargs):
+        # THEN: Before calling `_get`, the snapshot must have been added to the list of current snapshots
+        assert len(store.current_snapshots) == initial_size + 1
+
+        store._get(*args, **kwargs)
+
+    # Patch the _get method with our wrapper
+    with mock.patch.object(store, '_get', wrapper=wrapper):
+        # WHEN
+        store.get(key=b'key')
+
+    # THEN: The snapshot must be removed from the list after `_get` has completed
+    assert len(store.current_snapshots) == initial_size
+
+
+def test_scan_adds_snapshot_to_list_and_then_removes_it(empty_transactional_store):
+    # GIVEN
+    store = empty_transactional_store
+    initial_size = len(store.current_snapshots)
+
+    # Define a wrapper for the _get method that includes the assertion
+    def wrapper(*args, **kwargs):
+        # THEN: Before calling `_scan`, the snapshot must have been added to the list of current snapshots
+        assert len(store.current_snapshots) == initial_size + 1
+
+        store._scan(*args, **kwargs)
+
+    # Patch the _scan method with our wrapper
+    with mock.patch.object(store, '_scan', wrapper=wrapper):
+        # WHEN
+        store.scan(lower=b'lower', upper=b'upper')
+
+    # THEN: The snapshot must be removed from the list after `_get` has completed
+    assert len(store.current_snapshots) == initial_size

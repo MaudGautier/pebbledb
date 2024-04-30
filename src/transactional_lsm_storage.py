@@ -2,7 +2,6 @@ from typing import Iterator, Optional
 
 from src.iterators import MergingIterator
 from src.lsm_storage import LsmStorage, LsmState
-from src.manifest import Configuration, Manifest
 from src.record import Record
 
 
@@ -13,6 +12,7 @@ class TransactionalLsmStorage(LsmStorage):
                  ):
         super().__init__(**kwargs)
         self.last_committed_sequence_number: int = last_committed_sequence_number
+        self.current_snapshots = set()
 
     @classmethod
     def create(cls, **kwargs) -> "TransactionalLsmStorage":
@@ -32,9 +32,7 @@ class TransactionalLsmStorage(LsmStorage):
         self.last_committed_sequence_number = record.sequence_number
         self._try_freeze()
 
-    def get(self, key: Record.Key) -> Optional[Record.Value]:
-        snapshot = self.last_committed_sequence_number
-
+    def _get(self, key: Record.Key, snapshot: int) -> Optional[Record.Value]:
         value = self._search_memtables(key=key,
                                        memtables=[self.state.memtable, *self.state.immutable_memtables],
                                        snapshot=snapshot)
@@ -48,9 +46,17 @@ class TransactionalLsmStorage(LsmStorage):
 
         return None
 
-    def scan(self, lower: Record.Key, upper: Record.Key) -> Iterator[Record]:
+    def get(self, key: Record.Key) -> Optional[Record.Value]:
         snapshot = self.last_committed_sequence_number
+        self.current_snapshots.add(snapshot)
 
+        value = self._get(key=key, snapshot=snapshot)
+
+        self.current_snapshots.remove(snapshot)
+
+        return value
+
+    def _scan(self, lower: Record.Key, upper: Record.Key, snapshot: int) -> Iterator[Record]:
         active_memtable_iterator = self.state.memtable.scan(lower=lower, upper=upper, snapshot=snapshot)
         immutable_memtables_iterators = [memtable.scan(lower=lower, upper=upper, snapshot=snapshot) for memtable in
                                          self.state.immutable_memtables]
@@ -61,6 +67,14 @@ class TransactionalLsmStorage(LsmStorage):
         iterator = MergingIterator(iterators=iterators)
 
         yield from iterator
+
+    def scan(self, lower: Record.Key, upper: Record.Key) -> Iterator[Record]:
+        snapshot = self.last_committed_sequence_number
+        self.current_snapshots.add(snapshot)
+
+        yield from self._scan(lower=lower, upper=upper, snapshot=snapshot)
+
+        self.current_snapshots.remove(snapshot)
 
     @classmethod
     def reconstruct(cls, manifest_path: str) -> "TransactionalLsmStorage":
