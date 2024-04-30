@@ -4,7 +4,7 @@ import pytest
 
 from src.blocks import DataBlock, DataBlockBuilder
 from src.iterators import DataBlockIterator, MemTableIterator, SSTableIterator, MergingIterator, BaseIterator, \
-    ConcatenatingIterator, ScanMemtableIterator, FlushIterator
+    ConcatenatingIterator, ScanMemtableIterator, FlushIterator, CompactSSTableIterator
 from src.record import Record
 
 
@@ -458,3 +458,25 @@ def test_flush_iterate_on_memtable_with_duplicates_returns_all_versions(empty_me
     # THEN
     expected_sequence_numbers = [2, 1, 0]
     assert records_sequence_numbers == expected_sequence_numbers
+
+
+def test_compact_iterator_skips_obsolete_records(sstable_with_duplicates):
+    # GIVEN
+    compact_iterator = CompactSSTableIterator(sstable=sstable_with_duplicates, start_key=None, end_key=None, snapshot=5)
+
+    # WHEN
+    iterated_records = [record for record in compact_iterator]
+
+    # THEN
+    expected_records = [
+        Record(key=b'keyA', value=b'valueA3'),  # sequence_number: 6 (Kept because above snapshot)
+        Record(key=b'keyA', value=b'valueA2'),  # sequence_number: 2 (Kept because last before snapshot)
+        Record(key=b'keyB', value=b'valueB2'),  # sequence_number: 7 (Kept because above snapshot)
+        Record(key=b'keyB', value=b'valueB1'),  # sequence_number: 1 (Kept because last before snapshot)
+        Record(key=b'keyC', value=b'valueC3'),  # sequence_number: 8 (Kept because above snapshot)
+        Record(key=b'keyC', value=b'valueC2'),  # sequence_number: 4 (Kept because last before snapshot)
+        Record(key=b'keyD', value=b'valueD1'),  # sequence_number: 5 (Kept because above snapshot)
+        # Record(key=b'keyA', value=b'valueA1'),# sequence_number: 0 (Skipped because not the last before snapshot)
+        # Record(key=b'keyC', value=b'valueC1'),# sequence_number: 3 (Skipped because not the last before snapshot)
+    ]
+    assert iterated_records == expected_records
