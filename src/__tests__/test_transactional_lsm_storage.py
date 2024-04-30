@@ -1,6 +1,8 @@
 import threading
 from unittest import mock
+from unittest.mock import ANY, call
 
+from src.iterators import MergingIterator, ConcatenatingIterator
 from src.lsm_storage import LsmStorage
 from src.record import Record
 from src.transactional_lsm_storage import TransactionalLsmStorage
@@ -250,3 +252,98 @@ def test_scan_adds_snapshot_to_list_and_then_removes_it(empty_transactional_stor
 
     # THEN: The snapshot must be removed from the list after `_get` has completed
     assert len(store.current_snapshots) == initial_size
+
+
+# TODO: SELECTED!!!
+def test_compact_l0_on_non_transactional_store_calls_merging_iterator_with_filter_duplicates_true(
+        store_with_multiple_l0_sstables):
+    # GIVEN
+    store = store_with_multiple_l0_sstables
+    nb_l0_sstables = len(store.state.sstables_level0)
+
+    # WHEN/THEN
+    with mock.patch('src.lsm_storage.MergingIterator') as mock_merging_iterator, \
+            mock.patch('src.lsm_storage.CompactSSTableIterator') as mock_compact_sstable_iterator:
+        # WHEN
+        store._compact_l0()
+
+        # THEN
+        # Check that compact sstable was called the right number of times
+        assert mock_compact_sstable_iterator.call_count == nb_l0_sstables
+        # Check that MergingIterator was called with the expected arguments
+        mock_merging_iterator.assert_called_once_with(
+            iterators=[ANY for _ in range(nb_l0_sstables)],
+            # filter_duplicates=True # By default
+        )
+        # NB: iterators should be the returns of mock_compact_sstable_iterator (but assuming this test is good enough)
+
+
+def test_compact_l0_on_transactional_store_calls_merging_iterator_with_filter_duplicates_false(
+        transactional_store_with_duplicates_in_l0_sstables):
+    # GIVEN
+    store = transactional_store_with_duplicates_in_l0_sstables
+
+    # Define a wrapper for the init method and record calls
+    init_wrapper_calls = []  # Storage for calls
+    original_init = MergingIterator.__init__  # Save the original constructor
+
+    def init_wrapper(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        init_wrapper_calls.append(call(*args, **kwargs))
+
+    # WHEN/THEN
+    with mock.patch.object(MergingIterator, '__init__', new=init_wrapper):
+        # WHEN
+        store._compact_l0()
+
+        # THEN
+        # Check calls were as expected
+        assert call(iterators=ANY, filter_duplicates=False) in init_wrapper_calls
+        assert len(init_wrapper_calls) == 1  # Ensure it was called once
+
+
+def test_compact_l1_on_non_transactional_store_calls_concatenating_iterator_without_filter_duplicates(
+        store_with_multiple_l1_sstables):
+    # GIVEN
+    store = store_with_multiple_l1_sstables
+    nb_l1_sstables = len(store.state.sstables_levels[0])
+
+    # WHEN/THEN
+    with mock.patch('src.lsm_storage.ConcatenatingIterator') as mock_concatenating_iterator, \
+            mock.patch('src.lsm_storage.CompactSSTableIterator') as mock_compact_sstable_iterator:
+        # WHEN
+        store._compact_l1_or_more(level=1)
+
+        # THEN
+        # Check that compact sstable was called the right number of times
+        assert mock_compact_sstable_iterator.call_count == nb_l1_sstables
+        # Check that MergingIterator was called with the expected arguments
+        mock_concatenating_iterator.assert_called_once_with(
+            iterators=[ANY for _ in range(nb_l1_sstables)]
+            # filter_duplicates not passed
+        )
+        # NB: iterators should be the returns of mock_compact_sstable_iterator (but assuming this test is good enough)
+
+
+def test_compact_l1_on_transactional_store_calls_concatenating_iterator_without_filter_duplicates(
+        transactional_store_with_duplicates_in_l1_sstables):
+    # GIVEN
+    store = transactional_store_with_duplicates_in_l1_sstables
+
+    # Define a wrapper for the init method and record calls
+    init_wrapper_calls = []  # Storage for calls
+    original_init = ConcatenatingIterator.__init__  # Save the original constructor
+
+    def init_wrapper(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        init_wrapper_calls.append(call(*args, **kwargs))
+
+    # WHEN/THEN
+    with mock.patch.object(ConcatenatingIterator, '__init__', new=init_wrapper):
+        # WHEN
+        store._compact_l1_or_more(level=1)
+
+        # THEN
+        # Check calls were as expected
+        assert call(iterators=ANY) in init_wrapper_calls  # No filter duplicates
+        assert len(init_wrapper_calls) == 1  # Ensure it was called once

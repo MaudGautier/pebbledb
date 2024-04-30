@@ -1,6 +1,6 @@
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Union, Type
 
-from src.iterators import MergingIterator
+from src.iterators import MergingIterator, ConcatenatingIterator
 from src.lsm_storage import LsmStorage, LsmState
 from src.record import Record
 
@@ -98,3 +98,12 @@ class TransactionalLsmStorage(LsmStorage):
                 max_sequence_number = max(max_sequence_number, sstable.max_sequence_number)
 
         return max_sequence_number
+
+    def _compact(self, iterator_class: Type[Union[MergingIterator, ConcatenatingIterator]], **kwargs) -> None:
+        iterator_kwargs = {}
+        if iterator_class is MergingIterator:
+            iterator_kwargs['filter_duplicates'] = False  # Default to True for child class
+
+        super()._compact(iterator_class=iterator_class,
+                         **kwargs,
+                         **iterator_kwargs)
