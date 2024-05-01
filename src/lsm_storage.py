@@ -309,6 +309,7 @@ class LsmStorage:
                  output_sstables: Deque[SSTable],
                  input_level: int,
                  iterator_class: Type[MergingIterator] or Type[ConcatenatingIterator],
+                 snapshot: int = MAX_SNAPSHOT,
                  **iterator_kwargs
                  ) -> None:
         """Performs the compaction operation.
@@ -324,7 +325,7 @@ class LsmStorage:
             sstables_to_compact = [sstable for sstable in input_sstables]
             records_iterator = iterator_class(
                 iterators=[
-                    CompactSSTableIterator(sstable=sstable) for sstable in input_sstables
+                    CompactSSTableIterator(sstable=sstable, snapshot=snapshot) for sstable in input_sstables
                 ],
                 **iterator_kwargs
             )

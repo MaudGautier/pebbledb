@@ -347,3 +347,48 @@ def test_compact_l1_on_transactional_store_calls_concatenating_iterator_without_
         # Check calls were as expected
         assert call(iterators=ANY) in init_wrapper_calls  # No filter duplicates
         assert len(init_wrapper_calls) == 1  # Ensure it was called once
+
+
+def test_compact_should_keep_only_valid_records(empty_transactional_store):
+    # GIVEN
+    key_value_pairs = [(b'keyA', b'valueA1'),  # 0
+                       (b'keyA', b'valueA2'),  # 1
+                       (b'keyA', b'valueA3'),  # 2
+                       (b'keyB', b'valueB1'),  # 3
+                       (b'keyB', b'valueB2'),  # 4
+                       (b'keyC', b'valueC1'),  # 5
+                       (b'keyC', b'valueC2'),  # 6
+                       (b'keyC', b'valueC3'),  # 7
+                       (b'keyD', b'valueD1')]  # 8
+    store = empty_transactional_store
+    store._configuration.max_sstable_size = 10000
+    store._configuration.block_size = 30
+    for key, value in key_value_pairs:
+        store.put(key=key, value=value)
+    store._freeze()
+    store._flush()
+    assert len(store.state.sstables_level0) == 1
+    assert len(store.state.sstables_levels[0]) == 0
+
+    # WHEN
+    store.last_committed_sequence_number = 6
+    store._compact_l0()
+
+    # THEN
+    assert len(store.state.sstables_level0) == 0
+    assert len(store.state.sstables_levels[0]) == 1
+
+    # Read all data blocks
+    encoded_data_blocks = b''
+    for i in range(len(store.state.sstables_levels[0][0].meta_blocks)):
+        encoded_data_blocks += store.state.sstables_levels[0][0].read_data_block(block_id=i).data
+
+    assert b'valueA1' not in encoded_data_blocks  # sequence_number: 0
+    assert b'valueA2' not in encoded_data_blocks  # sequence_number: 1
+    assert b'valueA3' in encoded_data_blocks  # sequence_number: 2 --- Last below snapshot => kept
+    assert b'valueB1' not in encoded_data_blocks  # sequence_number: 3
+    assert b'valueB2' in encoded_data_blocks  # sequence_number: 4 --- Last below snapshot => kept
+    assert b'valueC1' not in encoded_data_blocks  # sequence_number: 5
+    assert b'valueC2' in encoded_data_blocks  # sequence_number: 6 --- Last below snapshot => kept
+    assert b'valueC3' in encoded_data_blocks  # sequence_number: 7 --- Above snapshot => kept
+    assert b'valueD1' in encoded_data_blocks  # sequence_number: 8 --- Above snapshot => kept

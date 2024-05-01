@@ -105,5 +105,6 @@ class TransactionalLsmStorage(LsmStorage):
             iterator_kwargs['filter_duplicates'] = False  # Default to True for child class
 
         super()._compact(iterator_class=iterator_class,
+                         snapshot=self.last_committed_sequence_number,
                          **kwargs,
                          **iterator_kwargs)
