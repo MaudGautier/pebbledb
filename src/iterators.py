@@ -201,7 +201,7 @@ class CompactSSTableIterator(SSTableIterator):
                  snapshot: Optional[int] = None
                  ):
         super().__init__(sstable=sstable, start_key=start_key, end_key=end_key)
-        self.snapshot = snapshot if snapshot else MAX_SNAPSHOT
+        self.snapshot = snapshot if snapshot is not None else MAX_SNAPSHOT
         self.last_yielded_record_below_snapshot = None
 
     def should_skip(self, record: Record) -> bool:

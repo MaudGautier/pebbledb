@@ -513,3 +513,11 @@ def test_merge_iterators_with_identical_values_keeps_everyone_if_no_duplicate_fi
         Record(key="E", value="E2")
     ]
     assert list(merging_iterator) == expected_items
+
+
+def test_compact_iterator_uses_snapshot_passed(sstable_with_duplicates):
+    # GIVEN
+    compact_iterator = CompactSSTableIterator(sstable=sstable_with_duplicates, snapshot=0)
+
+    # WHEN/THEN
+    assert compact_iterator.snapshot == 0
