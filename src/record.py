@@ -14,7 +14,7 @@ class Record:
     | 4 bytes  | Key_size bytes |  4 bytes   | Value_size bytes |
     +----------+----------------+------------+------------------+
     """
-    Key = str
+    Key = bytes
     Value = bytes
     ENCODING = "utf-8"
     NB_BYTES_INTEGER = 4
@@ -43,10 +43,6 @@ class Record:
             return TypeError(f"Expected Record, got {type(other).__name__}")
         return self.key == other.key
 
-    @property
-    def encoded_key(self) -> bytes:
-        return bytes(self.key, encoding=self.ENCODING)
-
     @staticmethod
     def encode_integer(integer: int) -> bytes:
         return struct.pack("i", integer)
@@ -65,7 +61,7 @@ class Record:
 
     def to_bytes(self) -> bytes:
         encoded_key_size = self.encoded_key_size
-        encoded_key = self.encoded_key
+        encoded_key = self.key  # already encoded
         encoded_value_size = self.encoded_value_size
         encoded_value = self.value  # already encoded
 
@@ -76,7 +72,7 @@ class Record:
         key_size_end = cls.NB_BYTES_INTEGER
         key_size = struct.unpack("i", data[:key_size_end])[0]
         key_end = key_size_end + key_size
-        key = data[key_size_end:key_end].decode(encoding=cls.ENCODING)
+        key = data[key_size_end:key_end]
         value_size_end = key_end + cls.NB_BYTES_INTEGER
         value_size = struct.unpack("i", data[key_end:value_size_end])[0]
         value_end = value_size_end + value_size

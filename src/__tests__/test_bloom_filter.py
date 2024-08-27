@@ -4,8 +4,8 @@ from src.bloom_filter import BloomFilter
 def test_lookups():
     # GIVEN
     bloom_filter = BloomFilter(nb_bytes=4, nb_hash_functions=3)
-    keys = ["foo", "bar", "baz"]
-    missing_keys = ["not_in_bloom_filter", "missing"]
+    keys = [b'foo', b'bar', b'baz']
+    missing_keys = [b'not_in_bloom_filter', b'missing']
 
     # WHEN
     for key in keys:
@@ -22,19 +22,19 @@ def test_lookups():
 
 def test_build_from_keys():
     # GIVEN/WHEN
-    bloom_filter = BloomFilter.build_from_keys_and_fp_rate(["key1", "key2"], 0.001)
+    bloom_filter = BloomFilter.build_from_keys_and_fp_rate([b'key1', b'key2'], 0.001)
 
     # THEN
-    assert bloom_filter.may_contain("key1") is True
-    assert bloom_filter.may_contain("key2") is True
+    assert bloom_filter.may_contain(b'key1') is True
+    assert bloom_filter.may_contain(b'key2') is True
 
 
 def test_encode():
     # GIVEN
     bloom_filter = BloomFilter(nb_bytes=1, nb_hash_functions=2)
-    bloom_filter.add("key1")
-    bloom_filter.add("key2")
-    bloom_filter.add("key3")
+    bloom_filter.add(b'key1')
+    bloom_filter.add(b'key2')
+    bloom_filter.add(b'key3')
 
     # WHEN
     encoded_bloom_filter = bloom_filter.to_bytes()
@@ -48,9 +48,9 @@ def test_encode():
 def test_encode_with_multiple_bytes():
     # GIVEN
     bloom_filter = BloomFilter(nb_bytes=3, nb_hash_functions=2)
-    bloom_filter.add("key1")
-    bloom_filter.add("key2")
-    bloom_filter.add("key3")
+    bloom_filter.add(b'key1')
+    bloom_filter.add(b'key2')
+    bloom_filter.add(b'key3')
 
     # WHEN
     encoded_bloom_filter = bloom_filter.to_bytes()
@@ -64,9 +64,9 @@ def test_encode_with_multiple_bytes():
 def test_encode_decode():
     # GIVEN
     bloom_filter = BloomFilter(nb_bytes=1, nb_hash_functions=2)
-    bloom_filter.add("key1")
-    bloom_filter.add("key2")
-    bloom_filter.add("key3")
+    bloom_filter.add(b'key1')
+    bloom_filter.add(b'key2')
+    bloom_filter.add(b'key3')
     encoded_bloom_filter = bloom_filter.to_bytes()
 
     # WHEN
@@ -79,9 +79,9 @@ def test_encode_decode():
 def test_encode_decode_with_multiple_bytes():
     # GIVEN
     bloom_filter = BloomFilter(nb_bytes=3, nb_hash_functions=2)
-    bloom_filter.add("key1")
-    bloom_filter.add("key2")
-    bloom_filter.add("key3")
+    bloom_filter.add(b'key1')
+    bloom_filter.add(b'key2')
+    bloom_filter.add(b'key3')
     encoded_bloom_filter = bloom_filter.to_bytes()
 
     # WHEN
@@ -93,7 +93,7 @@ def test_encode_decode_with_multiple_bytes():
 
 def test_bloom_filters_are_equal():
     # GIVEN
-    keys = ["key1", "key2", "key3"]
+    keys = [b'key1', b'key2', b'key3']
     bloom_filter1 = BloomFilter(nb_bytes=8, nb_hash_functions=3)
     bloom_filter2 = BloomFilter(nb_bytes=8, nb_hash_functions=3)
     for key in keys:
@@ -109,7 +109,7 @@ def test_bloom_filters_are_equal():
 
 def test_bloom_filters_are_not_equal_if_different_number_of_hash_functions():
     # GIVEN
-    keys = ["key1", "key2", "key3"]
+    keys = [b'key1', b'key2', b'key3']
     bloom_filter1 = BloomFilter(nb_bytes=8, nb_hash_functions=3)
     bloom_filter2 = BloomFilter(nb_bytes=8, nb_hash_functions=4)
     for key in keys:
@@ -125,7 +125,7 @@ def test_bloom_filters_are_not_equal_if_different_number_of_hash_functions():
 
 def test_bloom_filters_are_not_equal_if_different_keys():
     # GIVEN
-    keys = ["key1", "key2", "key3"]
+    keys = [b'key1', b'key2', b'key3']
     bloom_filter1 = BloomFilter(nb_bytes=8, nb_hash_functions=3)
     bloom_filter2 = BloomFilter(nb_bytes=8, nb_hash_functions=4)
     for key in keys:

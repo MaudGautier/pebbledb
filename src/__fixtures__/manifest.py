@@ -3,7 +3,7 @@ from collections import deque
 
 import pytest
 
-from src.__fixtures__.constants import TEST_SSTABLE_FIXTURES_DIRECTORY, TEST_DIRECTORY
+from src.__fixtures__.constants import TEST_DIRECTORY
 from src.manifest import ManifestFile, FlushEvent, CompactionEvent, Configuration, Manifest
 from src.memtable import MemTable
 

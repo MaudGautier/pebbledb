@@ -10,16 +10,16 @@ from src.record import Record
 def test_iterate_on_memtable(empty_memtable):
     # GIVEN
     memtable = empty_memtable
-    keys = ["1", "6", "9", "4"]
+    keys = [b'1', b'6', b'9', b'4']
     for key in keys:
-        memtable.put(key=key, value=key.encode(encoding="utf-8"))
+        memtable.put(key=key, value=key)
     memtable_iterator = MemTableIterator(memtable=memtable)
 
     # WHEN
     records = list(item for item in memtable_iterator)
 
     # THEN
-    expected_records = [Record(key=key, value=key.encode(encoding="utf-8")) for key in sorted(keys)]
+    expected_records = [Record(key=key, value=key) for key in sorted(keys)]
     assert records == expected_records
 
 
@@ -36,17 +36,17 @@ def test_iterate_on_empty_memtable_raises_stop_iteration(empty_memtable):
 def test_iterate_on_memtable_with_boundaries(empty_memtable):
     # GIVEN
     memtable = empty_memtable
-    for key in ["1", "4", "6", "9"]:
-        memtable.put(key=key, value=key.encode(encoding="utf-8"))
-    memtable_iterator = MemTableIterator(memtable=memtable, start_key="0", end_key="5")
+    for key in [b'1', b'4', b'6', b'9']:
+        memtable.put(key=key, value=key)
+    memtable_iterator = MemTableIterator(memtable=memtable, start_key=b'0', end_key=b'5')
 
     # WHEN
     scanned_records = list(item for item in memtable_iterator)
 
     # THEN
     expected_records = [
-        Record(key="1", value="1".encode(encoding="utf-8")),
-        Record(key="4", value="4".encode(encoding="utf-8"))
+        Record(key=b'1', value=b'1'),
+        Record(key=b'4', value=b'4'),
     ]
     assert scanned_records == expected_records
 
@@ -54,10 +54,10 @@ def test_iterate_on_memtable_with_boundaries(empty_memtable):
 def test_iterate_on_data_block():
     # GIVEN
     block_builder = DataBlockBuilder(target_size=100)
-    block_builder.add(key="key1", value=b'value1')
-    block_builder.add(key="key2", value=b'value2')
-    block_builder.add(key="key3", value=b'value3')
-    block_builder.add(key="key4", value=b'value4')
+    block_builder.add(key=b'key1', value=b'value1')
+    block_builder.add(key=b'key2', value=b'value2')
+    block_builder.add(key=b'key3', value=b'value3')
+    block_builder.add(key=b'key4', value=b'value4')
     block = block_builder.create_block()
     data_block_iterator = DataBlockIterator(block=block)
 
@@ -66,10 +66,10 @@ def test_iterate_on_data_block():
 
     # THEN
     expected_items = [
-        Record(key="key1", value=b'value1'),
-        Record(key="key2", value=b'value2'),
-        Record(key="key3", value=b'value3'),
-        Record(key="key4", value=b'value4'),
+        Record(key=b'key1', value=b'value1'),
+        Record(key=b'key2', value=b'value2'),
+        Record(key=b'key3', value=b'value3'),
+        Record(key=b'key4', value=b'value4'),
     ]
     assert iterated_items == expected_items
 
@@ -97,13 +97,13 @@ def test_data_block_select_index():
 
     # WHEN
     # Inside boundaries
-    index_key1 = data_block_iterator._select_index(key="key1")
-    index_key2 = data_block_iterator._select_index(key="key2")
-    index_key3 = data_block_iterator._select_index(key="key3")
-    index_key4 = data_block_iterator._select_index(key="key4")
+    index_key1 = data_block_iterator._select_index(key=b'key1')
+    index_key2 = data_block_iterator._select_index(key=b'key2')
+    index_key3 = data_block_iterator._select_index(key=b'key3')
+    index_key4 = data_block_iterator._select_index(key=b'key4')
     # Outside boundaries
-    index_key0 = data_block_iterator._select_index(key="key0")
-    index_key8 = data_block_iterator._select_index(key="key8")
+    index_key0 = data_block_iterator._select_index(key=b'key0')
+    index_key8 = data_block_iterator._select_index(key=b'key8')
 
     # THEN
     # Inside boundaries
@@ -120,12 +120,12 @@ def test_data_block_select_index():
 def test_iterate_on_data_block_with_boundaries_before():
     # GIVEN
     block_builder = DataBlockBuilder(target_size=100)
-    block_builder.add(key="key1", value=b'value1')
-    block_builder.add(key="key2", value=b'value2')
-    block_builder.add(key="key3", value=b'value3')
-    block_builder.add(key="key4", value=b'value4')
+    block_builder.add(key=b'key1', value=b'value1')
+    block_builder.add(key=b'key2', value=b'value2')
+    block_builder.add(key=b'key3', value=b'value3')
+    block_builder.add(key=b'key4', value=b'value4')
     block = block_builder.create_block()
-    data_block_iterator = DataBlockIterator(block=block, start_key="k", end_key="key0")
+    data_block_iterator = DataBlockIterator(block=block, start_key=b'k', end_key=b'key0')
 
     # WHEN
     iterated_items = list(item for item in data_block_iterator)
@@ -138,12 +138,12 @@ def test_iterate_on_data_block_with_boundaries_before():
 def test_iterate_on_data_block_with_boundaries_after_returns_empty_list():
     # GIVEN
     block_builder = DataBlockBuilder(target_size=100)
-    block_builder.add(key="key1", value=b'value1')
-    block_builder.add(key="key2", value=b'value2')
-    block_builder.add(key="key3", value=b'value3')
-    block_builder.add(key="key4", value=b'value4')
+    block_builder.add(key=b'key1', value=b'value1')
+    block_builder.add(key=b'key2', value=b'value2')
+    block_builder.add(key=b'key3', value=b'value3')
+    block_builder.add(key=b'key4', value=b'value4')
     block = block_builder.create_block()
-    data_block_iterator = DataBlockIterator(block=block, start_key="key6", end_key="key9")
+    data_block_iterator = DataBlockIterator(block=block, start_key=b'key6', end_key=b'key9')
 
     # WHEN
     iterated_items = list(item for item in data_block_iterator)
@@ -157,21 +157,21 @@ def test_iterate_on_data_block_with_boundaries_after_returns_empty_list():
 def test_iterate_on_data_block_with_boundaries_inside_returns_partial_list():
     # GIVEN
     block_builder = DataBlockBuilder(target_size=100)
-    block_builder.add(key="key1", value=b'value1')
-    block_builder.add(key="key2", value=b'value2')
-    block_builder.add(key="key3", value=b'value3')
-    block_builder.add(key="key4", value=b'value4')
+    block_builder.add(key=b'key1', value=b'value1')
+    block_builder.add(key=b'key2', value=b'value2')
+    block_builder.add(key=b'key3', value=b'value3')
+    block_builder.add(key=b'key4', value=b'value4')
     block = block_builder.create_block()
-    data_block_iterator = DataBlockIterator(block=block, start_key="key2", end_key="key4")
+    data_block_iterator = DataBlockIterator(block=block, start_key=b'key2', end_key=b'key4')
 
     # WHEN
     iterated_items = list(item for item in data_block_iterator)
 
     # THEN
     expected_items = [
-        Record(key="key2", value=b'value2'),
-        Record(key="key3", value=b'value3'),
-        Record(key="key4", value=b'value4'),
+        Record(key=b'key2', value=b'value2'),
+        Record(key=b'key3', value=b'value3'),
+        Record(key=b'key4', value=b'value4'),
     ]
     assert iterated_items == expected_items
 
@@ -201,7 +201,7 @@ def test_iterate_on_finished_sstable_raises_stop_iteration(sstable_four_blocks):
 
 def test_iterate_on_sstable_with_boundaries_inside(sstable_four_blocks, records_for_sstable_four_blocks):
     # GIVEN
-    start_key, end_key = "cc", "eeee"
+    start_key, end_key = b'cc', b'eeee'
     sstable_iterator = SSTableIterator(sstable=sstable_four_blocks, start_key=start_key, end_key=end_key)
 
     # WHEN
@@ -214,7 +214,7 @@ def test_iterate_on_sstable_with_boundaries_inside(sstable_four_blocks, records_
 
 def test_iterate_on_sstable_with_boundaries_before(sstable_four_blocks, records_for_sstable_four_blocks):
     # GIVEN
-    start_key, end_key = "a", "aa"
+    start_key, end_key = b'a', b'aa'
     sstable_iterator = SSTableIterator(sstable=sstable_four_blocks, start_key=start_key, end_key=end_key)
 
     # WHEN
@@ -227,7 +227,7 @@ def test_iterate_on_sstable_with_boundaries_before(sstable_four_blocks, records_
 
 def test_iterate_on_sstable_with_boundaries_after(sstable_four_blocks, records_for_sstable_four_blocks):
     # GIVEN
-    start_key, end_key = "www", "zzz"
+    start_key, end_key = b'www', b'zzz'
     sstable_iterator = SSTableIterator(sstable=sstable_four_blocks, start_key=start_key, end_key=end_key)
 
     # WHEN

@@ -11,13 +11,13 @@ from src.lsm_storage import LsmStorage
 def records_for_store_with_multiple_immutable_memtables_and_one_memtable():
     return [
         # Table 1
-        ("key1", b'value1'),
-        ("key2", b'value2'),
+        (b'key1', b'value1'),
+        (b'key2', b'value2'),
         # Table 2
-        ("key3", b'value3'),
-        ("key4", b'value4'),
+        (b'key3', b'value3'),
+        (b'key4', b'value4'),
         # Table 3
-        ("key5", b'value5'),
+        (b'key5', b'value5'),
     ]
 
 
@@ -38,14 +38,14 @@ def store_with_multiple_immutable_memtables_and_one_memtable(
 def store_with_multiple_immutable_memtables_records():
     return [
         # Table 1
-        ("key1", b'value1'),
-        ("key2", b'value2'),
+        (b'key1', b'value1'),
+        (b'key2', b'value2'),
         # Table 2
-        ("key3", b'value3'),
-        ("key4", b'value4'),
+        (b'key3', b'value3'),
+        (b'key4', b'value4'),
         # Table 3
-        ("key5", b'value5'),
-        ("key6", b'value6'),
+        (b'key5', b'value5'),
+        (b'key6', b'value6'),
     ]
 
 
@@ -63,14 +63,14 @@ def store_with_multiple_immutable_memtables(store_with_multiple_immutable_memtab
 @pytest.fixture
 def store_with_duplicated_keys_records():
     return [
-        ("key1", b'value1A'),
-        ("key2", b'value2A'),
-        ("key3", b'value3'),
-        ("key1", b'value1B'),
-        ("key1", b'value1C'),
-        ("key2", b'value2B'),
-        ("key1", b'value1D'),
-        ("key4", b'value4A'),
+        (b'key1', b'value1A'),
+        (b'key2', b'value2A'),
+        (b'key3', b'value3'),
+        (b'key1', b'value1B'),
+        (b'key1', b'value1C'),
+        (b'key2', b'value2B'),
+        (b'key1', b'value1D'),
+        (b'key4', b'value4A'),
     ]
 
 
@@ -102,17 +102,17 @@ def store_with_one_l0_sstable(store_with_multiple_immutable_memtables_records):
 def records_for_store_with_multiple_l0_sstables():
     return [
         # Table 0
-        ("key1", b'first_value1'),
-        ("key2", b'value2'),
+        (b'key1', b'first_value1'),
+        (b'key2', b'value2'),
         # Table 1
-        ("key3", b'first_value3'),
-        ("key1", b'second_value1'),
+        (b'key3', b'first_value3'),
+        (b'key1', b'second_value1'),
         # Table 2
-        ("key3", b'value3'),
-        ("key4", b'value4'),
+        (b'key3', b'value3'),
+        (b'key4', b'value4'),
         # Table 3
-        ("key5", b'value5'),
-        ("key1", b'value1'),
+        (b'key5', b'value5'),
+        (b'key1', b'value1'),
     ]
 
 
@@ -135,17 +135,17 @@ def store_with_multiple_l0_sstables(records_for_store_with_multiple_l0_sstables)
 def records_for_store_with_multiple_l1_sstables():
     return [
         # Table 0
-        ("key4", b'value4'),
-        ("key3", b'value3'),
+        (b'key4', b'value4'),
+        (b'key3', b'value3'),
         # Table 1
-        ("key8", b'value8'),
-        ("key5", b'value5'),
+        (b'key8', b'value8'),
+        (b'key5', b'value5'),
         # Table 2
-        ("key1", b'value1'),
-        ("key6", b'value6'),
+        (b'key1', b'value1'),
+        (b'key6', b'value6'),
         # Table 3
-        ("key7", b'value7'),
-        ("key2", b'value2'),
+        (b'key7', b'value7'),
+        (b'key2', b'value2'),
     ]
 
 
@@ -175,20 +175,20 @@ def store_with_multiple_l1_sstables(records_for_store_with_multiple_l1_sstables)
 def records_for_store_with_four_l1_and_one_l2_sstables():
     return [
         # Table 0
-        ("key4", b'value4'),
-        ("key3", b'value3'),
+        (b'key4', b'value4'),
+        (b'key3', b'value3'),
         # Table 1
-        ("key8", b'value8'),
-        ("key5", b'value5'),
+        (b'key8', b'value8'),
+        (b'key5', b'value5'),
         # Table 2
-        ("key1", b'value1'),
-        ("key6", b'value6'),
+        (b'key1', b'value1'),
+        (b'key6', b'value6'),
         # Table 3
-        ("key7", b'value7'),
-        ("key2", b'value2'),
+        (b'key7', b'value7'),
+        (b'key2', b'value2'),
         # Table 4
-        ("key9", b'value9'),
-        ("key10", b'value10'),
+        (b'key9', b'value9'),
+        (b'key10', b'value10'),
     ]
 
 
@@ -234,20 +234,20 @@ def store_with_four_l1_and_one_l2_sstables(records_for_store_with_four_l1_and_on
 def records_for_store_with_one_sstable_at_five_levels():
     return [
         # Table 0
-        ("keyA", b'valueA'),
-        ("keyB", b'valueB'),
+        (b'keyA', b'valueA'),
+        (b'keyB', b'valueB'),
         # Table 1
-        ("keyC", b'valueC'),
-        ("keyD", b'valueD'),
+        (b'keyC', b'valueC'),
+        (b'keyD', b'valueD'),
         # Table 2
-        ("keyE", b'valueE'),
-        ("keyF", b'valueF'),
+        (b'keyE', b'valueE'),
+        (b'keyF', b'valueF'),
         # Table 3
-        ("keyG", b'valueG'),
-        ("keyH", b'valueH'),
+        (b'keyG', b'valueG'),
+        (b'keyH', b'valueH'),
         # Table 4
-        ("keyI", b'valueI'),
-        ("keyJ", b'valueJ'),
+        (b'keyI', b'valueI'),
+        (b'keyJ', b'valueJ'),
     ]
 
 
@@ -299,8 +299,8 @@ def store_with_one_sstable_at_five_levels(records_for_store_with_one_sstable_at_
 def records_for_store_with_one_sstable_at_last_level():
     return [
         # Table 0
-        ("keyA", b'valueA'),
-        ("keyB", b'valueB'),
+        (b'keyA', b'valueA'),
+        (b'keyB', b'valueB'),
     ]
 
 

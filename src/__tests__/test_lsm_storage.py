@@ -16,12 +16,12 @@ def test_can_read_a_value_inserted(empty_store):
     store = empty_store
 
     # WHEN
-    store.put(key="key", value=b'value')
-    store.put(key="key2", value=b'value2')
+    store.put(key=b'key', value=b'value')
+    store.put(key=b'key2', value=b'value2')
 
     # THEN
-    assert store.get(key="key") == b'value'
-    assert store.get(key="key2") == b'value2'
+    assert store.get(key=b'key') == b'value'
+    assert store.get(key=b'key2') == b'value2'
 
 
 def test_try_freeze(empty_store):
@@ -39,14 +39,14 @@ def test_try_freeze(empty_store):
 
     with mock.patch.object(store, '_freeze', wraps=store._freeze) as mocked_freeze:
         # WHEN
-        store.put(key="a_short_key", value=b'a_short_value')
+        store.put(key=b'a_short_key', value=b'a_short_value')
 
         # THEN
         mocked_freeze.assert_not_called()
 
     with mock.patch.object(store, '_freeze', wraps=store._freeze) as mocked_freeze:
         # WHEN
-        store.put(key="a_veeeeeeryyyyyyy_loooong_key", value=b'a_veeeeeeryyyyyyy_loooong_value')
+        store.put(key=b'a_veeeeeeryyyyyyy_loooong_key', value=b'a_veeeeeeryyyyyyy_loooong_value')
 
         # THEN
         mocked_freeze.assert_called_once()
@@ -56,25 +56,25 @@ def test_freeze(empty_store):
     # GIVEN
     store = empty_store
     store.max_sstable_size = 1000
-    store.put(key="key1", value=b'value1')
-    store.put(key="key2", value=b'value2')
-    store.put(key="key3", value=b'value3')
+    store.put(key=b'key1', value=b'value1')
+    store.put(key=b'key2', value=b'value2')
+    store.put(key=b'key3', value=b'value3')
     assert len(store.state.immutable_memtables) == 0
-    assert store.state.memtable.get("key1") == b'value1'
-    assert store.state.memtable.get("key2") == b'value2'
-    assert store.state.memtable.get("key3") == b'value3'
+    assert store.state.memtable.get(b'key1') == b'value1'
+    assert store.state.memtable.get(b'key2') == b'value2'
+    assert store.state.memtable.get(b'key3') == b'value3'
 
     # WHEN
     store._freeze()
 
     # THEN
     assert len(store.state.immutable_memtables) == 1
-    assert store.state.memtable.get("key1") is None
-    assert store.state.memtable.get("key2") is None
-    assert store.state.memtable.get("key3") is None
-    assert store.state.immutable_memtables[0].get("key1") == b'value1'
-    assert store.state.immutable_memtables[0].get("key2") == b'value2'
-    assert store.state.immutable_memtables[0].get("key3") == b'value3'
+    assert store.state.memtable.get(b'key1') is None
+    assert store.state.memtable.get(b'key2') is None
+    assert store.state.memtable.get(b'key3') is None
+    assert store.state.immutable_memtables[0].get(b'key1') == b'value1'
+    assert store.state.immutable_memtables[0].get(b'key2') == b'value2'
+    assert store.state.immutable_memtables[0].get(b'key3') == b'value3'
 
 
 def test_retrieve_value_from_old_memtable(
@@ -82,7 +82,7 @@ def test_retrieve_value_from_old_memtable(
         store_with_multiple_immutable_memtables_records):
     # GIVEN
     store = store_with_multiple_immutable_memtables
-    missing_key = "key7"
+    missing_key = b'key7'
     assert missing_key not in list(zip(*store_with_multiple_immutable_memtables_records))[0]
 
     # WHEN/THEN
@@ -101,11 +101,11 @@ def test_scan(store_with_multiple_immutable_memtables,
     store = store_with_multiple_immutable_memtables
 
     # WHEN
-    records = list(store.scan(lower="key1", upper="key4"))
+    records = list(store.scan(lower=b'key1', upper=b'key4'))
 
     # THEN
     expected_records = [Record(key=key, value=value) for key, value in store_with_multiple_immutable_memtables_records
-                        if "key1" <= key <= "key4"]
+                        if b'key1' <= key <= b'key4']
     assert records == expected_records
 
 
@@ -117,7 +117,7 @@ def test_scan_when_duplicates(
     store = store_with_duplicated_keys
 
     # WHEN
-    records = list(store.scan(lower="key1", upper="key3"))
+    records = list(store.scan(lower=b'key1', upper=b'key3'))
 
     # THEN
     expected_records = []
@@ -125,7 +125,7 @@ def test_scan_when_duplicates(
     for key, value in store_with_duplicated_keys_records[::-1]:
         if key in seen_keys:
             continue
-        if not ("key1" <= key <= "key3"):
+        if not (b'key1' <= key <= b'key3'):
             continue
         seen_keys.add(key)
         expected_records.append(Record(key=key, value=value))
@@ -152,7 +152,7 @@ def test_flush_next_immutable_memtable(store_with_multiple_immutable_memtables):
 def test_flush_waits_for_freeze(empty_store):
     # GIVEN
     storage = empty_store
-    storage.put("key", b'value')
+    storage.put(b'key', b'value')
     storage.state.memtable.approximate_size = storage._configuration.max_sstable_size + 1
 
     # Original methods with timing
@@ -197,7 +197,7 @@ def test_freeze_waits_for_flush(empty_store, empty_memtable):
     storage = empty_store
     storage.state.memtable.approximate_size = storage._configuration.max_sstable_size + 1
     memtable_to_flush = empty_memtable
-    memtable_to_flush.put("key", b'value')
+    memtable_to_flush.put(b'key', b'value')
     storage.state.immutable_memtables.append(memtable_to_flush)
 
     # Original methods with timing
@@ -276,27 +276,27 @@ def test_get_value_from_store(store_with_multiple_immutable_memtables):
 
     # WHEN/THEN
     # From SSTable
-    assert store.get(key="key1") == b'value1'
-    assert store.get(key="key2") == b'value2'
+    assert store.get(key=b'key1') == b'value1'
+    assert store.get(key=b'key2') == b'value2'
     # From memTables
-    assert store.get(key="key3") == b'value3'
-    assert store.get(key="key4") == b'value4'
-    assert store.get(key="key5") == b'value5'
-    assert store.get(key="key6") == b'value6'
+    assert store.get(key=b'key3') == b'value3'
+    assert store.get(key=b'key4') == b'value4'
+    assert store.get(key=b'key5') == b'value5'
+    assert store.get(key=b'key6') == b'value6'
 
 
 def test_dont_look_in_bloom_filter_if_key_absent(temporary_sstable_path, empty_store):
     # GIVEN
     bloom_filter = BloomFilter(nb_bytes=2, nb_hash_functions=3)
-    inserted_keys = ["foo", "bar"]
+    inserted_keys = [b'foo', b'bar']
     for key in inserted_keys:
         bloom_filter.add(key=key)
     sstable = SSTable(meta_blocks=[],
                       meta_block_offset=0,
                       bloom_filter=bloom_filter,
                       file=SSTableFile.create(path=temporary_sstable_path, data=b''),
-                      first_key="foo",
-                      last_key="bar"
+                      first_key=b'foo',
+                      last_key=b'bar'
                       )
     store = empty_store
     store.state.sstables_level0.append(sstable)
@@ -312,7 +312,7 @@ def test_dont_look_in_bloom_filter_if_key_absent(temporary_sstable_path, empty_s
 
     with mock.patch.object(sstable, 'get', wraps=sstable.get) as mocked_sstable_get:
         # WHEN
-        store.get("baz")
+        store.get(b'baz')
 
         # THEN
         mocked_sstable_get.assert_not_called()
@@ -324,11 +324,11 @@ def test_scan_on_both_memtables_and_sstables(store_with_one_l0_sstable,
     store = store_with_one_l0_sstable
 
     # WHEN
-    scanned_records = list(record for record in store.scan(lower="key2", upper="key5"))
+    scanned_records = list(record for record in store.scan(lower=b'key2', upper=b'key5'))
 
     # THEN
     expected_records = [Record(key=key, value=value) for key, value in store_with_multiple_immutable_memtables_records
-                        if "key2" <= key <= "key5"]
+                        if b'key2' <= key <= b'key5']
     assert scanned_records == expected_records
 
 
@@ -357,10 +357,10 @@ def test_trigger_l0_compaction(store_with_multiple_l0_sstables, records_for_stor
     # THEN
     assert len(store.state.sstables_levels) == store._configuration.nb_levels
     assert len(store.state.sstables_levels[0]) == 2
-    assert store.state.sstables_levels[0][0].first_key == "key1"
-    assert store.state.sstables_levels[0][0].last_key == "key3"
-    assert store.state.sstables_levels[0][1].first_key == "key4"
-    assert store.state.sstables_levels[0][1].last_key == "key5"
+    assert store.state.sstables_levels[0][0].first_key == b'key1'
+    assert store.state.sstables_levels[0][0].last_key == b'key3'
+    assert store.state.sstables_levels[0][1].first_key == b'key4'
+    assert store.state.sstables_levels[0][1].last_key == b'key5'
     assert len(store.state.sstables_level0) == 0
 
 
@@ -388,14 +388,14 @@ def test_trigger_l1_compaction_to_l2(store_with_multiple_l1_sstables, records_fo
     assert len(store.state.sstables_levels) == store._configuration.nb_levels
     assert len(store.state.sstables_levels[0]) == 0
     assert len(store.state.sstables_levels[1]) == 4
-    assert store.state.sstables_levels[1][0].first_key == "key1"
-    assert store.state.sstables_levels[1][0].last_key == "key2"
-    assert store.state.sstables_levels[1][1].first_key == "key3"
-    assert store.state.sstables_levels[1][1].last_key == "key4"
-    assert store.state.sstables_levels[1][2].first_key == "key5"
-    assert store.state.sstables_levels[1][2].last_key == "key6"
-    assert store.state.sstables_levels[1][3].first_key == "key7"
-    assert store.state.sstables_levels[1][3].last_key == "key8"
+    assert store.state.sstables_levels[1][0].first_key == b'key1'
+    assert store.state.sstables_levels[1][0].last_key == b'key2'
+    assert store.state.sstables_levels[1][1].first_key == b'key3'
+    assert store.state.sstables_levels[1][1].last_key == b'key4'
+    assert store.state.sstables_levels[1][2].first_key == b'key5'
+    assert store.state.sstables_levels[1][2].last_key == b'key6'
+    assert store.state.sstables_levels[1][3].first_key == b'key7'
+    assert store.state.sstables_levels[1][3].last_key == b'key8'
 
 
 def test_try_compact_should_compact_l0_if_above_the_threshold(store_with_one_l0_sstable):

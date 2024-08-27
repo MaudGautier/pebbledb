@@ -132,9 +132,9 @@ class MetaBlock:
 
     def to_bytes(self) -> bytes:
         encoded_first_key_size = struct.pack("H", len(self.first_key))
-        encoded_first_key = bytes(self.first_key, encoding=self.ENCODING)
+        encoded_first_key = self.first_key  # already encoded
         encoded_last_key_size = struct.pack("H", len(self.last_key))
-        encoded_last_key = bytes(self.last_key, encoding=self.ENCODING)
+        encoded_last_key = self.last_key  # already encoded
         encoded_offset = struct.pack("i", self.offset)
 
         return encoded_first_key_size + encoded_first_key + encoded_last_key_size + encoded_last_key + encoded_offset
@@ -142,9 +142,9 @@ class MetaBlock:
     @classmethod
     def from_bytes(cls, data: bytes) -> "MetaBlock":
         first_key_size = struct.unpack("H", data[0:2])[0]
-        first_key = data[2:2 + first_key_size].decode(encoding=cls.ENCODING)
+        first_key = data[2:2 + first_key_size]
         last_key_size = struct.unpack("H", data[2 + first_key_size:2 + first_key_size + 2])[0]
-        last_key = data[2 + first_key_size + 2:2 + first_key_size + 2 + last_key_size].decode(encoding=cls.ENCODING)
+        last_key = data[2 + first_key_size + 2:2 + first_key_size + 2 + last_key_size]
         offset = struct.unpack("i", data[2 + first_key_size + 2 + last_key_size:
                                          2 + first_key_size + 2 + last_key_size + 4])[0]
 
