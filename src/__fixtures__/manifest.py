@@ -37,14 +37,14 @@ def manifest_path_with_no_file():
 @pytest.fixture
 def events_for_sample_manifest_file_1(sstable_one_block_1, sstable_one_block_2,
                                       sstable_one_block_3, sstable_one_block_4):
-    event1 = FlushEvent(sstable=sstable_one_block_1)
-    event2 = FlushEvent(sstable=sstable_one_block_2)
+    event1 = FlushEvent(sstable_path=sstable_one_block_1.file.path)
+    event2 = FlushEvent(sstable_path=sstable_one_block_2.file.path)
     event3 = CompactionEvent(
-        input_sstables=[sstable_one_block_1, sstable_one_block_2],
-        output_sstables=[sstable_one_block_3],
+        input_sstables_paths=[sstable_one_block_1.file.path, sstable_one_block_2.file.path],
+        output_sstables_paths=[sstable_one_block_3.file.path],
         level=0
     )
-    event4 = FlushEvent(sstable=sstable_one_block_4)
+    event4 = FlushEvent(sstable_path=sstable_one_block_4.file.path)
 
     return [event1, event2, event3, event4]
 

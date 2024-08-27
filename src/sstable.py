@@ -11,7 +11,9 @@ INT_i_SIZE = 4
 
 
 class SSTableFile:
-    def __init__(self, path: str):
+    Path = str
+
+    def __init__(self, path: Path):
         self.path = path
 
     @classmethod

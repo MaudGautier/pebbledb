@@ -167,33 +167,33 @@ class LsmStorage:
         self.state.memtable.put(key=key, value=value)
         self._try_freeze()
 
-    def get(self, key: Record.Key) -> Optional[Record.Value]:
-        value = self.state.memtable.get(key=key)
-
-        if value is not None:
-            return value
-
-        for memtable in self.state.immutable_memtables:
+    @staticmethod
+    def _search_memtables(key: Record.Key, memtables: list[MemTable]) -> Optional[Record.Value]:
+        for memtable in memtables:
             value = memtable.get(key=key)
             if value is not None:
                 return value
+        return None
 
-        for sstable in self.state.sstables_level0:
+    @staticmethod
+    def _search_ss_tables(key: Record.Key, ss_tables: Deque[SSTable]) -> Optional[Record.Value]:
+        for sstable in ss_tables:
             if not sstable.bloom_filter.may_contain(key=key):
                 continue
             value = sstable.get(key=key)
             if value is not None:
                 return value
+        return None
 
-        for level in self.state.sstables_levels:
-            for sstable in level:
-                if not sstable.first_key <= key <= sstable.last_key:
-                    continue
-                if not sstable.bloom_filter.may_contain(key=key):
-                    continue
-                value = sstable.get(key=key)
-                if value is not None:
-                    return value
+    def get(self, key: Record.Key) -> Optional[Record.Value]:
+        value = self._search_memtables(key=key, memtables=[self.state.memtable, *self.state.immutable_memtables])
+        if value is not None:
+            return value
+
+        for level_ss_tables in [self.state.sstables_level0, *self.state.sstables_levels]:
+            value = self._search_ss_tables(key=key, ss_tables=level_ss_tables)
+            if value is not None:
+                return value
 
         return None
 
@@ -237,7 +237,7 @@ class LsmStorage:
             self.state.sstables_level0.insert(0, sstable)
 
         # Write to manifest
-        event = FlushEvent(sstable=sstable)
+        event = FlushEvent(sstable_path=sstable.file.path)
         self.manifest.add_event(event=event)
 
         # Delete the WAL
@@ -319,7 +319,10 @@ class LsmStorage:
                     input_sstables.remove(sstable)
 
         # Write to manifest
-        event = CompactionEvent(input_sstables=sstables_to_compact, output_sstables=new_ss_tables, level=input_level)
+        event = CompactionEvent(
+            input_sstables_paths=[sstable.file.path for sstable in sstables_to_compact],
+            output_sstables_paths=[sstable.file.path for sstable in new_ss_tables],
+            level=input_level)
         self.manifest.add_event(event=event)
 
         # Delete old SSTables
