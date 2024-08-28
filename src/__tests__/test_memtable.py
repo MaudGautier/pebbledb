@@ -126,3 +126,19 @@ def test_can_recover_with_corrupted_wal(empty_memtable):
     all_records = [record for record in memtable.map]
     all_records_but_corrupted_one = all_records[:-1]
     assert resulting_records == all_records_but_corrupted_one
+
+
+def test_scan_with_sequence_numbers_returns_only_the_most_recent_one(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    keys = [b'1', b'1', b'1']
+    for key in keys:
+        memtable.put(key=key, value=key)
+
+    # WHEN
+    scanned_records = list(memtable.scan())
+
+    # THEN
+    expected_record = Record(key=b'1', value=b'1')
+    assert scanned_records == [expected_record]
+    assert expected_record.sequence_number == len(keys)
