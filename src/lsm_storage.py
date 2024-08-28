@@ -308,7 +308,10 @@ class LsmStorage:
                  input_sstables: Deque[SSTable],
                  output_sstables: Deque[SSTable],
                  input_level: int,
-                 iterator_class: Type[MergingIterator] or Type[ConcatenatingIterator]) -> None:
+                 iterator_class: Type[MergingIterator] or Type[ConcatenatingIterator],
+                 snapshot: int = MAX_SNAPSHOT,
+                 **iterator_kwargs
+                 ) -> None:
         """Performs the compaction operation.
         Compaction consists in:
         - Identifying all SSTables that should be compacted
@@ -317,13 +320,15 @@ class LsmStorage:
 
         In order to allow restarts and crash recoveries, a CompactionEvent is recorded in the manifest.
         """
-
         # Create records iterator from input SSTables
         with self._locks.read_write.read():
             sstables_to_compact = [sstable for sstable in input_sstables]
-            records_iterator = iterator_class(iterators=[
-                CompactSSTableIterator(sstable=sstable) for sstable in sstables_to_compact
-            ])
+            records_iterator = iterator_class(
+                iterators=[
+                    CompactSSTableIterator(sstable=sstable, snapshot=snapshot) for sstable in input_sstables
+                ],
+                **iterator_kwargs
+            )
 
         # Compute compacted SSTables
         new_ss_tables = self._compute_compacted_ss_tables(records_iterator=records_iterator)

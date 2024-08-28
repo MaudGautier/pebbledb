@@ -130,15 +130,15 @@ def sstable_file_1(temporary_sstable_path, content_of_sstable_file_1):
 @pytest.fixture
 def records_for_sstable_with_duplicates():
     records = [
-        Record(key=b'keyA', value=b'valueA1'),
-        Record(key=b'keyB', value=b'valueB1'),
-        Record(key=b'keyA', value=b'valueA2'),
-        Record(key=b'keyC', value=b'valueC1'),
-        Record(key=b'keyC', value=b'valueC2'),
-        Record(key=b'keyD', value=b'valueD1'),
-        Record(key=b'keyA', value=b'valueA3'),
-        Record(key=b'keyB', value=b'valueB2'),
-        Record(key=b'keyC', value=b'valueC3'),
+        Record(key=b'keyA', value=b'valueA1'),  # sequence_number: 0
+        Record(key=b'keyB', value=b'valueB1'),  # sequence_number: 1
+        Record(key=b'keyA', value=b'valueA2'),  # sequence_number: 2
+        Record(key=b'keyC', value=b'valueC1'),  # sequence_number: 3
+        Record(key=b'keyC', value=b'valueC2'),  # sequence_number: 4
+        Record(key=b'keyD', value=b'valueD1'),  # sequence_number: 5
+        Record(key=b'keyA', value=b'valueA3'),  # sequence_number: 6
+        Record(key=b'keyB', value=b'valueB2'),  # sequence_number: 7
+        Record(key=b'keyC', value=b'valueC3'),  # sequence_number: 8
     ]
     all_records = sorted(records, key=lambda record: record.to_bytes())
     # Blocks will be:

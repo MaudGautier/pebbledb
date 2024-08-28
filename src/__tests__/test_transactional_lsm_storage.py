@@ -1,6 +1,8 @@
 import threading
 from unittest import mock
+from unittest.mock import ANY, call
 
+from src.iterators import MergingIterator, ConcatenatingIterator
 from src.lsm_storage import LsmStorage
 from src.record import Record
 from src.transactional_lsm_storage import TransactionalLsmStorage
@@ -208,3 +210,185 @@ def test_reconstruct_from_manifest_selects_the_correct_sequence_number(sample_ma
     # THEN
     expected_last_sequence_number = len(records_for_sstable_one_block) - 1  # Because manifest made of these events
     assert reconstructed_store.last_committed_sequence_number == expected_last_sequence_number
+
+
+def test_get_adds_snapshot_to_list_and_then_removes_it(empty_transactional_store):
+    # GIVEN
+    store = empty_transactional_store
+    initial_size = len(store.current_snapshots)
+
+    # Define a wrapper for the _get method that includes the assertion
+    def wrapper(*args, **kwargs):
+        # THEN: Before calling `_get`, the snapshot must have been added to the list of current snapshots
+        assert len(store.current_snapshots) == initial_size + 1
+
+        store._get(*args, **kwargs)
+
+    # Patch the _get method with our wrapper
+    with mock.patch.object(store, '_get', wrapper=wrapper):
+        # WHEN
+        store.get(key=b'key')
+
+    # THEN: The snapshot must be removed from the list after `_get` has completed
+    assert len(store.current_snapshots) == initial_size
+
+
+def test_scan_adds_snapshot_to_list_and_then_removes_it(empty_transactional_store):
+    # GIVEN
+    store = empty_transactional_store
+    initial_size = len(store.current_snapshots)
+
+    # Define a wrapper for the _get method that includes the assertion
+    def wrapper(*args, **kwargs):
+        # THEN: Before calling `_scan`, the snapshot must have been added to the list of current snapshots
+        assert len(store.current_snapshots) == initial_size + 1
+
+        store._scan(*args, **kwargs)
+
+    # Patch the _scan method with our wrapper
+    with mock.patch.object(store, '_scan', wrapper=wrapper):
+        # WHEN
+        store.scan(lower=b'lower', upper=b'upper')
+
+    # THEN: The snapshot must be removed from the list after `_get` has completed
+    assert len(store.current_snapshots) == initial_size
+
+
+# TODO: SELECTED!!!
+def test_compact_l0_on_non_transactional_store_calls_merging_iterator_with_filter_duplicates_true(
+        store_with_multiple_l0_sstables):
+    # GIVEN
+    store = store_with_multiple_l0_sstables
+    nb_l0_sstables = len(store.state.sstables_level0)
+
+    # WHEN/THEN
+    with mock.patch('src.lsm_storage.MergingIterator') as mock_merging_iterator, \
+            mock.patch('src.lsm_storage.CompactSSTableIterator') as mock_compact_sstable_iterator:
+        # WHEN
+        store._compact_l0()
+
+        # THEN
+        # Check that compact sstable was called the right number of times
+        assert mock_compact_sstable_iterator.call_count == nb_l0_sstables
+        # Check that MergingIterator was called with the expected arguments
+        mock_merging_iterator.assert_called_once_with(
+            iterators=[ANY for _ in range(nb_l0_sstables)],
+            # filter_duplicates=True # By default
+        )
+        # NB: iterators should be the returns of mock_compact_sstable_iterator (but assuming this test is good enough)
+
+
+def test_compact_l0_on_transactional_store_calls_merging_iterator_with_filter_duplicates_false(
+        transactional_store_with_duplicates_in_l0_sstables):
+    # GIVEN
+    store = transactional_store_with_duplicates_in_l0_sstables
+
+    # Define a wrapper for the init method and record calls
+    init_wrapper_calls = []  # Storage for calls
+    original_init = MergingIterator.__init__  # Save the original constructor
+
+    def init_wrapper(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        init_wrapper_calls.append(call(*args, **kwargs))
+
+    # WHEN/THEN
+    with mock.patch.object(MergingIterator, '__init__', new=init_wrapper):
+        # WHEN
+        store._compact_l0()
+
+        # THEN
+        # Check calls were as expected
+        assert call(iterators=ANY, filter_duplicates=False) in init_wrapper_calls
+        assert len(init_wrapper_calls) == 1  # Ensure it was called once
+
+
+def test_compact_l1_on_non_transactional_store_calls_concatenating_iterator_without_filter_duplicates(
+        store_with_multiple_l1_sstables):
+    # GIVEN
+    store = store_with_multiple_l1_sstables
+    nb_l1_sstables = len(store.state.sstables_levels[0])
+
+    # WHEN/THEN
+    with mock.patch('src.lsm_storage.ConcatenatingIterator') as mock_concatenating_iterator, \
+            mock.patch('src.lsm_storage.CompactSSTableIterator') as mock_compact_sstable_iterator:
+        # WHEN
+        store._compact_l1_or_more(level=1)
+
+        # THEN
+        # Check that compact sstable was called the right number of times
+        assert mock_compact_sstable_iterator.call_count == nb_l1_sstables
+        # Check that MergingIterator was called with the expected arguments
+        mock_concatenating_iterator.assert_called_once_with(
+            iterators=[ANY for _ in range(nb_l1_sstables)]
+            # filter_duplicates not passed
+        )
+        # NB: iterators should be the returns of mock_compact_sstable_iterator (but assuming this test is good enough)
+
+
+def test_compact_l1_on_transactional_store_calls_concatenating_iterator_without_filter_duplicates(
+        transactional_store_with_duplicates_in_l1_sstables):
+    # GIVEN
+    store = transactional_store_with_duplicates_in_l1_sstables
+
+    # Define a wrapper for the init method and record calls
+    init_wrapper_calls = []  # Storage for calls
+    original_init = ConcatenatingIterator.__init__  # Save the original constructor
+
+    def init_wrapper(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        init_wrapper_calls.append(call(*args, **kwargs))
+
+    # WHEN/THEN
+    with mock.patch.object(ConcatenatingIterator, '__init__', new=init_wrapper):
+        # WHEN
+        store._compact_l1_or_more(level=1)
+
+        # THEN
+        # Check calls were as expected
+        assert call(iterators=ANY) in init_wrapper_calls  # No filter duplicates
+        assert len(init_wrapper_calls) == 1  # Ensure it was called once
+
+
+def test_compact_should_keep_only_valid_records(empty_transactional_store):
+    # GIVEN
+    key_value_pairs = [(b'keyA', b'valueA1'),  # 0
+                       (b'keyA', b'valueA2'),  # 1
+                       (b'keyA', b'valueA3'),  # 2
+                       (b'keyB', b'valueB1'),  # 3
+                       (b'keyB', b'valueB2'),  # 4
+                       (b'keyC', b'valueC1'),  # 5
+                       (b'keyC', b'valueC2'),  # 6
+                       (b'keyC', b'valueC3'),  # 7
+                       (b'keyD', b'valueD1')]  # 8
+    store = empty_transactional_store
+    store._configuration.max_sstable_size = 10000
+    store._configuration.block_size = 30
+    for key, value in key_value_pairs:
+        store.put(key=key, value=value)
+    store._freeze()
+    store._flush()
+    assert len(store.state.sstables_level0) == 1
+    assert len(store.state.sstables_levels[0]) == 0
+
+    # WHEN
+    store.last_committed_sequence_number = 6
+    store._compact_l0()
+
+    # THEN
+    assert len(store.state.sstables_level0) == 0
+    assert len(store.state.sstables_levels[0]) == 1
+
+    # Read all data blocks
+    encoded_data_blocks = b''
+    for i in range(len(store.state.sstables_levels[0][0].meta_blocks)):
+        encoded_data_blocks += store.state.sstables_levels[0][0].read_data_block(block_id=i).data
+
+    assert b'valueA1' not in encoded_data_blocks  # sequence_number: 0
+    assert b'valueA2' not in encoded_data_blocks  # sequence_number: 1
+    assert b'valueA3' in encoded_data_blocks  # sequence_number: 2 --- Last below snapshot => kept
+    assert b'valueB1' not in encoded_data_blocks  # sequence_number: 3
+    assert b'valueB2' in encoded_data_blocks  # sequence_number: 4 --- Last below snapshot => kept
+    assert b'valueC1' not in encoded_data_blocks  # sequence_number: 5
+    assert b'valueC2' in encoded_data_blocks  # sequence_number: 6 --- Last below snapshot => kept
+    assert b'valueC3' in encoded_data_blocks  # sequence_number: 7 --- Above snapshot => kept
+    assert b'valueD1' in encoded_data_blocks  # sequence_number: 8 --- Above snapshot => kept
