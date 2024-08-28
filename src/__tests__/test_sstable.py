@@ -67,7 +67,8 @@ def test_encode_sstable():
     meta_block1 = MetaBlock(first_key=b'key1', last_key=b'key2', offset=0)
     meta_block2 = MetaBlock(first_key=b'key3', last_key=b'key3', offset=42)  # 42 = 18*2 + 2*2 + 2
     bloom_filter = BloomFilter.build_from_keys_and_fp_rate([b"key1", b"key2", b"key3"], fp_rate=0.0001)
-    sstable = SSTableEncoding(data=data, meta_blocks=[meta_block1, meta_block2], bloom_filter=bloom_filter)
+    sstable = SSTableEncoding(data=data, meta_blocks=[meta_block1, meta_block2], bloom_filter=bloom_filter,
+                              max_sequence_number=12)
 
     # WHEN
     encoded_sstable = sstable.to_bytes()
@@ -81,7 +82,12 @@ def test_encode_sstable():
     encoded_bloom_filter = bloom_filter.to_bytes()
     encoded_96 = b'`\x00\x00\x00'  # 96 = len(data + encoded_meta_blocks)
     encoded_bloom_filter_offset = encoded_96
-    assert encoded_sstable == data + encoded_meta_blocks + encoded_bloom_filter + encoded_meta_block_offset + encoded_bloom_filter_offset
+    encoded_12 = b'\x0c\x00\x00\x00'  # 12 = max sequence number passed in arguments
+    encoded_max_sequence_number = encoded_12
+
+    encoded_extra = encoded_meta_block_offset + encoded_bloom_filter_offset + encoded_max_sequence_number
+
+    assert encoded_sstable == data + encoded_meta_blocks + encoded_bloom_filter + encoded_extra
 
 
 def test_decode_sstable():
@@ -92,8 +98,10 @@ def test_decode_sstable():
     encoded_bloom_filter = b'9\x02'
     encoded_meta_block_offset = b'@\x00\x00\x00'
     encoded_bloom_filter_offset = b'`\x00\x00\x00'
+    encoded_max_sequence_number = b'\x0c\x00\x00\x00'
     encoded_meta_blocks = encoded_meta_block1 + encoded_meta_block2
-    data = encoded_data + encoded_meta_blocks + encoded_bloom_filter + encoded_meta_block_offset + encoded_bloom_filter_offset
+    encoded_extra = encoded_meta_block_offset + encoded_bloom_filter_offset + encoded_max_sequence_number
+    data = encoded_data + encoded_meta_blocks + encoded_bloom_filter + encoded_extra
 
     # WHEN
     decoded_sstable = SSTableEncoding.from_bytes(data)
@@ -251,9 +259,9 @@ def test_sstables_are_equal(temporary_sstable_path, simple_bloom_filter):
     file1 = SSTableFile.open(path=temporary_sstable_path)
     file2 = SSTableFile.open(path=temporary_sstable_path)
     sstable_1 = SSTable(meta_blocks=[], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
-                        bloom_filter=simple_bloom_filter, file=file1)
+                        bloom_filter=simple_bloom_filter, file=file1, max_sequence_number=0)
     sstable_2 = SSTable(meta_blocks=[], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
-                        bloom_filter=simple_bloom_filter, file=file2)
+                        bloom_filter=simple_bloom_filter, file=file2, max_sequence_number=0)
 
     # WHEN
     are_equal = sstable_1 == sstable_2
@@ -269,20 +277,27 @@ def test_sstables_are_not_equal_under_several_conditions(temporary_sstable_path,
     meta_block = MetaBlock(first_key=b'key1', last_key=b'key3', offset=0)
     meta_block_other = MetaBlock(first_key=b'key1', last_key=b'key3', offset=2)
     sstable = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
-                      bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+                      bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path),
+                      max_sequence_number=0)
     sstable_first_key = SSTable(meta_blocks=[meta_block], first_key=b'key2', last_key=b'key3', meta_block_offset=10,
-                                bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+                                bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path),
+                                max_sequence_number=0)
     sstable_last_key = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key4', meta_block_offset=10,
-                               bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+                               bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path),
+                               max_sequence_number=0)
     sstable_meta_block = SSTable(meta_blocks=[meta_block_other], first_key=b'key1', last_key=b'key3',
                                  meta_block_offset=10,
-                                 bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+                                 bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path),
+                                 max_sequence_number=0)
     sstable_offset = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=11,
-                             bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+                             bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path),
+                             max_sequence_number=0)
     sstable_bloom = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
-                            bloom_filter=simple_bloom_filter_2, file=SSTableFile.open(path=temporary_sstable_path))
+                            bloom_filter=simple_bloom_filter_2, file=SSTableFile.open(path=temporary_sstable_path),
+                            max_sequence_number=0)
     sstable_file = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
-                           bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=sstable_four_blocks.file.path))
+                           bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=sstable_four_blocks.file.path),
+                           max_sequence_number=0)
 
     # WHEN
     are_equal_first_key = sstable == sstable_first_key

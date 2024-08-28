@@ -296,7 +296,8 @@ def test_dont_look_in_bloom_filter_if_key_absent(temporary_sstable_path, empty_s
                       bloom_filter=bloom_filter,
                       file=SSTableFile.create(path=temporary_sstable_path, data=b''),
                       first_key=b'foo',
-                      last_key=b'bar'
+                      last_key=b'bar',
+                      max_sequence_number=0
                       )
     store = empty_store
     store.state.sstables_level0.append(sstable)

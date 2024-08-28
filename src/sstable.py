@@ -60,18 +60,19 @@ class SSTableEncoding:
     """This class handles encoding and decoding of SSTables.
 
     Each SSTable has the following format:
-    +-----------------------+---------------------------+--------------+----------------------------+
-    |         Blocks        |        Meta Blocks        |  Meta Bloom  |            Extra           |
-    +-----------------------+---------------------------+--------------+----------------------------+
-    | DB1 | DB2 | ... | DBn | meta_DB1 | ... | meta_DBn | bloom filter | meta_offset | bloom_offset |
-    +-----------------------+---------------------------+--------------+----------------------------+
+    +-----------------------+---------------------------+--------------+------------------------------------------+
+    |         Blocks        |        Meta Blocks        |  Meta Bloom  |                   Extra                  |
+    +-----------------------+---------------------------+--------------+------------------------------------------+
+    | DB1 | DB2 | ... | DBn | meta_DB1 | ... | meta_DBn | bloom filter | meta_offset | bloom_offset | max_seq_num |
+    +-----------------------+---------------------------+--------------+------------------------------------------+
     (DB = Data Block)
     """
 
-    def __init__(self, data: bytes, meta_blocks: list[MetaBlock], bloom_filter: BloomFilter):
+    def __init__(self, data: bytes, meta_blocks: list[MetaBlock], bloom_filter: BloomFilter, max_sequence_number: int):
         self.meta_blocks = meta_blocks
         self.data = data
         self.bloom_filter = bloom_filter
+        self.max_sequence_number = max_sequence_number
 
     @property
     def meta_block_section_offset(self):
@@ -87,17 +88,21 @@ class SSTableEncoding:
         encoded_bloom_filter = self.bloom_filter.to_bytes()
         encoded_meta_block_offset = struct.pack("i", len(self.data))
         encoded_bloom_filter_offset = struct.pack("i", len(self.data) + len(encoded_meta_blocks))
+        encoded_max_seq_num = struct.pack("I", self.max_sequence_number)
+        encoded_extra = encoded_meta_block_offset + encoded_bloom_filter_offset + encoded_max_seq_num
 
-        return self.data + encoded_meta_blocks + encoded_bloom_filter + encoded_meta_block_offset + encoded_bloom_filter_offset
+        return self.data + encoded_meta_blocks + encoded_bloom_filter + encoded_extra
 
     @classmethod
     def from_bytes(cls, data) -> "SSTableEncoding":
         # Decode extra
-        extra_section_start = len(data) - 2 * INT_i_SIZE
+        extra_section_start = len(data) - 3 * INT_i_SIZE
         extra_section_end = len(data)
         extra_meta_offset = extra_section_start
         extra_bloom_offset = extra_section_start + INT_i_SIZE
-        bloom_offset = struct.unpack("i", data[extra_bloom_offset:extra_section_end])[0]
+        extra_max_sequence_number_offset = extra_section_start + 2 * INT_i_SIZE
+        max_sequence_number = struct.unpack("i", data[extra_max_sequence_number_offset:extra_section_end])[0]
+        bloom_offset = struct.unpack("i", data[extra_bloom_offset:extra_max_sequence_number_offset])[0]
         meta_block_offset = struct.unpack("i", data[extra_meta_offset:extra_bloom_offset])[0]
 
         # Decode bloom filters
@@ -115,7 +120,8 @@ class SSTableEncoding:
         # Decode data blocks
         encoded_data_blocks = data[0:meta_block_offset]
 
-        return cls(data=encoded_data_blocks, meta_blocks=meta_blocks, bloom_filter=bloom_filter)
+        return cls(data=encoded_data_blocks, meta_blocks=meta_blocks, bloom_filter=bloom_filter,
+                   max_sequence_number=max_sequence_number)
 
 
 class SSTable:
@@ -125,7 +131,8 @@ class SSTable:
                  file: SSTableFile,
                  bloom_filter: BloomFilter,
                  first_key: Record.Key,
-                 last_key: Record.Key
+                 last_key: Record.Key,
+                 max_sequence_number: int,
                  ):
         self.file = file
         self.meta_blocks = meta_blocks
@@ -133,6 +140,7 @@ class SSTable:
         self.bloom_filter = bloom_filter
         self.first_key = first_key
         self.last_key = last_key
+        self.max_sequence_number = max_sequence_number
 
     def __eq__(self, other):
         if not isinstance(other, SSTable):
@@ -198,10 +206,11 @@ class SSTable:
         meta_blocks = sstable_encoding.meta_blocks
         meta_block_offset = sstable_encoding.meta_block_section_offset
         bloom_filter = sstable_encoding.bloom_filter
+        max_sequence_number = sstable_encoding.max_sequence_number
 
         return cls(meta_blocks=meta_blocks, meta_block_offset=meta_block_offset,
                    first_key=first_key, last_key=last_key,
-                   bloom_filter=bloom_filter, file=file)
+                   bloom_filter=bloom_filter, file=file, max_sequence_number=max_sequence_number)
 
 
 class SSTableBuilder:
@@ -218,6 +227,7 @@ class SSTableBuilder:
         self.current_buffer_position = 0
         self.meta_blocks = []
         self.keys = []
+        self.max_sequence_number = 0
 
     def add(self, record: Record):
         """Adds a key-value pair to the SSTable.
@@ -226,6 +236,7 @@ class SSTableBuilder:
         builder is initialized.
         """
         self.keys.append(record.key)
+        self.max_sequence_number = max(self.max_sequence_number, record.sequence_number)
         was_added = self.block_builder.add(record=record)
 
         # Nothing to do if the record was added to the block
@@ -272,7 +283,8 @@ class SSTableBuilder:
         bloom_filter = BloomFilter.build_from_keys_and_fp_rate(keys=self.keys, fp_rate=0.001)
         encoded_sstable = SSTableEncoding(data=bytes(self.data_buffer[:self.current_buffer_position]),
                                           meta_blocks=self.meta_blocks,
-                                          bloom_filter=bloom_filter).to_bytes()
+                                          bloom_filter=bloom_filter,
+                                          max_sequence_number=self.max_sequence_number).to_bytes()
         file = SSTableFile.create(path=path, data=encoded_sstable)
 
         # Return python object
@@ -282,5 +294,6 @@ class SSTableBuilder:
             meta_block_offset=self.current_buffer_position,
             bloom_filter=bloom_filter,
             first_key=self.keys[0],
-            last_key=self.keys[-1]
+            last_key=self.keys[-1],
+            max_sequence_number=self.max_sequence_number
         )

@@ -1,6 +1,9 @@
 import threading
+from unittest import mock
 
+from src.lsm_storage import LsmStorage
 from src.record import Record
+from src.transactional_lsm_storage import TransactionalLsmStorage
 
 
 def test_put_a_new_record_updates_last_committed_number(empty_transactional_store):
@@ -176,3 +179,32 @@ def test_scan_uses_previous_committed_version(transactional_store_with_duplicate
 
     # THEN
     assert results == [original_values]
+
+
+def test_create_initializes_with_correct_sequence_number():
+    # GIVEN
+    transactional_directory = "./test_transactional_directory"
+
+    # WHEN/THEN
+    with mock.patch.object(LsmStorage, 'create') as mocked_lsm_create:
+        # WHEN
+        transactional_store = TransactionalLsmStorage.create(directory=transactional_directory)
+
+        # THEN
+        mocked_lsm_create.assert_called_once()
+
+    # THEN
+    assert transactional_store.last_committed_sequence_number == -1
+
+
+def test_reconstruct_from_manifest_selects_the_correct_sequence_number(sample_manifest_1_with_events,
+                                                                       records_for_sstable_one_block):
+    # GIVEN
+    manifest = sample_manifest_1_with_events
+
+    # WHEN
+    reconstructed_store = TransactionalLsmStorage.reconstruct(manifest_path=manifest.file.path)
+
+    # THEN
+    expected_last_sequence_number = len(records_for_sstable_one_block) - 1  # Because manifest made of these events
+    assert reconstructed_store.last_committed_sequence_number == expected_last_sequence_number
