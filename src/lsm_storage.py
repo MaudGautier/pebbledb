@@ -13,7 +13,7 @@ from src.iterators import (
 from src.locks import ReadWriteLock, Mutex
 from src.manifest import Manifest, Configuration, FlushEvent, CompactionEvent
 from src.memtable import MemTable
-from src.record import Record
+from src.record import Record, MAX_SNAPSHOT
 from src.sstable import SSTableBuilder, SSTable
 
 
@@ -174,19 +174,27 @@ class LsmStorage:
         self._try_freeze()
 
     @staticmethod
-    def _search_memtables(key: Record.Key, memtables: list[MemTable]) -> Optional[Record.Value]:
+    def _search_memtables(
+            key: Record.Key,
+            memtables: list[MemTable],
+            snapshot: int = MAX_SNAPSHOT
+    ) -> Optional[Record.Value]:
         for memtable in memtables:
-            value = memtable.get(key=key)
+            value = memtable.get(key=key, snapshot=snapshot)
             if value is not None:
                 return value
         return None
 
     @staticmethod
-    def _search_ss_tables(key: Record.Key, ss_tables: Deque[SSTable]) -> Optional[Record.Value]:
+    def _search_ss_tables(
+            key: Record.Key,
+            ss_tables: Deque[SSTable],
+            snapshot: int = MAX_SNAPSHOT
+    ) -> Optional[Record.Value]:
         for sstable in ss_tables:
             if not sstable.bloom_filter.may_contain(key=key):
                 continue
-            value = sstable.get(key=key)
+            value = sstable.get(key=key, snapshot=snapshot)
             if value is not None:
                 return value
         return None
