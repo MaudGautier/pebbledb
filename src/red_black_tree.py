@@ -1,6 +1,6 @@
 from collections import deque
 from enum import Enum
-from typing import Optional, Iterator
+from typing import Optional, Iterator, List
 
 from src.locks import Mutex
 
@@ -14,7 +14,7 @@ class Node:
     Key = bytes or int or str  # int or str are only here for tests.
     # Note: the test file has been changed to only bytes in commit `refactor(RBTree): pass key as bytes`
     # (then reverted). I might come back to this at some point
-    Data = bytes
+    Data = List[bytes]
 
     def __init__(self,
                  key: Key or None,
@@ -24,7 +24,7 @@ class Node:
                  right: Optional["Node"] = None,
                  ):
         self.key = key
-        self.data = data
+        self.data = data if data else []
         self.left = left
         self.right = right
         self.color = color
@@ -118,7 +118,7 @@ class RedBlackTree:
                 elif current.key > node.key:
                     current = current.left
                 elif current.key == node.key:
-                    current.data = node.data
+                    current.data.extend(node.data)
                     return current
 
         # Insert node
@@ -303,6 +303,10 @@ class RedBlackTree:
             nodes_to_visit.append(right)
 
         return nodes_to_display
+
+    def count_data_nodes(self):
+        nodes = self.bfs()
+        return len([node for node in nodes if node is not self.NIL_LEAF])
 
     def get(self, key: Node.Key) -> Optional[Node.Data]:
         node = self.root

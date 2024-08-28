@@ -923,18 +923,18 @@ def test_concurrent_insertions_are_serialized():
         assert tree.get(key=str(i)) == str(i).encode()
 
 
-def test_replace_existing_key():
+def test_do_not_replace_existing_key_but_add_new_data():
     # GIVEN
     tree = RedBlackTree()
-    tree.insert(key="key", data=b'old_data')
-    tree.insert(key="1", data=b"1")
-    tree.insert(key="2", data=b"2")
+    tree.insert(key="key", data=[b'old_data'])
+    tree.insert(key="1", data=[b"1"])
+    tree.insert(key="2", data=[b"2"])
 
     # WHEN
-    tree.insert(key="key", data=b'new_data')
+    tree.insert(key="key", data=[b'new_data'])
 
     # THEN
-    assert tree.get(key="key") == b'new_data'
+    assert tree.get(key="key") == [b'old_data', b'new_data']
 
 
 def test_find_start_node():
@@ -1053,6 +1053,34 @@ def test_not_equal_if_different_nodes():
     # WHEN/THEN
     assert tree1 != tree2
     assert tree1 != tree3
+
+
+def test_put_when_duplicates_should_insert_new_one_as_duplicate():
+    # GIVEN
+    tree = RedBlackTree()
+    key_data_pairs = [(b'1', [b'1']), (b'1', [b'2'])]
+
+    # WHEN
+    for key, data in key_data_pairs:
+        tree.insert(key=key, data=data)
+
+    # THEN
+    assert tree.count_data_nodes() == 1
+    assert len(tree.get(key=b'1')) == 2
+
+
+def test_get_when_duplicates_should_return_all_duplicates_from_oldest_to_newest():
+    # GIVEN
+    tree = RedBlackTree()
+    key_data_pairs = [(b'1', [b'1']), (b'1', [b'2']), (b'1', [b'3'])]
+    for key, data in key_data_pairs:
+        tree.insert(key=key, data=data)
+
+    # WHEN
+    data = tree.get(key=b'1')
+
+    # THEN
+    assert data == [b'1', b'2', b'3']
 
 
 # -------------------------------------------------------------------------------------------------------------------- #

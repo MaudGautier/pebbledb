@@ -4,8 +4,7 @@ import pytest
 
 from src.blocks import DataBlock, DataBlockBuilder
 from src.iterators import DataBlockIterator, MemTableIterator, SSTableIterator, MergingIterator, BaseIterator, \
-    ConcatenatingIterator
-from src.memtable import MemTable
+    ConcatenatingIterator, ScanMemtableIterator, FlushIterator
 from src.record import Record
 
 
@@ -21,7 +20,7 @@ def test_iterate_on_memtable(empty_memtable):
     records = list(item for item in memtable_iterator)
 
     # THEN
-    expected_records = [Record(key=key, value=key) for key in sorted(keys)]
+    expected_records = [[Record(key=key, value=key)] for key in sorted(keys)]
     assert records == expected_records
 
 
@@ -47,8 +46,8 @@ def test_iterate_on_memtable_with_boundaries(empty_memtable):
 
     # THEN
     expected_records = [
-        Record(key=b'1', value=b'1'),
-        Record(key=b'4', value=b'4'),
+        [Record(key=b'1', value=b'1')],
+        [Record(key=b'4', value=b'4')],
     ]
     assert scanned_records == expected_records
 
@@ -58,10 +57,10 @@ def test_iterate_on_data_block():
     record_size = Record(key=b'keyN', value=b'valueN').size
     block_size = random.randint(4 * record_size, 10 * record_size)  # Upper limit does not matter
     block_builder = DataBlockBuilder(target_size=block_size)
-    block_builder.add(key=b'key1', value=b'value1')
-    block_builder.add(key=b'key2', value=b'value2')
-    block_builder.add(key=b'key3', value=b'value3')
-    block_builder.add(key=b'key4', value=b'value4')
+    block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    block_builder.add(record=Record(key=b'key2', value=b'value2'))
+    block_builder.add(record=Record(key=b'key3', value=b'value3'))
+    block_builder.add(record=Record(key=b'key4', value=b'value4'))
     block = block_builder.create_block()
     data_block_iterator = DataBlockIterator(block=block)
 
@@ -90,10 +89,10 @@ def test_iterate_on_empty_data_block_raises_stop_iteration():
 
 def test_data_block_select_index():
     # GIVEN
-    encoded_record1 = b'\x04\x00\x00\x00key1\x00\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value1'
-    encoded_record2 = b'\x04\x00\x00\x00key2\x01\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value2'
-    encoded_record3 = b'\x04\x00\x00\x00key3\x02\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value3'
-    encoded_record4 = b'\x04\x00\x00\x00key4\x03\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00value4'
+    encoded_record1 = b'\x04\x00\x00\x00key1\xff\xff\xff\xff\xff\xff\xff\xff\x06\x00\x00\x00value1'
+    encoded_record2 = b'\x04\x00\x00\x00key2\xff\xff\xff\xff\xff\xff\xff\xfe\x06\x00\x00\x00value2'
+    encoded_record3 = b'\x04\x00\x00\x00key3\xff\xff\xff\xff\xff\xff\xff\xfd\x06\x00\x00\x00value3'
+    encoded_record4 = b'\x04\x00\x00\x00key4\xff\xff\xff\xff\xff\xff\xff\xfc\x06\x00\x00\x00value4'
     record_size = len(encoded_record1)
 
     block = DataBlock(data=encoded_record1 + encoded_record2 + encoded_record3 + encoded_record4,
@@ -125,10 +124,10 @@ def test_data_block_select_index():
 def test_iterate_on_data_block_with_boundaries_before():
     # GIVEN
     block_builder = DataBlockBuilder(target_size=100)
-    block_builder.add(key=b'key1', value=b'value1')
-    block_builder.add(key=b'key2', value=b'value2')
-    block_builder.add(key=b'key3', value=b'value3')
-    block_builder.add(key=b'key4', value=b'value4')
+    block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    block_builder.add(record=Record(key=b'key2', value=b'value2'))
+    block_builder.add(record=Record(key=b'key3', value=b'value3'))
+    block_builder.add(record=Record(key=b'key4', value=b'value4'))
     block = block_builder.create_block()
     data_block_iterator = DataBlockIterator(block=block, start_key=b'k', end_key=b'key0')
 
@@ -143,10 +142,10 @@ def test_iterate_on_data_block_with_boundaries_before():
 def test_iterate_on_data_block_with_boundaries_after_returns_empty_list():
     # GIVEN
     block_builder = DataBlockBuilder(target_size=100)
-    block_builder.add(key=b'key1', value=b'value1')
-    block_builder.add(key=b'key2', value=b'value2')
-    block_builder.add(key=b'key3', value=b'value3')
-    block_builder.add(key=b'key4', value=b'value4')
+    block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    block_builder.add(record=Record(key=b'key2', value=b'value2'))
+    block_builder.add(record=Record(key=b'key3', value=b'value3'))
+    block_builder.add(record=Record(key=b'key4', value=b'value4'))
     block = block_builder.create_block()
     data_block_iterator = DataBlockIterator(block=block, start_key=b'key6', end_key=b'key9')
 
@@ -164,10 +163,10 @@ def test_iterate_on_data_block_with_boundaries_inside_returns_partial_list():
     record_size = Record(key=b'keyN', value=b'valueN').size
     block_size = random.randint(4 * record_size, 10 * record_size)  # Upper limit does not matter
     block_builder = DataBlockBuilder(target_size=block_size)
-    block_builder.add(key=b'key1', value=b'value1')
-    block_builder.add(key=b'key2', value=b'value2')
-    block_builder.add(key=b'key3', value=b'value3')
-    block_builder.add(key=b'key4', value=b'value4')
+    block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    block_builder.add(record=Record(key=b'key2', value=b'value2'))
+    block_builder.add(record=Record(key=b'key3', value=b'value3'))
+    block_builder.add(record=Record(key=b'key4', value=b'value4'))
     block = block_builder.create_block()
     data_block_iterator = DataBlockIterator(block=block, start_key=b'key2', end_key=b'key4')
 
@@ -181,6 +180,51 @@ def test_iterate_on_data_block_with_boundaries_inside_returns_partial_list():
         Record(key=b'key4', value=b'value4'),
     ]
     assert iterated_items == expected_items
+
+
+@pytest.mark.parametrize(
+    ("start_key", "end_key"),
+    [
+        pytest.param(
+            b'k', b'key0',
+            id="outside-before",
+        ),
+        pytest.param(
+            b'key8', b'key9',
+            id="outside-after",
+        ),
+        pytest.param(
+            b'key0', b'key2',
+            id="overlap-before",
+        ),
+        pytest.param(
+            b'key5', b'key9',
+            id="overlap-after",
+        ),
+        pytest.param(
+            b'key1', b'key5',
+            id="inside-with-included-keys",
+        ),
+        pytest.param(
+            b'key2', b'key6',
+            id="inside-with-non-keys",
+        ),
+    ],
+)
+def test_iterate_on_data_block_with_duplicates(start_key, end_key, data_block_with_duplicates,
+                                               records_for_sstable_with_duplicates):
+    # GIVEN
+    block = data_block_with_duplicates
+    records = records_for_sstable_with_duplicates
+
+    # WHEN
+    data_block_iterator = DataBlockIterator(block=block, start_key=b'k', end_key=b'key0')
+    iterated_records = list(record for record in data_block_iterator)
+
+    # THEN
+    expected_records = [record for record in records if start_key <= record.key <= end_key]
+
+    assert iterated_records == expected_records
 
 
 def test_iterate_on_sstable(sstable_four_blocks, records_for_sstable_four_blocks):
@@ -360,3 +404,57 @@ def test_concatenating_iterator_when_one_empty():
     # THEN
     expected_values = [Record("0", b'0')]
     assert list(concatenating_iterator) == expected_values
+
+
+def test_scan_iterate_on_memtable_with_duplicates_returns_the_most_recent_sequence_numbers(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    keys = [b'1', b'1', b'1']
+    for key in keys:
+        memtable.put(key=key, value=key)
+    memtable_iterator = ScanMemtableIterator(memtable=memtable)
+
+    # WHEN
+    records_sequence_numbers = list(record.sequence_number for record in memtable_iterator)
+
+    # THEN
+    expected_sequence_numbers = [2]
+    assert records_sequence_numbers == expected_sequence_numbers
+
+
+def test_scan_iterate_with_boundaries_on_memtable_with_duplicates_returns_the_most_recent_sequence_numbers(
+        empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    keys = [b'1', b'4', b'1', b'4', b'6', b'1']
+    for key in keys:
+        memtable.put(key=key, value=key)
+    memtable_iterator = ScanMemtableIterator(memtable=memtable, start_key=b'3', end_key=b'7')
+
+    # WHEN
+    records = list(record for record in memtable_iterator)
+    records_sequence_numbers = list(record.sequence_number for record in records)
+
+    # THEN
+    expected_sequence_numbers = [3, 4]
+    expected_records = [Record(key=b'4', value=b'4'), Record(key=b'6', value=b'6')]
+    assert records_sequence_numbers == expected_sequence_numbers
+    assert records == expected_records
+
+
+def test_flush_iterate_on_memtable_with_duplicates_returns_all_versions(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    keys = [b'1', b'1', b'1']
+    for key in keys:
+        memtable.put(key=key, value=key)
+    memtable_iterator = FlushIterator(memtable=memtable)
+
+    # WHEN
+    records_sequence_numbers = list(record_version.sequence_number
+                                    for record_versions in memtable_iterator
+                                    for record_version in record_versions)
+
+    # THEN
+    expected_sequence_numbers = [2, 1, 0]
+    assert records_sequence_numbers == expected_sequence_numbers

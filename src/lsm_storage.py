@@ -3,7 +3,13 @@ import time
 from collections import deque
 from typing import Optional, Iterator, Deque, Type
 
-from src.iterators import MemTableIterator, MergingIterator, SSTableIterator, ConcatenatingIterator, BaseIterator
+from src.iterators import (
+    MergingIterator,
+    ConcatenatingIterator,
+    BaseIterator,
+    FlushIterator,
+    CompactSSTableIterator
+)
 from src.locks import ReadWriteLock, Mutex
 from src.manifest import Manifest, Configuration, FlushEvent, CompactionEvent
 from src.memtable import MemTable
@@ -226,9 +232,10 @@ class LsmStorage:
         path = self._compute_path()
         sstable_builder = SSTableBuilder(sstable_size=self._configuration.max_sstable_size,
                                          block_size=self._configuration.block_size)
-        memtable_iterator = MemTableIterator(memtable=memtable_to_flush)
-        for record in memtable_iterator:
-            sstable_builder.add(key=record.key, value=record.value)
+        memtable_iterator = FlushIterator(memtable=memtable_to_flush)
+        for record_versions in memtable_iterator:
+            for record in record_versions:
+                sstable_builder.add(record=record)
         sstable = sstable_builder.build(path=path)
 
         # Update state to remove oldest memtable and add new SSTable
@@ -269,7 +276,7 @@ class LsmStorage:
                                          block_size=self._configuration.block_size)
 
         for record in records_iterator:
-            sstable_builder.add(key=record.key, value=record.value)
+            sstable_builder.add(record=record)
 
             # Build the sstable when it exceeds the maximum size and instantiate a new builder
             if sstable_builder.current_buffer_position >= self._configuration.max_sstable_size:
@@ -305,7 +312,7 @@ class LsmStorage:
         with self._locks.read_write.read():
             sstables_to_compact = [sstable for sstable in input_sstables]
             records_iterator = iterator_class(iterators=[
-                SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
+                CompactSSTableIterator(sstable=sstable) for sstable in sstables_to_compact
             ])
 
         # Compute compacted SSTables
