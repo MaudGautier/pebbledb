@@ -1,45 +1,52 @@
+import random
 from contextlib import nullcontext as does_not_raise
 
 import pytest
 
 from src.blocks import DataBlock, MetaBlock
 from src.bloom_filter import BloomFilter
+from src.record import Record
 from src.sstable import SSTableBuilder, SSTableEncoding, SSTable, SSTableFile
 
 
 def test_add_record_to_current_block():
     # GIVEN
-    sstable_builder = SSTableBuilder(sstable_size=150, block_size=50)
+    records = [
+        Record(key=b'key1', value=b'value1'),
+        Record(key=b'key2', value=b'value2'),
+    ]
+    record_size = Record(key=b'keyN', value=b"valueN").size
+    random_block_size = random.randint(len(records) * record_size, (len(records) + 1) * record_size - 1)
+    sstable_size = random_block_size * 3
+    sstable_builder = SSTableBuilder(sstable_size=sstable_size, block_size=random_block_size)
 
     # WHEN
-    kv_pairs = [
-        (b'key1', b'value1'),
-        (b'key2', b'value2'),
-    ]
-    for key, value in kv_pairs:
-        sstable_builder.add(key=key, value=value)
+    for record in records:
+        sstable_builder.add(record=record)
 
     # THEN
     assert sstable_builder.current_buffer_position == 0
     assert sstable_builder.data_block_offsets == []
-    assert sstable_builder.data_buffer == bytearray(150)
+    assert sstable_builder.data_buffer == bytearray(sstable_size)
 
 
 def test_adding_record_to_new_block_updates_buffer():
     # GIVEN
-    sstable_builder = SSTableBuilder(sstable_size=150, block_size=50)
+    records = [
+        Record(key=b'key1', value=b'value1'),
+        Record(key=b'key2', value=b'value2'),
+        Record(key=b'key3', value=b'value3'),
+    ]
+    record_size = Record(key=b'keyN', value=b"valueN").size
+    random_block_size = random.randint((len(records) - 1) * record_size, len(records) * record_size - 1)
+    sstable_builder = SSTableBuilder(sstable_size=random_block_size * 3, block_size=random_block_size)
 
     # WHEN
-    kv_pairs = [
-        (b'key1', b'value1'),
-        (b'key2', b'value2'),
-        (b'key3', b'value3'),
-    ]
-    for key, value in kv_pairs:
-        sstable_builder.add(key=key, value=value)
+    for record in records:
+        assert sstable_builder.current_buffer_position == 0
+        sstable_builder.add(record=record)
 
     # THEN
-    record_size = len("keyN") + len(b"valueN") + 4 + 4
     record_index_size = 2  # Number of bytes for a "H" integer (Blocks)
     nb_records = 2
     nb_records_size = 2  # Number of bytes for a "H" integer (Blocks)
@@ -59,8 +66,9 @@ def test_encode_sstable():
     data = encoded_block1 + encoded_block2
     meta_block1 = MetaBlock(first_key=b'key1', last_key=b'key2', offset=0)
     meta_block2 = MetaBlock(first_key=b'key3', last_key=b'key3', offset=42)  # 42 = 18*2 + 2*2 + 2
-    bloom_filter = BloomFilter.build_from_keys_and_fp_rate(["key1", "key2", "key3"], fp_rate=0.0001)
-    sstable = SSTableEncoding(data=data, meta_blocks=[meta_block1, meta_block2], bloom_filter=bloom_filter)
+    bloom_filter = BloomFilter.build_from_keys_and_fp_rate([b"key1", b"key2", b"key3"], fp_rate=0.0001)
+    sstable = SSTableEncoding(data=data, meta_blocks=[meta_block1, meta_block2], bloom_filter=bloom_filter,
+                              max_sequence_number=12)
 
     # WHEN
     encoded_sstable = sstable.to_bytes()
@@ -74,7 +82,12 @@ def test_encode_sstable():
     encoded_bloom_filter = bloom_filter.to_bytes()
     encoded_96 = b'`\x00\x00\x00'  # 96 = len(data + encoded_meta_blocks)
     encoded_bloom_filter_offset = encoded_96
-    assert encoded_sstable == data + encoded_meta_blocks + encoded_bloom_filter + encoded_meta_block_offset + encoded_bloom_filter_offset
+    encoded_12 = b'\x0c\x00\x00\x00'  # 12 = max sequence number passed in arguments
+    encoded_max_sequence_number = encoded_12
+
+    encoded_extra = encoded_meta_block_offset + encoded_bloom_filter_offset + encoded_max_sequence_number
+
+    assert encoded_sstable == data + encoded_meta_blocks + encoded_bloom_filter + encoded_extra
 
 
 def test_decode_sstable():
@@ -85,8 +98,10 @@ def test_decode_sstable():
     encoded_bloom_filter = b'9\x02'
     encoded_meta_block_offset = b'@\x00\x00\x00'
     encoded_bloom_filter_offset = b'`\x00\x00\x00'
+    encoded_max_sequence_number = b'\x0c\x00\x00\x00'
     encoded_meta_blocks = encoded_meta_block1 + encoded_meta_block2
-    data = encoded_data + encoded_meta_blocks + encoded_bloom_filter + encoded_meta_block_offset + encoded_bloom_filter_offset
+    encoded_extra = encoded_meta_block_offset + encoded_bloom_filter_offset + encoded_max_sequence_number
+    data = encoded_data + encoded_meta_blocks + encoded_bloom_filter + encoded_extra
 
     # WHEN
     decoded_sstable = SSTableEncoding.from_bytes(data)
@@ -102,16 +117,16 @@ def test_find_block_of_key(sstable_four_blocks):
     sstable = sstable_four_blocks
 
     # WHEN/THEN
-    assert sstable.find_block_id(b'ddd') == 0
-    assert sstable.find_block_id(b'eee') == 1
-    assert sstable.find_block_id(b'jj') == 2
-    assert sstable.find_block_id(b'ooo') == 3
-    assert sstable.find_block_id(b'a') is None
-    assert sstable.find_block_id(b'iiii') == 2
-    assert sstable.find_block_id(b'zzz') is None
+    assert sstable.find_blocks_ids(b'ddd') == [0]
+    assert sstable.find_blocks_ids(b'eee') == [1]
+    assert sstable.find_blocks_ids(b'jj') == [2]
+    assert sstable.find_blocks_ids(b'ooo') == [3]
+    assert sstable.find_blocks_ids(b'a') == []
+    assert sstable.find_blocks_ids(b'iiii') == [2]
+    assert sstable.find_blocks_ids(b'zzz') == []
 
 
-def test_read_data_block(sstable_four_blocks):
+def test_read_data_block(sstable_four_blocks, records_for_sstable_four_blocks):
     # GIVEN
     sstable = sstable_four_blocks
 
@@ -119,9 +134,15 @@ def test_read_data_block(sstable_four_blocks):
     data_block = sstable.read_data_block(block_id=1)
 
     # THEN
+    record1 = b'\x03\x00\x00\x00eee\xff\xff\xff\xff\xff\xff\xff\xfb\x17\x00\x00\x00some_long_value_for_eee'
+    record2 = b'\x03\x00\x00\x00fff\xff\xff\xff\xff\xff\xff\xff\xfa\x17\x00\x00\x00some_long_value_for_fff'
+    record3 = b'\x03\x00\x00\x00ggg\xff\xff\xff\xff\xff\xff\xff\xf9\x17\x00\x00\x00some_long_value_for_ggg'
+    record4 = b'\x03\x00\x00\x00hhh\xff\xff\xff\xff\xff\xff\xff\xf8\x17\x00\x00\x00some_long_value_for_hhh'
+    record_size = records_for_sstable_four_blocks[0].size
+
     assert data_block.number_records == 4
-    assert data_block.data == b'\x03\x00\x00\x00eee\x17\x00\x00\x00some_long_value_for_eee\x03\x00\x00\x00fff\x17\x00\x00\x00some_long_value_for_fff\x03\x00\x00\x00ggg\x17\x00\x00\x00some_long_value_for_ggg\x03\x00\x00\x00hhh\x17\x00\x00\x00some_long_value_for_hhh'
-    assert data_block.offsets == [0, 34, 68, 102]
+    assert data_block.data == b''.join([record1, record2, record3, record4])
+    assert data_block.offsets == [0, record_size, 2 * record_size, 3 * record_size]
 
 
 def test_get_key(sstable_four_blocks, records_for_sstable_four_blocks):
@@ -163,12 +184,11 @@ def test_get_key(sstable_four_blocks, records_for_sstable_four_blocks):
         ),
     ],
 )
-def test_scan_sstable(start_key, end_key, sstable_four_blocks, records_for_sstable_four_blocks):
+def test_scan_sstable(start_key: bytes, end_key: bytes, sstable_four_blocks, records_for_sstable_four_blocks):
     # GIVEN
     sstable = sstable_four_blocks
 
     # WHEN
-    # start_key, end_key = "cc", "eee"
     scanned_records_inside = list(record for record in sstable.scan(lower=start_key, upper=end_key))
 
     # THEN
@@ -239,9 +259,9 @@ def test_sstables_are_equal(temporary_sstable_path, simple_bloom_filter):
     file1 = SSTableFile.open(path=temporary_sstable_path)
     file2 = SSTableFile.open(path=temporary_sstable_path)
     sstable_1 = SSTable(meta_blocks=[], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
-                        bloom_filter=simple_bloom_filter, file=file1)
+                        bloom_filter=simple_bloom_filter, file=file1, max_sequence_number=0)
     sstable_2 = SSTable(meta_blocks=[], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
-                        bloom_filter=simple_bloom_filter, file=file2)
+                        bloom_filter=simple_bloom_filter, file=file2, max_sequence_number=0)
 
     # WHEN
     are_equal = sstable_1 == sstable_2
@@ -257,20 +277,27 @@ def test_sstables_are_not_equal_under_several_conditions(temporary_sstable_path,
     meta_block = MetaBlock(first_key=b'key1', last_key=b'key3', offset=0)
     meta_block_other = MetaBlock(first_key=b'key1', last_key=b'key3', offset=2)
     sstable = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
-                      bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+                      bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path),
+                      max_sequence_number=0)
     sstable_first_key = SSTable(meta_blocks=[meta_block], first_key=b'key2', last_key=b'key3', meta_block_offset=10,
-                                bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+                                bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path),
+                                max_sequence_number=0)
     sstable_last_key = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key4', meta_block_offset=10,
-                               bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+                               bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path),
+                               max_sequence_number=0)
     sstable_meta_block = SSTable(meta_blocks=[meta_block_other], first_key=b'key1', last_key=b'key3',
                                  meta_block_offset=10,
-                                 bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+                                 bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path),
+                                 max_sequence_number=0)
     sstable_offset = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=11,
-                             bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path))
+                             bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=temporary_sstable_path),
+                             max_sequence_number=0)
     sstable_bloom = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
-                            bloom_filter=simple_bloom_filter_2, file=SSTableFile.open(path=temporary_sstable_path))
+                            bloom_filter=simple_bloom_filter_2, file=SSTableFile.open(path=temporary_sstable_path),
+                            max_sequence_number=0)
     sstable_file = SSTable(meta_blocks=[meta_block], first_key=b'key1', last_key=b'key3', meta_block_offset=10,
-                           bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=sstable_four_blocks.file.path))
+                           bloom_filter=simple_bloom_filter, file=SSTableFile.open(path=sstable_four_blocks.file.path),
+                           max_sequence_number=0)
 
     # WHEN
     are_equal_first_key = sstable == sstable_first_key
@@ -321,3 +348,129 @@ def test_reconstruct_a_sstable_from_file(sstable_four_blocks):
 
     # THEN
     assert reconstructed_sstable == original_sstable
+
+
+def test_get_with_duplicates_returns_most_recent_one(sstable_with_duplicates, records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+
+    # WHEN
+    value = sstable.get(key=b'keyA')
+
+    # THEN
+    assert value == b'valueA3'
+
+
+def test_get_with_duplicates_returns_most_recent_one_when_on_multiple_blocks(sstable_with_duplicates,
+                                                                             records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+
+    # WHEN
+    value = sstable.get(key=b'keyC')
+
+    # THEN
+    assert value == b'valueC3'
+
+
+def test_scan_with_duplicates_returns_most_recent_one_per_key(sstable_with_duplicates,
+                                                              records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+    records = records_for_sstable_with_duplicates
+
+    # WHEN
+    scanned_records = [record for record in sstable.scan(lower=b'keyA', upper=b'keyB')]
+
+    # THEN
+    last_a_record = sorted([record for record in records if record.key == b'keyA'],
+                           key=lambda x: x.sequence_number)[-1]
+    last_b_record = sorted([record for record in records if record.key == b'keyB'],
+                           key=lambda x: x.sequence_number)[-1]
+    expected_records = [last_a_record, last_b_record]
+
+    assert scanned_records == expected_records
+
+
+def test_scan_with_duplicates_returns_most_recent_one_when_on_multiple_blocks(sstable_with_duplicates,
+                                                                              records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+    records = records_for_sstable_with_duplicates
+
+    # WHEN
+    scanned_records = [record for record in sstable.scan(lower=b'keyC', upper=b'keyD')]
+
+    # THEN
+    last_c_record = sorted([record for record in records if record.key == b'keyC'],
+                           key=lambda x: x.sequence_number)[-1]
+    last_d_record = sorted([record for record in records if record.key == b'keyD'],
+                           key=lambda x: x.sequence_number)[-1]
+    expected_records = [last_c_record, last_d_record]
+
+    assert scanned_records == expected_records
+
+
+def test_get_with_duplicates_and_snapshot_returns_most_recent_one_before_snapshot(
+        sstable_with_duplicates,
+        records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+
+    # WHEN
+    value = sstable.get(key=b'keyA', snapshot=3)
+
+    # THEN
+    assert value == b'valueA2'
+
+
+def test_get_with_duplicates_and_snapshot_returns_most_recent_one_when_on_multiple_blocks(
+        sstable_with_duplicates,
+        records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+
+    # WHEN
+    value = sstable.get(key=b'keyC', snapshot=3)
+
+    # THEN
+    assert value == b'valueC1'
+
+
+def test_scan_with_duplicates_and_snapshot_returns_most_recent_one_per_key(sstable_with_duplicates,
+                                                                           records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+    records = records_for_sstable_with_duplicates
+
+    # WHEN
+    scanned_records = [record for record in sstable.scan(lower=b'keyA', upper=b'keyB', snapshot=3)]
+
+    # THEN
+    a_record = sorted([record for record in records if record.key == b'keyA'],
+                      key=lambda x: x.sequence_number)[1]
+    b_record = sorted([record for record in records if record.key == b'keyB'],
+                      key=lambda x: x.sequence_number)[0]
+    expected_records = [a_record, b_record]
+
+    assert scanned_records == expected_records
+
+
+def test_scan_with_duplicates_and_snapshot_returns_most_recent_one_when_on_multiple_blocks(
+        sstable_with_duplicates,
+        records_for_sstable_with_duplicates):
+    # GIVEN
+    sstable = sstable_with_duplicates
+    records = records_for_sstable_with_duplicates
+
+    # WHEN
+    scanned_records = [record for record in sstable.scan(lower=b'keyC', upper=b'keyD', snapshot=5)]
+
+    # THEN
+    c_record = sorted([record for record in records if record.key == b'keyC'],
+                      key=lambda x: x.sequence_number)[1]
+    d_record = sorted([record for record in records if record.key == b'keyD'],
+                      key=lambda x: x.sequence_number)[0]
+    expected_records = [c_record, d_record]
+
+    assert scanned_records == expected_records

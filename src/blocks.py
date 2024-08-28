@@ -2,7 +2,7 @@ import struct
 from typing import Optional, Iterator
 
 from src.iterators import DataBlockIterator
-from src.record import Record
+from src.record import Record, MAX_SNAPSHOT
 
 INT_H_SIZE = 2
 
@@ -57,10 +57,11 @@ class DataBlock:
         return cls(data=encoded_records, offsets=offsets)
 
     # TODO: will need to move this to DataBlockIterator at some point I think
-    def get(self, key: Record.Key) -> Optional[Record]:
+    def get(self, key: Record.Key, snapshot: Optional[int] = None) -> Optional[Record]:
+        snapshot = MAX_SNAPSHOT if snapshot is None else snapshot
         iterator = DataBlockIterator(block=self)
         for record in iterator:
-            if record.key == key:
+            if record.key == key and record.sequence_number <= snapshot:
                 return record
         return None
 
@@ -75,8 +76,8 @@ class DataBlockBuilder:
         self.first_key = None
         self.last_key = None
 
-    def add(self, key: Record.Key, value: Record.Value) -> bool:
-        encoded_record = Record(key=key, value=value).to_bytes()
+    def add(self, record: Record) -> bool:
+        encoded_record = record.to_bytes()
         size = len(encoded_record)
 
         current_offset = self.data_length
@@ -89,8 +90,8 @@ class DataBlockBuilder:
         self.data_buffer[current_offset:new_offset] = encoded_record
         self.data_length += size
         if self.first_key is None:
-            self.first_key = key
-        self.last_key = key
+            self.first_key = record.key
+        self.last_key = record.key
 
         return True
 

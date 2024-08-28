@@ -1,43 +1,50 @@
+import random
+
 from src.blocks import DataBlockBuilder, DataBlock, MetaBlock
 from src.record import Record
+from src.sequence_number_generator import SequenceNumberGenerator
 
 
 def test_block_builder_buffer_and_offsets():
     # GIVEN
-    block_builder = DataBlockBuilder(target_size=100)
+    block_builder = DataBlockBuilder(target_size=150)
 
     # WHEN
-    block_builder.add(key=b'key1', value=b'value1')
-    block_builder.add(key=b'key2', value=b'value2')
-    block_builder.add(key=b'key3', value=b'value3')
-    block_builder.add(key=b'key4', value=b'value4')
+    block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    block_builder.add(record=Record(key=b'key2', value=b'value2'))
+    block_builder.add(record=Record(key=b'key3', value=b'value3'))
+    block_builder.add(record=Record(key=b'key4', value=b'value4'))
 
     # THEN
-    record_size = len(b'keyN') + len(b"valueN") + 4 + 4
+    record_size = len(b'keyN') + len(b"valueN") + 4 + 4 + 8
     expected_offsets = [i * record_size for i in range(4)]
     assert block_builder.offsets == expected_offsets
     expected_data_chunks = [
-        b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1',
-        b'\x04\x00\x00\x00key2\x06\x00\x00\x00value2',
-        b'\x04\x00\x00\x00key3\x06\x00\x00\x00value3',
-        b'\x04\x00\x00\x00key4\x06\x00\x00\x00value4',
+        b'\x04\x00\x00\x00key1\xff\xff\xff\xff\xff\xff\xff\xff\x06\x00\x00\x00value1',
+        b'\x04\x00\x00\x00key2\xff\xff\xff\xff\xff\xff\xff\xfe\x06\x00\x00\x00value2',
+        b'\x04\x00\x00\x00key3\xff\xff\xff\xff\xff\xff\xff\xfd\x06\x00\x00\x00value3',
+        b'\x04\x00\x00\x00key4\xff\xff\xff\xff\xff\xff\xff\xfc\x06\x00\x00\x00value4',
     ]
     assert block_builder.data_buffer[:4 * record_size] == b''.join(expected_data_chunks)
 
 
 def test_block_builder_returns_false_when_too_big():
     # GIVEN
-    block_builder = DataBlockBuilder(target_size=20)
+    record_size = len("keyN") + len(b"valueN") + 4 + 4 + 8
+    random_target_size = random.randint(record_size, 2 * record_size - 1)
+    block_builder = DataBlockBuilder(target_size=random_target_size)
+    # Note: As the target size is between that of one and two records, the first one will be added, not the second one
 
     # WHEN
-    add_key1_return = block_builder.add(key=b'key1', value=b'value1')
-    add_key2_return = block_builder.add(key=b'key2', value=b'value2')
+    add_key1_return = block_builder.add(record=Record(key=b'key1', value=b'value1'))
+    add_key2_return = block_builder.add(record=Record(key=b'key2', value=b'value2'))
 
     # THEN
     assert add_key1_return is True
     assert add_key2_return is False
     assert block_builder.offsets == [0]
-    assert block_builder.data_buffer == b'\x04\x00\x00\x00key1\x06\x00\x00\x00value1\x00\x00'
+    expected_first_record = b'\x04\x00\x00\x00key1\xff\xff\xff\xff\xff\xff\xff\xff\x06\x00\x00\x00value1'
+    assert block_builder.data_buffer[:record_size] == expected_first_record
 
 
 def test_encode_data_block():
@@ -105,15 +112,19 @@ def test_decode_meta_block():
 
 def test_get_record():
     # GIVEN
-    block_builder = DataBlockBuilder(target_size=100)
     kv_pairs = [
         (b'key1', b'value1'),
         (b'key2', b'value2'),
         (b'key3', b'value3'),
         (b'key4', b'value4'),
     ]
+    record_size = len("keyN") + len(b"valueN") + 4 + 4 + 8
+    # Note: The target size must be at least the size of the number of kv_pairs inserted
+    random_target_size = random.randint(len(kv_pairs) * record_size, (len(kv_pairs) + 1) * record_size)
+    block_builder = DataBlockBuilder(target_size=random_target_size)
+
     for key, value in kv_pairs:
-        block_builder.add(key=key, value=value)
+        block_builder.add(record=Record(key=key, value=value))
     block = block_builder.create_block()
 
     # WHEN
@@ -168,3 +179,56 @@ def test_meta_blocks_are_not_equal_if_different_offsets():
 
     # THEN
     assert are_equal is False
+
+
+def test_get_with_duplicates_returns_the_most_recent_version(data_block_with_duplicates,
+                                                             records_key1_for_data_block_with_duplicates,
+                                                             records_key3_for_data_block_with_duplicates,
+                                                             records_key5_for_data_block_with_duplicates,
+                                                             records_key7_for_data_block_with_duplicates):
+    # GIVEN
+    block = data_block_with_duplicates
+
+    # WHEN
+    record_1 = block.get(key=b'key1')
+    record_2 = block.get(key=b'key2')
+    record_3 = block.get(key=b'key3')
+    record_5 = block.get(key=b'key5')
+    record_7 = block.get(key=b'key7')
+
+    # THEN
+    assert record_1 == records_key1_for_data_block_with_duplicates[-1]
+    assert record_2 is None
+    assert record_3 == records_key3_for_data_block_with_duplicates[-1]
+    assert record_5 == records_key5_for_data_block_with_duplicates[-1]
+    assert record_7 == records_key7_for_data_block_with_duplicates[-1]
+
+
+def test_get_with_duplicates_and_snapshot_returns_the_most_recent_version_before_snapshot():
+    # GIVEN
+    record_1a = Record(key=b'1', value=b'1A')
+    record_2a = Record(key=b'2', value=b'2A')
+    record_1b = Record(key=b'1', value=b'1B')
+    record_1c = Record(key=b'1', value=b'1C')
+    record_2b = Record(key=b'2', value=b'2B')
+    record_4a = Record(key=b'4', value=b'4A')
+
+    # In reverse because they are written from most to least recent in data blocks
+    records = list(reversed([record_1a, record_2a, record_1b, record_1c, record_2b, record_4a]))
+    SequenceNumberGenerator.reset()
+    block_builder = DataBlockBuilder(target_size=len(records) * records[0].size)
+    for record in records:
+        block_builder.add(record=record)
+    block = block_builder.create_block()
+
+    # WHEN
+    record_1 = block.get(key=b'1', snapshot=2)
+    record_2 = block.get(key=b'2', snapshot=2)
+    record_3 = block.get(key=b'3', snapshot=2)
+    record_4 = block.get(key=b'4', snapshot=2)
+
+    # THEN
+    assert record_1 == record_1b
+    assert record_2 == record_2a
+    assert record_3 is None
+    assert record_4 is None

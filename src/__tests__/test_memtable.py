@@ -2,6 +2,7 @@ from unittest import mock
 
 from src.memtable import MemTable
 from src.record import Record
+from src.sequence_number_generator import SequenceNumberGenerator
 
 
 def test_can_put_and_retrieve(empty_memtable):
@@ -75,10 +76,13 @@ def test_can_recover(empty_memtable):
 def test_equal(empty_memtable, empty_memtable2):
     # GIVEN
     memtable1 = empty_memtable
-    memtable2 = empty_memtable2
     all_keys = [27, 0, 2, 30, 45, 3, 12, 25, 4, 5, 8, 50]
     for key in all_keys:
         memtable1.put(key=str(key).encode("utf-8"), value=str(key).encode(encoding="utf-8"))
+
+    SequenceNumberGenerator.reset()  # Memtables can be equal only if the same sequence numbers
+    memtable2 = empty_memtable2
+    for key in all_keys:
         memtable2.put(key=str(key).encode("utf-8"), value=str(key).encode(encoding="utf-8"))
 
     # WHEN/THEN
@@ -122,3 +126,80 @@ def test_can_recover_with_corrupted_wal(empty_memtable):
     all_records = [record for record in memtable.map]
     all_records_but_corrupted_one = all_records[:-1]
     assert resulting_records == all_records_but_corrupted_one
+
+
+def test_scan_with_sequence_numbers_returns_only_the_most_recent_one(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    keys = [b'1', b'1', b'1']
+    for key in keys:
+        memtable.put(key=key, value=key)
+
+    # WHEN
+    scanned_records = list(memtable.scan())
+
+    # THEN
+    expected_record = Record(key=b'1', value=b'1')
+    assert scanned_records == [expected_record]
+    assert scanned_records[0].sequence_number == len(keys) - 1
+
+
+def test_get_when_duplicates_returns_only_the_most_recent_one(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    key_value_pairs = [(b'1', b'1'), (b'1', b'2'), (b'1', b'3')]
+    for key, value in key_value_pairs:
+        memtable.put(key=key, value=value)
+
+    # WHEN
+    value = memtable.get(key=b'1')
+
+    # THEN
+    assert value == b'3'
+
+
+def test_get_when_duplicates_and_snapshot_returns_only_the_most_recent_one_below_snapshot(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    key_value_pairs = [(b'1', b'1'), (b'1', b'2'), (b'1', b'3')]
+    for key, value in key_value_pairs:
+        memtable.put(key=key, value=value)
+
+    # WHEN
+    value = memtable.get(key=b'1', snapshot=1)
+
+    # THEN
+    assert value == b'2'
+
+
+def test_scan_when_duplicates_returns_only_the_most_recent_one_per_key(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    records = [Record(key=b'1', value=b'1A'), Record(key=b'2', value=b'2A'), Record(key=b'1', value=b'1B'),
+               Record(key=b'1', value=b'1C'), Record(key=b'2', value=b'2B'), Record(key=b'4', value=b'4A')]
+    for record in records:
+        memtable.put(key=record.key, value=record.value)
+
+    # WHEN
+    scanned_records = list(memtable.scan(lower=b'0', upper=b'3'))
+
+    # THEN
+    expected_records = [records[3], records[4]]
+    assert scanned_records == expected_records
+
+
+def test_scan_when_duplicates_and_snapshot_returns_only_the_most_recent_one_below_snapshot_per_key(empty_memtable):
+    # GIVEN
+    memtable = empty_memtable
+    records = [Record(key=b'1', value=b'1A'), Record(key=b'2', value=b'2A'), Record(key=b'1', value=b'1B'),
+               Record(key=b'1', value=b'1C'), Record(key=b'2', value=b'2B'), Record(key=b'4', value=b'4A')]
+    SequenceNumberGenerator.reset()
+    for record in records:
+        memtable.put(key=record.key, value=record.value)
+
+    # WHEN
+    scanned_records = list(memtable.scan(lower=b'0', upper=b'3', snapshot=3))
+
+    # THEN
+    expected_records = [records[3], records[1]]
+    assert scanned_records == expected_records

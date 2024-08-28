@@ -3,11 +3,17 @@ import time
 from collections import deque
 from typing import Optional, Iterator, Deque, Type
 
-from src.iterators import MemTableIterator, MergingIterator, SSTableIterator, ConcatenatingIterator, BaseIterator
+from src.iterators import (
+    MergingIterator,
+    ConcatenatingIterator,
+    BaseIterator,
+    FlushIterator,
+    CompactSSTableIterator
+)
 from src.locks import ReadWriteLock, Mutex
 from src.manifest import Manifest, Configuration, FlushEvent, CompactionEvent
 from src.memtable import MemTable
-from src.record import Record
+from src.record import Record, MAX_SNAPSHOT
 from src.sstable import SSTableBuilder, SSTable
 
 
@@ -37,7 +43,6 @@ class LsmStorage:
                  manifest: Manifest
                  ):
         self.directory = directory
-        self._create_directory()
         self.manifest = manifest
 
         # Configuration
@@ -65,6 +70,8 @@ class LsmStorage:
                nb_levels: int = 6,
                directory: Optional[str] = ".",
                ) -> "LsmStorage":
+
+        cls._create_directory(directory=directory)
 
         configuration = Configuration(
             nb_levels=nb_levels,
@@ -168,19 +175,27 @@ class LsmStorage:
         self._try_freeze()
 
     @staticmethod
-    def _search_memtables(key: Record.Key, memtables: list[MemTable]) -> Optional[Record.Value]:
+    def _search_memtables(
+            key: Record.Key,
+            memtables: list[MemTable],
+            snapshot: int = MAX_SNAPSHOT
+    ) -> Optional[Record.Value]:
         for memtable in memtables:
-            value = memtable.get(key=key)
+            value = memtable.get(key=key, snapshot=snapshot)
             if value is not None:
                 return value
         return None
 
     @staticmethod
-    def _search_ss_tables(key: Record.Key, ss_tables: Deque[SSTable]) -> Optional[Record.Value]:
+    def _search_ss_tables(
+            key: Record.Key,
+            ss_tables: Deque[SSTable],
+            snapshot: int = MAX_SNAPSHOT
+    ) -> Optional[Record.Value]:
         for sstable in ss_tables:
             if not sstable.bloom_filter.may_contain(key=key):
                 continue
-            value = sstable.get(key=key)
+            value = sstable.get(key=key, snapshot=snapshot)
             if value is not None:
                 return value
         return None
@@ -226,9 +241,10 @@ class LsmStorage:
         path = self._compute_path()
         sstable_builder = SSTableBuilder(sstable_size=self._configuration.max_sstable_size,
                                          block_size=self._configuration.block_size)
-        memtable_iterator = MemTableIterator(memtable=memtable_to_flush)
-        for record in memtable_iterator:
-            sstable_builder.add(key=record.key, value=record.value)
+        memtable_iterator = FlushIterator(memtable=memtable_to_flush)
+        for record_versions in memtable_iterator:
+            for record in record_versions:
+                sstable_builder.add(record=record)
         sstable = sstable_builder.build(path=path)
 
         # Update state to remove oldest memtable and add new SSTable
@@ -256,9 +272,10 @@ class LsmStorage:
         timestamp_in_us = int(time.time() * 1_000_000)
         return f"{self.directory}/{timestamp_in_us}.sst"
 
-    def _create_directory(self) -> None:
-        if not os.path.exists(self.directory):
-            os.makedirs(self.directory)
+    @staticmethod
+    def _create_directory(directory: str) -> None:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
     def _compute_compacted_ss_tables(self, records_iterator: BaseIterator) -> list[SSTable]:
         """Computes the new set of compacted SSTable by iterating over all records.
@@ -269,7 +286,7 @@ class LsmStorage:
                                          block_size=self._configuration.block_size)
 
         for record in records_iterator:
-            sstable_builder.add(key=record.key, value=record.value)
+            sstable_builder.add(record=record)
 
             # Build the sstable when it exceeds the maximum size and instantiate a new builder
             if sstable_builder.current_buffer_position >= self._configuration.max_sstable_size:
@@ -291,7 +308,10 @@ class LsmStorage:
                  input_sstables: Deque[SSTable],
                  output_sstables: Deque[SSTable],
                  input_level: int,
-                 iterator_class: Type[MergingIterator] or Type[ConcatenatingIterator]) -> None:
+                 iterator_class: Type[MergingIterator] or Type[ConcatenatingIterator],
+                 snapshot: int = MAX_SNAPSHOT,
+                 **iterator_kwargs
+                 ) -> None:
         """Performs the compaction operation.
         Compaction consists in:
         - Identifying all SSTables that should be compacted
@@ -300,13 +320,15 @@ class LsmStorage:
 
         In order to allow restarts and crash recoveries, a CompactionEvent is recorded in the manifest.
         """
-
         # Create records iterator from input SSTables
         with self._locks.read_write.read():
             sstables_to_compact = [sstable for sstable in input_sstables]
-            records_iterator = iterator_class(iterators=[
-                SSTableIterator(sstable=sstable) for sstable in sstables_to_compact
-            ])
+            records_iterator = iterator_class(
+                iterators=[
+                    CompactSSTableIterator(sstable=sstable, snapshot=snapshot) for sstable in input_sstables
+                ],
+                **iterator_kwargs
+            )
 
         # Compute compacted SSTables
         new_ss_tables = self._compute_compacted_ss_tables(records_iterator=records_iterator)
